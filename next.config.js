@@ -28,6 +28,10 @@ if (publicKey) process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = publicKey;
 
 /** @type {import('next').NextConfig} */
 module.exports = {
+  // One-time policy import: bundle the PDFs in policy-import/ with the import page.
+  outputFileTracingIncludes: {
+    '/admin/import-policies': ['./policy-import/**/*'],
+  },
   env: {
     NEXT_PUBLIC_SUPABASE_URL: publicUrl,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: publicKey,
