@@ -6,7 +6,11 @@ import PrintButton from '@/app/PrintButton';
 export const metadata = { title: 'Evergreen Community Care', description: 'Supporting Growth. Building Futures.' };
 
 export default async function RootLayout({ children }) {
-  const { profile } = await getCurrentUser();
+  const { supabase, profile } = await getCurrentUser();
+  let onb = null;
+  if (profile && profile.role !== 'family') {
+    ({ data: onb } = await supabase.from('onboardings').select('status').eq('profile_id', profile.id).maybeSingle());
+  }
 
   return (
     <html lang="en">
@@ -20,6 +24,7 @@ export default async function RootLayout({ children }) {
                 : <><Link href="/portal">Portal</Link><Link href="/dashboard">Dashboard</Link><Link href="/homes">Houses</Link><Link href="/calendar">Calendar</Link><Link href="/schedule">Schedule</Link><Link href="/timesheet">Timesheet</Link></>}
               {['admin', 'manager'].includes(profile.role) && <Link href="/hr">HR</Link>}
               {profile.role === 'staff' && <Link href={`/hr/${profile.id}`}>My HR</Link>}
+              {onb && onb.status !== 'Complete' && <Link href="/onboarding" className="nav-alert">My onboarding</Link>}
               {profile.role === 'admin' && <Link href="/admin">Admin</Link>}
               <span className="muted">{profile.full_name} · {profile.role}</span>
               <PrintButton />

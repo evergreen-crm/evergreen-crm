@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { CERT_TYPES, certStatus } from '@/lib/hr';
-import { REQUIRED_TRAINING } from '@/lib/requirements';
+import { TRAINING_MATRIX } from '@/lib/onboarding';
+const REQUIRED_TRAINING = TRAINING_MATRIX.filter((t) => !t.ifApplicable);
 import { fmtDate, todayISO } from '@/lib/options';
 import {
   saveStaffDetails, addCertification, deleteCertification, addTraining, deleteTraining,
@@ -20,6 +21,10 @@ export default async function StaffHrPage({ params }) {
     supabase.from('certifications').select('*').eq('profile_id', id).order('expires_on', { ascending: true, nullsFirst: false }),
     supabase.from('trainings').select('*').eq('profile_id', id).order('completed_on', { ascending: false }),
   ]);
+  const { data: onb } = await supabase.from('onboardings').select('status').eq('profile_id', id).maybeSingle();
+  const { data: onbItems } = onb ? await supabase.from('onboarding_items').select('status').eq('profile_id', id) : { data: [] };
+  const onbDone = (onbItems ?? []).filter((i) => ['Verified', 'N/A'].includes(i.status)).length;
+  const onbWaiting = (onbItems ?? []).filter((i) => i.status === 'Submitted').length;
 
   // Staff can only open their own record (the database also enforces this).
   if (!person) notFound();
@@ -32,6 +37,22 @@ export default async function StaffHrPage({ params }) {
         {person.role} · {person.homes?.name ?? 'No home'} · {[person.email, person.phone].filter(Boolean).join(' · ')}
         {!person.active && <span className="badge bad"> Access turned off</span>}
       </p>
+
+      {/* ---------- Onboarding ---------- */}
+      <div className="card onb-card">
+        <div className="title-row">
+          <h2>Onboarding</h2>
+          {canEdit && (
+            <Link className="button" href={`/hr/${person.id}/onboarding`}>{onb ? 'Open checklist' : 'Send onboarding request'}</Link>
+          )}
+          {!canEdit && onb && <Link className="button" href="/onboarding">Open my checklist</Link>}
+        </div>
+        {onb ? (
+          <p className="small">Status: <span className="badge">{onb.status}</span> · {onbDone} of {onbItems?.length ?? 0} items complete
+            {canEdit && onbWaiting > 0 && <> · <span className="badge warn">{onbWaiting} waiting for review</span></>}</p>
+        ) : <p className="muted small">No onboarding checklist yet.</p>}
+        <p className="small"><Link href={`/hr/${person.id}/certificates`}>🏅 Print all training certificates</Link></p>
+      </div>
 
       {/* ---------- Details ---------- */}
       <h2>Details</h2>
@@ -145,20 +166,21 @@ export default async function StaffHrPage({ params }) {
           );
         })}
       </ul>
-      <p className="muted small">From Evergreen's MCFD policy 5.3. Record completions below using the exact training name.</p>
+      <p className="muted small">From Evergreen’s training matrix (Standard G.3). Items that only apply to some roles (OFA 2, medication, working alone, driving) are tracked in onboarding. Record completions below using the exact training name.</p>
 
       {/* ---------- Training ---------- */}
       <h2>Training</h2>
       {trainings?.length === 0 && <p className="muted">No training recorded.</p>}
       {trainings?.length > 0 && (
         <table>
-          <thead><tr><th>Training</th><th>Completed</th><th>Hours</th>{canEdit && <th></th>}</tr></thead>
+          <thead><tr><th>Training</th><th>Completed</th><th>Hours</th><th>Certificate</th>{canEdit && <th></th>}</tr></thead>
           <tbody>
             {trainings.map((t) => (
               <tr key={t.id}>
                 <td>{t.title}{t.notes && <div className="muted small">{t.notes}</div>}</td>
                 <td>{t.completed_on}</td>
                 <td>{t.hours ?? '—'}</td>
+                <td><Link href={`/hr/certificate/${t.id}`}>🏅 View</Link></td>
                 {canEdit && (
                   <td>
                     <form action={deleteTraining}>

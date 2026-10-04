@@ -90,6 +90,21 @@ export default async function Dashboard() {
 
   if (pendingTime?.length) alerts.push({ level: 'warn', text: `${pendingTime.length} timesheet entr${pendingTime.length > 1 ? 'ies' : 'y'} waiting for approval`, href: '/timesheet' });
 
+  // Onboarding
+  const { data: myOnb } = await supabase.from('onboardings').select('status').eq('profile_id', profile.id).maybeSingle();
+  if (myOnb && myOnb.status !== 'Complete') alerts.push({ level: 'warn', text: 'Finish your onboarding checklist', href: '/onboarding' });
+  if (isMgr) {
+    const { data: waiting } = await supabase.from('onboarding_items').select('profile_id, profiles:profile_id(full_name)').eq('status', 'Submitted');
+    const byPerson = {};
+    for (const w of waiting ?? []) { const k = w.profile_id; byPerson[k] = byPerson[k] ?? { n: 0, name: w.profiles?.full_name }; byPerson[k].n++; }
+    for (const [pid, v] of Object.entries(byPerson)) alerts.push({ level: 'warn', text: `${v.name ?? 'Staff'}: ${v.n} onboarding item${v.n > 1 ? 's' : ''} to review`, href: `/hr/${pid}/onboarding` });
+    const { data: overdueOnb } = await supabase.from('onboarding_items').select('profile_id, profiles:profile_id(full_name)')
+      .in('status', ['To do', 'Returned']).lt('due_date', today);
+    const od = {};
+    for (const w of overdueOnb ?? []) { od[w.profile_id] = od[w.profile_id] ?? { n: 0, name: w.profiles?.full_name }; od[w.profile_id].n++; }
+    for (const [pid, v] of Object.entries(od)) alerts.push({ level: 'bad', text: `${v.name ?? 'Staff'}: ${v.n} onboarding item${v.n > 1 ? 's' : ''} overdue`, href: `/hr/${pid}/onboarding` });
+  }
+
   alerts.sort((a, b) => (a.level === b.level ? 0 : a.level === 'bad' ? -1 : 1));
   const bad = alerts.filter((a) => a.level === 'bad').length;
 
