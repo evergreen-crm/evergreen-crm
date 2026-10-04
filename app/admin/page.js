@@ -1,6 +1,8 @@
 // Admin: give each person access, turn access off, add homes and residents.
 import { requireUser } from '@/lib/auth';
 import { inviteUser, setUserActive, addHome, addResident } from '@/app/actions';
+import Link from 'next/link';
+import StorageUsage from './StorageUsage';
 
 export default async function AdminPage({ searchParams }) {
   const { supabase, user } = await requireUser(['admin']);
@@ -17,6 +19,9 @@ export default async function AdminPage({ searchParams }) {
       <h1>Admin</h1>
       {ok && <p className="message ok">{ok}</p>}
       {error && <p className="message">{error}</p>}
+
+      <StorageUsage supabase={supabase} />
+      <p className="small"><Link href="/admin/import-policies">📘 Policy manual import / compress</Link></p>
 
       {/* ---------- Give a person access ---------- */}
       <form action={inviteUser} className="card">

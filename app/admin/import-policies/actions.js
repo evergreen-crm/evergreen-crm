@@ -54,3 +54,28 @@ export async function importOne(index) {
   revalidatePath('/policies');
   return { ok: true, message: `${m.title} v${m.version}${newer ? '' : ' (kept in history)'}` };
 }
+
+// Swap each imported manual for its compressed copy (same version, smaller file). Safe to run again.
+export async function compressOne(index) {
+  const { supabase } = await requireUser(['admin']);
+  const list = JSON.parse(await fs.readFile(path.join(DIR, 'manifest.json'), 'utf8'));
+  const m = list[index];
+  if (!m) return { error: 'Not found' };
+  let q = supabase.from('policies').select('id');
+  q = m.code ? q.eq('code', m.code) : q.eq('title', m.title);
+  const { data: pol } = await q.maybeSingle();
+  if (!pol) return { error: 'Not imported yet' };
+  const { data: v } = await supabase.from('policy_versions').select('id, file_path')
+    .eq('policy_id', pol.id).eq('version_label', m.version).maybeSingle();
+  if (!v) return { error: `Version ${m.version} not found` };
+  const newPath = `import/c/${m.file}`;
+  if (v.file_path === newPath) return { skipped: true, message: 'already compressed' };
+  const bytes = await fs.readFile(path.join(DIR, m.file));
+  const { error: upErr } = await supabase.storage.from('policies').upload(newPath, bytes, { contentType: 'application/pdf' });
+  if (upErr && !/exists|duplicate/i.test(upErr.message)) return { error: `Upload failed: ${upErr.message}` };
+  const { error } = await supabase.from('policy_versions').update({ file_path: newPath, file_name: m.file }).eq('id', v.id);
+  if (error) return { error: error.message };
+  if (v.file_path && v.file_path !== newPath) await supabase.storage.from('policies').remove([v.file_path]);
+  revalidatePath('/policies');
+  return { ok: true, message: `compressed to ${Math.round(bytes.length / 1024)} KB` };
+}

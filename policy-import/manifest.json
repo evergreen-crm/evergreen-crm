@@ -1,15 +1,16 @@
 [
  {
-  "file": "ECC-HR-POL-2026-001_v1.0.pdf",
+  "file": "ECC-HR-POL-2026-001_v3.0.pdf",
   "title": "HR Policy Binder",
   "code": "ECC-HR-POL-2026-001",
-  "version": "1.0",
+  "version": "3.0",
   "effective": "2026-07-01",
   "applies_to": "Both",
   "category": "HR",
   "require_signature": true,
   "description": "Employment policies for all employees, contractors and volunteers.",
-  "pages": 132
+  "pages": 132,
+  "bytes": 422543
  },
  {
   "file": "ECC-WH-2026-001_v1.0.pdf",
@@ -21,7 +22,8 @@
   "category": "HR",
   "require_signature": true,
   "description": "Day-to-day expectations for every worker.",
-  "pages": 34
+  "pages": 34,
+  "bytes": 148196
  },
  {
   "file": "ECC-OHS-POL-2026-002_v2.0.pdf",
@@ -33,7 +35,8 @@
   "category": "OHS / safety",
   "require_signature": true,
   "description": "Occupational health and safety program (WorkSafeBC).",
-  "pages": 119
+  "pages": 119,
+  "bytes": 475982
  },
  {
   "file": "ECC-RC-POL-2026-003_v3.0.pdf",
@@ -45,7 +48,8 @@
   "category": "Program / residential care",
   "require_signature": true,
   "description": "Earlier version kept for history.",
-  "pages": 107
+  "pages": 107,
+  "bytes": 393857
  },
  {
   "file": "ECC-RC-POL-2026-003_v4.0.pdf",
@@ -57,7 +61,8 @@
   "category": "Program / residential care",
   "require_signature": true,
   "description": "Residential care policy for children and youth in MCFD care (SHSS Standards).",
-  "pages": 102
+  "pages": 102,
+  "bytes": 380063
  },
  {
   "file": "ECC-ORI-2026-001_v1.0.pdf",
@@ -69,7 +74,8 @@
   "category": "Program / residential care",
   "require_signature": true,
   "description": "Orientation for new Youth Care Workers and Residential Support Workers.",
-  "pages": 34
+  "pages": 34,
+  "bytes": 191141
  },
  {
   "file": "ECC-STAFF-BND-2026-001_v1.0.pdf",
@@ -81,7 +87,8 @@
   "category": "Program / residential care",
   "require_signature": true,
   "description": "For Child & Youth Care Workers, Shift Leads, casuals and students.",
-  "pages": 11
+  "pages": 11,
+  "bytes": 257344
  },
  {
   "file": "ECC-SHSS-DUTY-2026-001-CYW_v1.0.pdf",
@@ -93,7 +100,8 @@
   "category": "Job descriptions",
   "require_signature": true,
   "description": "CYW duties and due dates under MCFD SHSS.",
-  "pages": 10
+  "pages": 10,
+  "bytes": 86725
  },
  {
   "file": "ECC-BSP-2026-001_v1.0.pdf",
@@ -105,7 +113,8 @@
   "category": "Program / residential care",
   "require_signature": true,
   "description": "Positive behaviour support; also governs restrictive practices for CLBC adults.",
-  "pages": 67
+  "pages": 67,
+  "bytes": 259734
  },
  {
   "file": "ECC-RS-2026-001_v1.0.pdf",
@@ -117,7 +126,8 @@
   "category": "Program / residential care",
   "require_signature": true,
   "description": "MCFD stream only — children and youth.",
-  "pages": 16
+  "pages": 16,
+  "bytes": 113155
  },
  {
   "file": "ECC-RS-POL-2026-001_v1.0.pdf",
@@ -129,7 +139,8 @@
   "category": "Program / residential care",
   "require_signature": true,
   "description": "Labelled CLBC from the file name — please check the 'Applies To' line inside the document.",
-  "pages": 10
+  "pages": 10,
+  "bytes": 65802
  },
  {
   "file": "ECC-MED-2026-001_v1.0.pdf",
@@ -141,7 +152,8 @@
   "category": "Program / residential care",
   "require_signature": true,
   "description": "For all staff authorized to administer medications.",
-  "pages": 69
+  "pages": 69,
+  "bytes": 254066
  },
  {
   "file": "ECC-HCC-2026-001_v1.0.pdf",
@@ -153,7 +165,8 @@
   "category": "Program / residential care",
   "require_signature": true,
   "description": "Health care decisions and consent — MCFD and CLBC programs.",
-  "pages": 14
+  "pages": 14,
+  "bytes": 104459
  },
  {
   "file": "ECC-IIME-2026-001_v1.0.pdf",
@@ -165,7 +178,8 @@
   "category": "OHS / safety",
   "require_signature": true,
   "description": "Wellness monitoring, illness and injury response, medical emergencies.",
-  "pages": 28
+  "pages": 28,
+  "bytes": 163499
  },
  {
   "file": "ECC-NIP-2026-001_v1.0.pdf",
@@ -177,7 +191,8 @@
   "category": "OHS / safety",
   "require_signature": true,
   "description": "Nutrition, illness and infection prevention.",
-  "pages": 33
+  "pages": 33,
+  "bytes": 184370
  },
  {
   "file": "ECC-SOS-2026-001_v1.0.pdf",
@@ -189,7 +204,8 @@
   "category": "Program / residential care",
   "require_signature": true,
   "description": "Daily program schedule for MCFD and CLBC homes.",
-  "pages": 14
+  "pages": 14,
+  "bytes": 102510
  },
  {
   "file": "ECC-CSGA-2026-001_v1.0.pdf",
@@ -201,7 +217,8 @@
   "category": "Program / residential care",
   "require_signature": true,
   "description": "Cultural safety and humility, anti-racism, gender-affirming care.",
-  "pages": 33
+  "pages": 33,
+  "bytes": 178031
  },
  {
   "file": "ECC-ACCESS-POL-2026-001_v1.1.pdf",
@@ -213,7 +230,8 @@
   "category": "HR",
   "require_signature": true,
   "description": "Accessible BC Act; adds MCFD/CLBC/COA cross-reference (v1.1).",
-  "pages": 12
+  "pages": 12,
+  "bytes": 71866
  },
  {
   "file": "ECC-IT-2026-001_v1.0.pdf",
@@ -225,7 +243,8 @@
   "category": "Privacy",
   "require_signature": true,
   "description": "Use of agency devices, networks and accounts.",
-  "pages": 20
+  "pages": 20,
+  "bytes": 111037
  },
  {
   "file": "ECC-REC-POL-2026-001_v1.0.pdf",
@@ -237,7 +256,8 @@
   "category": "Privacy",
   "require_signature": true,
   "description": "Keeping, storing and destroying records.",
-  "pages": 8
+  "pages": 8,
+  "bytes": 74726
  },
  {
   "file": "ECC-EP-2026-001_v1.0.pdf",
@@ -249,7 +269,8 @@
   "category": "OHS / safety",
   "require_signature": true,
   "description": "Emergency procedures for all residential programs.",
-  "pages": 77
+  "pages": 77,
+  "bytes": 286365
  },
  {
   "file": "ECC-EP-2026-002_v2.0.pdf",
@@ -261,7 +282,8 @@
   "category": "OHS / safety",
   "require_signature": true,
   "description": "Group home programs for children and youth.",
-  "pages": 107
+  "pages": 107,
+  "bytes": 390797
  },
  {
   "file": "ECC-PC-MAN-2026-001_v1.0.pdf",
@@ -273,7 +295,8 @@
   "category": "Job descriptions",
   "require_signature": false,
   "description": "For Program Coordinators.",
-  "pages": 56
+  "pages": 56,
+  "bytes": 225551
  },
  {
   "file": "ECC-PM-MAN-2026-001_v1.0.pdf",
@@ -285,7 +308,8 @@
   "category": "Job descriptions",
   "require_signature": false,
   "description": "For Program Managers.",
-  "pages": 61
+  "pages": 61,
+  "bytes": 242971
  },
  {
   "file": "ECC-SHSS-DUTY-2026-001-PC_v1.0.pdf",
@@ -297,7 +321,8 @@
   "category": "Job descriptions",
   "require_signature": false,
   "description": "PC duties and due dates.",
-  "pages": 6
+  "pages": 6,
+  "bytes": 74309
  },
  {
   "file": "ECC-SHSS-DUTY-2026-001-PM_v1.0.pdf",
@@ -309,7 +334,8 @@
   "category": "Job descriptions",
   "require_signature": false,
   "description": "PM duties and due dates.",
-  "pages": 6
+  "pages": 6,
+  "bytes": 74004
  },
  {
   "file": "ECC-SHSS-DUTY-2026-001-ED_v1.0.pdf",
@@ -321,7 +347,8 @@
   "category": "Job descriptions",
   "require_signature": false,
   "description": "ED duties and due dates.",
-  "pages": 7
+  "pages": 7,
+  "bytes": 74737
  },
  {
   "file": "ECC-SHSS-DUTY-2026-001_v1.0.pdf",
@@ -333,7 +360,8 @@
   "category": "Quality assurance",
   "require_signature": false,
   "description": "All PC/PM duties under the SHSS Standards.",
-  "pages": 14
+  "pages": 14,
+  "bytes": 114498
  },
  {
   "file": "ECC-MED-2026-001-IMP-PC_v1.0.pdf",
@@ -345,7 +373,8 @@
   "category": "Quality assurance",
   "require_signature": false,
   "description": "Companion to the Medication Administration Manual.",
-  "pages": 6
+  "pages": 6,
+  "bytes": 89354
  },
  {
   "file": "ECC-MED-2026-001-IMP-PM_v1.0.pdf",
@@ -357,7 +386,8 @@
   "category": "Quality assurance",
   "require_signature": false,
   "description": "Companion to the Medication Administration Manual.",
-  "pages": 6
+  "pages": 6,
+  "bytes": 87093
  },
  {
   "file": "ECC-MED-2026-001-IMP_v1.0.pdf",
@@ -369,7 +399,8 @@
   "category": "Quality assurance",
   "require_signature": false,
   "description": "Implementing the Medication Administration Manual.",
-  "pages": 9
+  "pages": 9,
+  "bytes": 116044
  },
  {
   "file": "ECC-FIN-2026-001_v2.0.pdf",
@@ -381,7 +412,8 @@
   "category": "Finance",
   "require_signature": false,
   "description": "Board, ED and finance roles.",
-  "pages": 47
+  "pages": 47,
+  "bytes": 211801
  },
  {
   "file": "ECC-FIN-POL-2026-001_v1.0.pdf",
@@ -393,7 +425,8 @@
   "category": "Finance",
   "require_signature": false,
   "description": "Financial policies for all programs.",
-  "pages": 10
+  "pages": 10,
+  "bytes": 77926
  },
  {
   "file": "ECC-INS-REG-2026-001_v1.0.pdf",
@@ -405,7 +438,8 @@
   "category": "Finance",
   "require_signature": false,
   "description": "Insurance coverage register.",
-  "pages": 7
+  "pages": 7,
+  "bytes": 71303
  },
  {
   "file": "ECC-GC-2026-001_v1.0.pdf",
@@ -417,7 +451,8 @@
   "category": "Other",
   "require_signature": false,
   "description": "Board governance, risk, ethics and privacy governance.",
-  "pages": 13
+  "pages": 13,
+  "bytes": 90523
  },
  {
   "file": "ECC-DIV-2026-001_v1.0.pdf",
@@ -429,7 +464,8 @@
   "category": "Other",
   "require_signature": false,
   "description": "The seven operational divisions.",
-  "pages": 26
+  "pages": 26,
+  "bytes": 165587
  },
  {
   "file": "Master_Policy_Register_v3.0.pdf",
@@ -441,7 +477,8 @@
   "category": "Quality assurance",
   "require_signature": false,
   "description": "Complete document inventory — all 11 governance domains.",
-  "pages": 4
+  "pages": 4,
+  "bytes": 75880
  },
  {
   "file": "ECC-POL-REG-2026-001_v1.0.pdf",
@@ -453,7 +490,8 @@
   "category": "Quality assurance",
   "require_signature": false,
   "description": "Checklist of all policy manuals.",
-  "pages": 12
+  "pages": 12,
+  "bytes": 104637
  },
  {
   "file": "ECC-REQREG-2026-001_v1.1.pdf",
@@ -465,7 +503,8 @@
   "category": "Quality assurance",
   "require_signature": false,
   "description": "Signed version (kept in history).",
-  "pages": 7
+  "pages": 7,
+  "bytes": 92924
  },
  {
   "file": "ECC-REQREG-2026-001_v1.2.pdf",
@@ -477,7 +516,8 @@
   "category": "Quality assurance",
   "require_signature": false,
   "description": "Newest register: 79 manuals and binders across 11 domains, with 2025-2026 updates.",
-  "pages": 8
+  "pages": 8,
+  "bytes": 104211
  },
  {
   "file": "ECC-12BED-2026-001_v1.0.pdf",
@@ -489,7 +529,8 @@
   "category": "Program / residential care",
   "require_signature": false,
   "description": "Opening and running 1–2 bed homes.",
-  "pages": 9
+  "pages": 9,
+  "bytes": 267936
  },
  {
   "file": "ECC-NEWPGM-2026-001_v1.0.pdf",
@@ -501,7 +542,8 @@
   "category": "Program / residential care",
   "require_signature": false,
   "description": "Checklist for opening a new MCFD program.",
-  "pages": 11
+  "pages": 11,
+  "bytes": 99269
  },
  {
   "file": "Quality_Assurance_Manual_-_Residential_Care_v1.0.pdf",
@@ -513,7 +555,8 @@
   "category": "Quality assurance",
   "require_signature": false,
   "description": "Quality assurance for residential care.",
-  "pages": 31
+  "pages": 31,
+  "bytes": 119378
  },
  {
   "file": "MCFD_Quality_Assurance_Binder_-_Child_and_Youth_v1.0.pdf",
@@ -525,6 +568,7 @@
   "category": "Quality assurance",
   "require_signature": false,
   "description": "Compliance calendar, licensing, critical incidents.",
-  "pages": 40
+  "pages": 40,
+  "bytes": 149437
  }
 ]
