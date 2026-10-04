@@ -165,6 +165,10 @@ create table if not exists policy_acks (
   signed_at          timestamptz not null default now(),
   unique (policy_version_id, profile_id)
 );
+-- Link a policy to its current version (needed by the Policies pages)
+alter table policies drop constraint if exists policies_current_version_fk;
+alter table policies add constraint policies_current_version_fk foreign key (current_version_id) references policy_versions(id) on delete set null;
+
 alter table policies enable row level security;
 alter table policy_versions enable row level security;
 alter table policy_acks enable row level security;
