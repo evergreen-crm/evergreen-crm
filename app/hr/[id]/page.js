@@ -83,7 +83,7 @@ export default async function StaffHrPage({ params, searchParams }) {
           <h2>Digital ID card</h2>
           <Link className="button secondary" href={canEdit ? `/id?person=${person.id}` : '/id'}>Open card</Link>
         </div>
-        {sp.idmsg && <p className="message">{sp.idmsg}</p>}
+        {sp.idmsg && <p className={`message ${sp.idok ? 'ok' : ''}`}>{sp.idmsg}</p>}
         {(() => {
           const st = cardStatus({ card: idCard, details, active: person.active, today: todayISO() });
           return (
@@ -111,15 +111,22 @@ export default async function StaffHrPage({ params, searchParams }) {
                   </div>
                 )}
                 {canEdit && idCard?.photo_status === 'Pending' && (
-                  <form action={reviewIdPhoto} className="row">
+                  <form action={reviewIdPhoto} className="id-step">
+                    <p className="small"><strong>Step 1 – check the photo</strong> (left). If it’s clear, approve and issue the card in one step.</p>
                     <input type="hidden" name="profile_id" value={person.id} />
-                    <input name="note" placeholder="Note (needed to send back)" />
-                    <button name="decision" value="approve">✓ Approve photo</button>
-                    <button name="decision" value="return" className="secondary">Ask for new photo</button>
+                    <div className="row">
+                      <label>Card valid for<select name="months" defaultValue="12"><option value="12">1 year</option><option value="24">2 years</option><option value="6">6 months</option></select></label>
+                      <button name="decision" value="approve_issue">✓ Approve photo &amp; issue card</button>
+                    </div>
+                    <div className="row">
+                      <input name="note" placeholder="What to fix (e.g., face too small, too dark)" />
+                      <button name="decision" value="return" className="secondary">Ask for a new photo</button>
+                    </div>
                   </form>
                 )}
+                {canEdit && idCard?.photo_status === 'Returned' && <p className="small muted">Waiting for {person.full_name} to send a new photo.</p>}
                 {canEdit && idCard?.photo_status === 'Approved' && (
-                  <form action={issueIdCard} className="row">
+                  <form action={issueIdCard} className="row id-step">
                     <input type="hidden" name="profile_id" value={person.id} />
                     <label>Valid for<select name="months" defaultValue="12"><option value="12">1 year</option><option value="24">2 years</option><option value="6">6 months</option></select></label>
                     <button>{idCard.issued_on ? 'Renew card from today' : 'Issue card'}</button>

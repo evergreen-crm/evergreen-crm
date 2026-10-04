@@ -87,15 +87,24 @@ export async function reviewIdPhoto(formData) {
       ? { photo_path: card.new_photo_path, photo_status: 'Approved', photo_note: null, new_photo_path: null, new_photo_status: null, new_photo_note: null }
       : { new_photo_status: 'Returned', new_photo_note: note };
   } else {
-    patch = { photo_status: decision === 'approve' ? 'Approved' : 'Returned', photo_note: note };
+    patch = { photo_status: decision === 'return' ? 'Returned' : 'Approved', photo_note: decision === 'return' ? note : null };
+    if (decision === 'approve_issue') {
+      const today = todayISO();
+      const months = Number(text(formData, 'months') ?? CARD_VALID_MONTHS) || CARD_VALID_MONTHS;
+      patch.issued_on = today;
+      patch.expires_on = addMonthsISO(today, months);
+    }
   }
   const { error } = await supabase.from('id_cards').update(patch).eq('profile_id', pid);
-  if (error) throw new Error('Could not save: ' + error.message);
+  if (error) redirect(`/hr/${pid}?idmsg=${encodeURIComponent('Could not save: ' + error.message)}#id-card`);
   // Remove the old photo file once a replacement is approved (keeps storage small).
   if (patch.new_photo_path === null && card?.photo_path && card.photo_path !== card.new_photo_path) {
     await supabase.storage.from('id-photos').remove([card.photo_path]);
   }
   refresh(pid);
+  const done = decision === 'return' ? 'Sent back — they’ll be asked for a new photo.'
+    : decision === 'approve_issue' ? 'Photo approved and ID card issued.' : 'Photo approved.';
+  redirect(`/hr/${pid}?idok=1&idmsg=${encodeURIComponent(done)}#id-card`);
 }
 
 export async function issueIdCard(formData) {
@@ -107,8 +116,9 @@ export async function issueIdCard(formData) {
   if (card?.photo_status !== 'Approved') redirect(`/hr/${pid}?idmsg=${encodeURIComponent('Approve a photo before issuing the card.')}#id-card`);
   const { error } = await supabase.from('id_cards')
     .update({ issued_on: today, expires_on: addMonthsISO(today, months) }).eq('profile_id', pid);
-  if (error) throw new Error('Could not issue card: ' + error.message);
+  if (error) redirect(`/hr/${pid}?idmsg=${encodeURIComponent('Could not issue card: ' + error.message)}#id-card`);
   refresh(pid);
+  redirect(`/hr/${pid}?idok=1&idmsg=${encodeURIComponent('ID card issued.')}#id-card`);
 }
 
 // Lost phone / printed card: a new QR code, and the old one stops working.
