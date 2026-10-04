@@ -9,12 +9,25 @@ import { programsFor } from '@/lib/requirements';
 import Requirements from './Requirements';
 import Incidents from './Incidents';
 import PrintButton from '@/app/PrintButton';
+import Mar from './Mar';
+import Goals from './Goals';
+import Logs from './Logs';
+import Money from './Money';
+import Documents from './Documents';
+import Messages from './Messages';
+import EntryList from '@/app/components/EntryList';
 
 const TABS = [
   { key: 'overview', label: 'Overview', family: true },
   { key: 'notes', label: 'Daily notes', family: true },
-  { key: 'requirements', label: 'Requirements' },
+  { key: 'mar', label: 'Medications (MAR)' },
+  { key: 'goals', label: 'Goals', family: true },
+  { key: 'logs', label: 'Logs' },
+  { key: 'money', label: 'Money' },
   { key: 'incidents', label: 'Incidents' },
+  { key: 'requirements', label: 'Requirements' },
+  { key: 'documents', label: 'Documents' },
+  { key: 'messages', label: 'Messages', family: true },
   { key: 'all', label: 'Full file (print)' },
 ];
 
@@ -25,9 +38,11 @@ function Fact({ label, value }) {
 
 export default async function ResidentPage({ params, searchParams }) {
   const { id } = await params;
-  const tab = (await searchParams).tab ?? 'overview';
+  const sp = await searchParams;
+  const tab = sp.tab ?? 'overview';
   const { supabase, user, profile } = await requireUser();
   const isStaff = ['admin', 'manager', 'staff'].includes(profile.role);
+  const isAdmin = profile.role === 'admin';
 
   const canEdit = ['admin', 'manager'].includes(profile.role);
   const { data: resident } = await supabase
@@ -38,6 +53,14 @@ export default async function ResidentPage({ params, searchParams }) {
 
   // Not allowed to see them = looks the same as not existing.
   if (!resident) notFound();
+
+  const { count: unreadMsgs } = await supabase.from('messages').select('id', { count: 'exact', head: true })
+    .eq('resident_id', id).is('read_at', null)
+    [isStaff ? 'eq' : 'neq']('sender_role', 'family');
+
+  const { data: shared } = isStaff ? { data: null } : await supabase.from('entries')
+    .select('*').eq('resident_id', id).eq('share_with_family', true)
+    .order('entry_date', { ascending: false }).limit(30);
 
   const { data: appts } = await supabase
     .from('appointments')
@@ -76,7 +99,9 @@ export default async function ResidentPage({ params, searchParams }) {
 
       <nav className="tabs-bar no-print">
         {TABS.filter((t) => isStaff || t.family).map((t) => (
-          <Link key={t.key} href={`/residents/${id}?tab=${t.key}`} className={tab === t.key ? 'on' : ''}>{t.label}</Link>
+          <Link key={t.key} href={`/residents/${id}?tab=${t.key}`} className={tab === t.key ? 'on' : ''}>
+            {t.label}{t.key === 'messages' && unreadMsgs > 0 && <span className="badge bad"> {unreadMsgs}</span>}
+          </Link>
         ))}
       </nav>
       {tab === 'all' && <p className="muted small print-only">Full resident file printed {new Date().toLocaleString('en-CA', { timeZone: TZ })}</p>}
@@ -116,6 +141,12 @@ export default async function ResidentPage({ params, searchParams }) {
                   </li>
                 ))}
               </ul>
+            </>
+          )}
+          {!isStaff && (
+            <>
+              <h2>Updates from the team</h2>
+              <EntryList entries={shared} empty="No shared updates yet." />
             </>
           )}
           {isStaff && resident.homes && (
@@ -215,6 +246,38 @@ export default async function ResidentPage({ params, searchParams }) {
         </section>
       )}
 
+      {isStaff && (tab === 'mar' || tab === 'all') && (
+        <>
+          {tab === 'all' && <h2 className="page-break">Medications (MAR)</h2>}
+          <Mar supabase={supabase} resident={resident} canEdit={canEdit} date={sp.mdate} />
+        </>
+      )}
+
+      {(tab === 'goals' || (isStaff && tab === 'all')) && (
+        <>
+          {tab === 'all' && <h2 className="page-break">Goals</h2>}
+          <Goals supabase={supabase} resident={resident} canEdit={canEdit} isStaff={isStaff} isAdmin={isAdmin} />
+        </>
+      )}
+
+      {isStaff && (tab === 'logs' || tab === 'all') && (
+        <>
+          {tab === 'all' && <h2 className="page-break">Logs</h2>}
+          <Logs supabase={supabase} resident={resident} type={sp.type} isAdmin={isAdmin} />
+        </>
+      )}
+
+      {isStaff && (tab === 'money' || tab === 'all') && (
+        <>
+          {tab === 'all' && <h2 className="page-break">Money</h2>}
+          <Money supabase={supabase} resident={resident} isAdmin={isAdmin} />
+        </>
+      )}
+
+      {isStaff && tab === 'documents' && <Documents supabase={supabase} resident={resident} canEdit={canEdit} />}
+
+      {tab === 'messages' && <Messages supabase={supabase} resident={resident} user={user} isFamily={!isStaff} />}
+
       {isStaff && (tab === 'requirements' || tab === 'all') && (
         <>
           {tab === 'all' && <h2 className="page-break">Requirements</h2>}
@@ -225,7 +288,7 @@ export default async function ResidentPage({ params, searchParams }) {
       {isStaff && (tab === 'incidents' || tab === 'all') && (
         <>
           {tab === 'all' && <h2 className="page-break">Incidents</h2>}
-          <Incidents supabase={supabase} resident={resident} program={programsFor(resident)[0]?.key ?? 'mcfd'} />
+          <Incidents supabase={supabase} resident={resident} program={programsFor(resident)[0]?.key ?? 'mcfd'} cls={sp.class} />
         </>
       )}
 

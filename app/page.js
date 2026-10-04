@@ -1,11 +1,11 @@
-// Home: staff/managers/admins start at Houses; families see their family member.
+// Home: staff/managers/admins start at the Dashboard; families see their family member.
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 
 export default async function HomePage() {
   const { supabase, profile } = await requireUser();
-  if (profile.role !== 'family') redirect('/homes');
+  if (profile.role !== 'family') redirect('/dashboard');
 
   const { data: residents } = await supabase
     .from('residents').select('id, first_name, last_name, homes(name)').order('last_name');

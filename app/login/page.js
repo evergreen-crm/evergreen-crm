@@ -63,7 +63,7 @@ export default function LoginPage() {
 
   return (
     <main className="login">
-      <h1>Evergreen</h1>
+      <img src="/logo.png" alt="Evergreen Community Care" className="login-logo" />
       <p className="muted">Sign in with a code sent to your email or cell phone.</p>
 
       {step === 'enter-contact' && (

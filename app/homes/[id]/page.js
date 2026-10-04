@@ -4,10 +4,12 @@ import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { HOUSE_TYPES, fmtDate, fmtTime, todayISO, age, daysUntil } from '@/lib/options';
 import { updateHome } from '@/app/homes/actions';
+import EntryForm from '@/app/components/EntryForm';
+import EntryList from '@/app/components/EntryList';
 
 export default async function HomePage({ params, searchParams }) {
   const { id } = await params;
-  const { edit } = await searchParams;
+  const { edit, tab = 'residents' } = await searchParams;
   const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
   const canEdit = ['admin', 'manager'].includes(profile.role);
 
@@ -23,6 +25,18 @@ export default async function HomePage({ params, searchParams }) {
       .order('appt_date').order('start_time').limit(8),
   ]);
   if (!home) notFound();
+
+  const path = `/homes/${id}`;
+  const isAdmin = profile.role === 'admin';
+  const kinds = tab === 'commbook' ? ['commbook'] : tab === 'safety' ? ['fire_drill', 'safety_check'] : null;
+  const { data: houseEntries } = kinds
+    ? await supabase.from('entries').select('*, author:created_by(full_name)').eq('home_id', id).in('kind', kinds)
+      .order('entry_date', { ascending: false }).order('entry_time', { ascending: false, nullsFirst: false }).limit(150)
+    : { data: null };
+  const { data: lastDrill } = await supabase.from('entries').select('entry_date')
+    .eq('home_id', id).eq('kind', 'fire_drill').order('entry_date', { ascending: false }).limit(1).maybeSingle();
+  const drillThisMonth = lastDrill?.entry_date?.slice(0, 7) === today.slice(0, 7);
+  const TABS = [['residents', 'Residents'], ['commbook', 'Communication book'], ['safety', 'Fire drills & safety']];
 
   const current = residents?.filter((r) => r.status !== 'discharged') ?? [];
   const past = residents?.filter((r) => r.status === 'discharged') ?? [];
@@ -64,6 +78,30 @@ export default async function HomePage({ params, searchParams }) {
         </form>
       )}
 
+      {!drillThisMonth && <p className="alert">No fire drill recorded yet this month{lastDrill ? ` (last one ${fmtDate(lastDrill.entry_date)})` : ''}.</p>}
+      <nav className="tabs-bar no-print">
+        {TABS.map(([k, label]) => <Link key={k} href={`${path}?tab=${k}`} className={tab === k ? 'on' : ''}>{label}</Link>)}
+        <Link href={`/schedule?home=${id}`}>Schedule →</Link>
+      </nav>
+
+      {tab === 'commbook' && (
+        <section>
+          <p className="muted small">Read this at the start of every shift. Important messages stay highlighted.</p>
+          <EntryForm kind="commbook" homeId={id} path={path} title="Write in the communication book" open />
+          <EntryList entries={houseEntries} path={path} isAdmin={isAdmin} empty="No messages yet." />
+        </section>
+      )}
+
+      {tab === 'safety' && (
+        <section>
+          <p className="muted small">Fire drills: at least once a month, including some during sleeping hours. Record every safety check and any repairs needed.</p>
+          <EntryForm kind="fire_drill" homeId={id} path={path} title="Record a fire drill" />
+          <EntryForm kind="safety_check" homeId={id} path={path} title="Record a safety check" />
+          <EntryList entries={houseEntries} path={path} isAdmin={isAdmin} empty="No drills or checks recorded yet." />
+        </section>
+      )}
+
+      {tab === 'residents' && <>
       {/* ---------- Residents ---------- */}
       <div className="title-row">
         <h2>Residents ({current.length}{home.capacity ? ` of ${home.capacity}` : ''})</h2>
@@ -119,6 +157,7 @@ export default async function HomePage({ params, searchParams }) {
           </li>
         ))}
       </ul>
+      </>}
     </main>
   );
 }

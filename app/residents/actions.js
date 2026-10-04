@@ -32,13 +32,22 @@ export async function saveRequirement(formData) {
 export async function addIncident(formData) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);
   const residentId = text(formData, 'resident_id');
+  const physical = formData.get('physical_intervention') === 'on';
+  const cls = physical ? 'Critical' : (text(formData, 'incident_class') ?? 'Critical');
   const { error } = await supabase.from('incidents').insert({
     resident_id: residentId,
     home_id: text(formData, 'home_id'),
     occurred_on: text(formData, 'occurred_on'),
     occurred_time: text(formData, 'occurred_time'),
     incident_type: text(formData, 'incident_type'),
-    is_critical: formData.get('is_critical') === 'on',
+    incident_class: cls,
+    is_critical: cls === 'Critical',
+    antecedent: text(formData, 'antecedent'),
+    consequence: text(formData, 'consequence'),
+    intervention: text(formData, 'intervention'),
+    duration_minutes: text(formData, 'duration_minutes'),
+    physical_intervention: physical,
+    injuries: text(formData, 'injuries'),
     is_urgent: formData.get('is_urgent') === 'on',
     description: text(formData, 'description'),
     actions_taken: text(formData, 'actions_taken'),

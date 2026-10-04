@@ -2,36 +2,24 @@
 import { INCIDENT_TYPES } from '@/lib/requirements';
 import { fmtDate, fmtTime, todayISO, TZ } from '@/lib/options';
 import { addIncident, updateIncident } from '@/app/residents/actions';
+import { writtenDue, reviewDue, INCIDENT_CLASSES } from '@/lib/incidents';
+import Link from 'next/link';
 
-// Written report deadline: urgent = 24 hours (MCFD & CLBC);
-// otherwise MCFD 72 hours, CLBC 5 working days.
-function writtenDue(inc, program) {
-  const d = new Date(inc.occurred_on + 'T12:00:00Z');
-  if (inc.is_urgent) d.setUTCDate(d.getUTCDate() + 1);
-  else if (program === 'clbc') {
-    let added = 0;
-    while (added < 5) { d.setUTCDate(d.getUTCDate() + 1); const w = d.getUTCDay(); if (w !== 0 && w !== 6) added++; }
-  } else d.setUTCDate(d.getUTCDate() + 3);
-  return d.toISOString().slice(0, 10);
-}
-
-function reviewDue(inc) { // internal review within 5 business days (MCFD Policy 6.3)
-  const d = new Date(inc.occurred_on + 'T12:00:00Z');
-  let added = 0;
-  while (added < 5) { d.setUTCDate(d.getUTCDate() + 1); const w = d.getUTCDay(); if (w !== 0 && w !== 6) added++; }
-  return d.toISOString().slice(0, 10);
-}
-
-export default async function Incidents({ supabase, resident, program }) {
-  const { data: incidents } = await supabase
-    .from('incidents').select('*, profiles:reported_by(full_name)')
-    .eq('resident_id', resident.id).order('occurred_on', { ascending: false });
+export default async function Incidents({ supabase, resident, program, cls }) {
+  let q = supabase.from('incidents').select('*, profiles:reported_by(full_name)').eq('resident_id', resident.id);
+  if (cls) q = q.eq('incident_class', cls);
+  const { data: incidents } = await q.order('occurred_on', { ascending: false });
+  const base = `/residents/${resident.id}?tab=incidents`;
   const today = todayISO();
   const who = program === 'clbc' ? 'CLBC liaison analyst' : 'MCFD social worker';
 
   return (
     <section>
-      <details className="card no-print" open={incidents?.length === 0}>
+      <div className="pills no-print">
+        <Link href={base} className={!cls ? 'on' : ''}>All</Link>
+        {INCIDENT_CLASSES.map((c) => <Link key={c.key} href={`${base}&class=${c.key}`} className={cls === c.key ? 'on' : ''}>{c.key}</Link>)}
+      </div>
+      <details className="card no-print" open={incidents?.length === 0 && !cls}>
         <summary><strong>+ Report an incident</strong></summary>
         <form action={addIncident} className="stack">
           <input type="hidden" name="resident_id" value={resident.id} />
@@ -47,9 +35,22 @@ export default async function Incidents({ supabase, resident, program }) {
               </select>
             </label>
           </div>
-          <label>What happened<textarea name="description" rows={4} required /></label>
-          <label>Actions taken<textarea name="actions_taken" rows={2} /></label>
-          <label className="check"><input type="checkbox" name="is_critical" defaultChecked /> Critical incident — must be reported to {program === 'clbc' ? 'CLBC' : 'MCFD'}</label>
+          <fieldset className="card">
+            <legend>Kind of incident</legend>
+            {INCIDENT_CLASSES.map((c, i) => (
+              <label key={c.key} className="check"><input type="radio" name="incident_class" value={c.key} defaultChecked={i === 0} /> {c.label}</label>
+            ))}
+          </fieldset>
+          <label>A — What happened before (trigger / setting)<textarea name="antecedent" rows={2} /></label>
+          <label>B — What happened (the incident or behaviour)<textarea name="description" rows={4} required /></label>
+          <label>C — What happened after<textarea name="consequence" rows={2} /></label>
+          <label>Support / de-escalation used<textarea name="intervention" rows={2} /></label>
+          <div className="row">
+            <label>How long (minutes)<input type="number" min="0" name="duration_minutes" /></label>
+            <label>Injuries (anyone)<input name="injuries" placeholder="None, or describe" /></label>
+          </div>
+          <label className="check"><input type="checkbox" name="physical_intervention" /> Physical intervention / restraint used (always a critical incident)</label>
+          <label>Actions taken / follow-up<textarea name="actions_taken" rows={2} /></label>
           <label className="check"><input type="checkbox" name="is_urgent" /> Urgent — phone the {who} immediately (written report within 24 hours)</label>
           <label className="check"><input type="checkbox" name="family_notified" /> Family / guardian notified</label>
           <button>Save incident report</button>
@@ -66,7 +67,8 @@ export default async function Incidents({ supabase, resident, program }) {
             <div className="title-row">
               <h3>{inc.incident_type}</h3>
               <span>
-                {inc.is_critical && <span className="badge bad">Critical</span>}{' '}
+                <span className={`badge ${inc.incident_class === 'Critical' ? 'bad' : 'warn'}`}>{inc.incident_class ?? 'Critical'}</span>{' '}
+                {inc.physical_intervention && <span className="badge bad">Physical intervention</span>}{' '}
                 {inc.is_urgent && <span className="badge bad">Urgent</span>}{' '}
                 <span className={`badge ${inc.status === 'Open' ? 'warn' : ''}`}>{inc.status}</span>
               </span>
@@ -74,7 +76,11 @@ export default async function Incidents({ supabase, resident, program }) {
             <p className="muted small">
               {fmtDate(inc.occurred_on)}{inc.occurred_time && ` · ${fmtTime(inc.occurred_time)}`} · reported by {inc.profiles?.full_name ?? 'staff'}
             </p>
-            <p>{inc.description}</p>
+            {inc.antecedent && <p><strong>Before:</strong> {inc.antecedent}</p>}
+            <p>{inc.antecedent || inc.consequence ? <strong>What happened: </strong> : null}{inc.description}</p>
+            {inc.consequence && <p><strong>After:</strong> {inc.consequence}</p>}
+            {inc.intervention && <p><strong>Support used:</strong> {inc.intervention}</p>}
+            {(inc.duration_minutes || inc.injuries) && <p className="small">{[inc.duration_minutes && `${inc.duration_minutes} minutes`, inc.injuries && `Injuries: ${inc.injuries}`].filter(Boolean).join(' · ')}</p>}
             {inc.actions_taken && <p><strong>Actions taken:</strong> {inc.actions_taken}</p>}
 
             {inc.is_critical && (
