@@ -204,18 +204,6 @@
   "pages": 33
  },
  {
-  "file": "ECC-CSGAC-POL-2026-001_v1.0.pdf",
-  "title": "Cultural Safety & Gender-Affirming Care Policy",
-  "code": "ECC-CSGAC-POL-2026-001",
-  "version": "1.0",
-  "effective": "2026-07-01",
-  "applies_to": "Both",
-  "category": "Program / residential care",
-  "require_signature": true,
-  "description": "Policy statement for all staff, casuals, students and volunteers.",
-  "pages": 10
- },
- {
   "file": "ECC-ACCESS-POL-2026-001_v1.1.pdf",
   "title": "Accessibility Plan & Barrier Removal Policy Manual",
   "code": "ECC-ACCESS-POL-2026-001",
@@ -472,12 +460,24 @@
   "title": "MCFD / CLBC Policy Requirements Register",
   "code": "ECC-REQREG-2026-001",
   "version": "1.1",
-  "effective": "2026-07-01",
+  "effective": "2026-07-18",
   "applies_to": "Both",
   "category": "Quality assurance",
   "require_signature": false,
-  "description": "All manuals and binders required, by domain.",
+  "description": "Signed version (kept in history).",
   "pages": 7
+ },
+ {
+  "file": "ECC-REQREG-2026-001_v1.2.pdf",
+  "title": "MCFD / CLBC Policy Requirements Register",
+  "code": "ECC-REQREG-2026-001",
+  "version": "1.2",
+  "effective": "2026-07-25",
+  "applies_to": "Both",
+  "category": "Quality assurance",
+  "require_signature": false,
+  "description": "Newest register: 79 manuals and binders across 11 domains, with 2025-2026 updates.",
+  "pages": 8
  },
  {
   "file": "ECC-12BED-2026-001_v1.0.pdf",
