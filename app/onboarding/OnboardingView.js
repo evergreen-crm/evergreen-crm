@@ -1,6 +1,6 @@
 // The onboarding checklist — used by the staff member (/onboarding) and by managers (/hr/[id]/onboarding).
 import Link from 'next/link';
-import { SECTIONS, templateFor } from '@/lib/onboarding';
+import { SECTIONS, LEGACY_SECTIONS, templateFor } from '@/lib/onboarding';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/options';
 import { savePersonal, submitItem, submitOnboarding, reviewItem, completeOnboarding } from '@/app/onboarding/actions';
 import SignaturePad from './SignaturePad';
@@ -31,6 +31,38 @@ function Summary({ tpl, item, fileUrl, signature }) {
       )}
       {item.review_note && <p className={item.status === 'Returned' ? 'message' : 'muted'}>Manager note: {item.review_note}</p>}
       {item.reviewed_at && DONE.includes(item.status) && <p className="muted">{item.status} by {item.reviewer?.full_name ?? 'manager'} on {fmtDateTime(item.reviewed_at)}</p>}
+    </div>
+  );
+}
+
+// Progress graph: a 0–100% ring plus one bar per part of the checklist.
+function ProgressPanel({ overall, parts, waiting }) {
+  const pct = overall.total ? Math.round((100 * overall.done) / overall.total) : 0;
+  const r = 52, c = 2 * Math.PI * r;
+  const color = pct === 100 ? '#0b5a34' : pct >= 50 ? '#2e8b57' : '#d4a72c';
+  return (
+    <div className="progress-panel card">
+      <svg viewBox="0 0 130 130" className="ring" role="img" aria-label={`${pct}% complete`}>
+        <circle cx="65" cy="65" r={r} fill="none" stroke="#e7ece8" strokeWidth="14" />
+        <circle cx="65" cy="65" r={r} fill="none" stroke={color} strokeWidth="14" strokeLinecap="round"
+          strokeDasharray={`${(pct / 100) * c} ${c}`} transform="rotate(-90 65 65)" />
+        <text x="65" y="62" textAnchor="middle" fontSize="26" fontWeight="700" fill="#0f3059">{pct}%</text>
+        <text x="65" y="82" textAnchor="middle" fontSize="11" fill="#6a736d">complete</text>
+      </svg>
+      <div className="progress-bars">
+        <p className="small"><strong>{overall.done} of {overall.total}</strong> items done{waiting > 0 && <> · <span className="badge warn">{waiting} waiting for your review</span></>}</p>
+        {parts.map((p) => {
+          const v = p.total ? Math.round((100 * p.done) / p.total) : 0;
+          return (
+            <div key={p.label} className="pbar">
+              <span className="pbar-label">{p.label}</span>
+              <span className="pbar-track"><span style={{ width: `${v}%` }} /></span>
+              <span className="pbar-num">{v}%</span>
+            </div>
+          );
+        })}
+        <div className="pbar-scale"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+      </div>
     </div>
   );
 }
@@ -130,9 +162,16 @@ export default async function OnboardingView({ supabase, onb, person, viewer }) 
     const { data } = await supabase.storage.from('staff-files').createSignedUrls(paths, 3600);
     urls = Object.fromEntries((data ?? []).map((s) => [s.path, s.signedUrl]));
   }
+  const [{ data: policies }, { data: acks }] = await Promise.all([
+    supabase.from('policies').select('id, title, code, current_version_id, current:current_version_id(version_label)')
+      .eq('active', true).eq('require_signature', true).order('title'),
+    supabase.from('policy_acks').select('policy_version_id, signed_at, signed_name').eq('profile_id', onb.profile_id),
+  ]);
+  const ackFor = (pol) => acks?.find((a) => a.policy_version_id === pol.current_version_id);
+  const polSigned = (policies ?? []).filter(ackFor).length;
   const today = todayISO();
   const all = items ?? [];
-  const done = all.filter((i) => DONE.includes(i.status)).length;
+  const done = all.filter((i) => DONE.includes(i.status)).length + 0;
   const waiting = all.filter((i) => i.status === 'Submitted').length;
   const pct = all.length ? Math.round((100 * done) / all.length) : 0;
   const isSelf = viewer.isSelf;
@@ -150,8 +189,16 @@ export default async function OnboardingView({ supabase, onb, person, viewer }) 
         <span className="no-print"><PrintButton label="Print" /></span>
       </div>
 
-      <div className="progress"><span style={{ width: `${pct}%` }} /></div>
-      <p className="small">{done} of {all.length} items complete ({pct}%){viewer.isBoss && waiting > 0 && <> · <span className="badge warn">{waiting} waiting for your review</span></>}</p>
+      <ProgressPanel
+        overall={{ done: done + polSigned, total: all.length + (policies?.length ?? 0) }}
+        parts={[
+          { label: 'Signature & personal info', done: (onb.signature_image ? 1 : 0) + (onb.personal?.phone ? 1 : 0), total: 2 },
+          { label: 'Personnel file', done: all.filter((i) => i.section === 'file' && DONE.includes(i.status)).length, total: all.filter((i) => i.section === 'file').length },
+          { label: 'Policies signed', done: polSigned, total: policies?.length ?? 0 },
+          { label: 'Evergreen Academy training', done: all.filter((i) => i.section === 'training' && DONE.includes(i.status)).length, total: all.filter((i) => i.section === 'training').length },
+        ]}
+        waiting={viewer.isBoss ? waiting : 0}
+      />
       {isSelf && onb.status !== 'Complete' && (
         <p className="muted small">Work through each section. Items marked <span className="badge bad">To do</span> need you. Your manager verifies each item. You can come back any time — your work is saved.</p>
       )}
@@ -203,12 +250,34 @@ export default async function OnboardingView({ supabase, onb, person, viewer }) 
         )}
       </section>
 
-      {SECTIONS.map((s, si) => {
+      {[...SECTIONS, ...LEGACY_SECTIONS].map((s, si) => {
         const list = all.filter((i) => i.section === s.key);
+        if (list.length === 0) return null;
+        const num = s.key === 'file' ? 3 : s.key === 'training' ? 5 : 6;
         const sDone = list.filter((i) => DONE.includes(i.status)).length;
         return (
           <section key={s.key} className="onb-section">
-            <h2>{si + 3}. {s.title} <span className="muted small">— {sDone} of {list.length} done</span></h2>
+            {s.key === 'training' && (
+              <section className="onb-section">
+                <h2>4. Policies to read and sign <span className="muted small">— {polSigned} of {policies?.length ?? 0} signed</span></h2>
+                <p className="muted small">Policies are kept in the Policy library. Open each one, read it, and sign it digitally. When a policy is updated you’ll be asked to sign the new version.</p>
+                {(policies ?? []).length === 0 && <p className="muted">No policies have been added yet.</p>}
+                <ul className="list">
+                  {(policies ?? []).map((pol) => {
+                    const a = ackFor(pol);
+                    return (
+                      <li key={pol.id}>
+                        <Link href={`/policies/${pol.id}`}>
+                          <span><strong>{pol.title}</strong> <span className="muted small">v{pol.current?.version_label ?? '—'}{pol.code && ` · ${pol.code}`}</span></span>
+                          <span className="small">{a ? <span className="badge">✓ Signed {fmtDateTime(a.signed_at)}</span> : <span className="badge bad">Read and sign</span>}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
+            <h2>{num}. {s.title} <span className="muted small">— {sDone} of {list.length} done</span></h2>
             {s.key === 'file' && <p className="muted small">Items 8 (training certificates) and 14 (signed policies) are the next two sections. Items 9, 10, 12 and 13 (evaluations, discipline, rehire, exit interview) are added during and after employment.</p>}
             {list.map((item) => {
               const tpl = templateFor(item.item_key) ?? { kind: 'manager' };

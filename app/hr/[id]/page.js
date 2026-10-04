@@ -7,7 +7,7 @@ import { TRAINING_MATRIX } from '@/lib/onboarding';
 const REQUIRED_TRAINING = TRAINING_MATRIX.filter((t) => !t.ifApplicable);
 import { fmtDate, todayISO } from '@/lib/options';
 import {
-  saveStaffDetails, addCertification, deleteCertification, addTraining, deleteTraining,
+  saveStaffDetails, addCertification, deleteCertification, addTraining, deleteTraining, saveEmployment,
 } from '@/app/hr/actions';
 
 export default async function StaffHrPage({ params }) {
@@ -36,6 +36,12 @@ export default async function StaffHrPage({ params }) {
       <p className="muted">
         {person.role} · {person.homes?.name ?? 'No home'} · {[person.email, person.phone].filter(Boolean).join(' · ')}
         {!person.active && <span className="badge bad"> Access turned off</span>}
+      </p>
+      <p className="small">
+        <span className="emp-no">Employee no. {details?.employee_no ?? '—'}</span>{' '}
+        <span className={`badge ${details?.employment_status && details.employment_status !== 'Active' ? 'warn' : ''}`}>{details?.employment_status ?? 'Active'}</span>
+        {details?.last_day && <span className="muted"> · last day {fmtDate(details.last_day)}</span>}
+        {' · '}<Link href="/academy">🎓 Evergreen Academy</Link>
       </p>
 
       {/* ---------- Onboarding ---------- */}
@@ -85,6 +91,36 @@ export default async function StaffHrPage({ params }) {
           <p>Hire date: {details?.hire_date ?? '—'}</p>
           <p>Emergency contact: {details?.emergency_contact ?? '—'} {details?.emergency_phone}</p>
         </div>
+      )}
+
+      {/* ---------- Employment status / resignation ---------- */}
+      {canEdit && (
+        <details className="card" open={!!details?.employment_status && details.employment_status !== 'Active'}>
+          <summary><strong>Employment status, resignation or leaving</strong></summary>
+          <form action={saveEmployment}>
+            <input type="hidden" name="profile_id" value={person.id} />
+            <div className="row">
+              <label>Status
+                <select name="employment_status" defaultValue={details?.employment_status ?? 'Active'}>
+                  {['Active', 'On leave', 'Resigned', 'Terminated', 'Retired'].map((x) => <option key={x}>{x}</option>)}
+                </select>
+              </label>
+              <label>Date of resignation (notice given)<input type="date" name="resignation_date" defaultValue={details?.resignation_date ?? ''} /></label>
+              <label>Last day of work<input type="date" name="last_day" defaultValue={details?.last_day ?? ''} /></label>
+            </div>
+            <div className="row">
+              <label>Reason<input name="separation_reason" defaultValue={details?.separation_reason ?? ''} placeholder="e.g., moved, school, new job" /></label>
+              <label>Eligible for rehire
+                <select name="rehire_eligible" defaultValue={details?.rehire_eligible ?? ''}><option value="">—</option><option>Yes</option><option>No</option><option>With conditions</option></select>
+              </label>
+              <label>Exit interview date<input type="date" name="exit_interview_on" defaultValue={details?.exit_interview_on ?? ''} /></label>
+            </div>
+            {profile.role === 'admin' && person.active && <label className="check"><input type="checkbox" name="turn_off_access" /> Turn off their sign-in now</label>}
+            {profile.role === 'admin' && !person.active && <label className="check"><input type="checkbox" name="turn_on_access" /> Turn their sign-in back on</label>}
+            <button>Save</button>
+            <p className="muted small">Personnel file items 11–13 (MCFD Standard G.1): dates of commencement and termination, rehire recommendation, exit interview record.</p>
+          </form>
+        </details>
       )}
 
       {/* ---------- Certifications ---------- */}
@@ -205,8 +241,12 @@ export default async function StaffHrPage({ params }) {
             <label>Completed on<input type="date" name="completed_on" required /></label>
             <label>Hours<input type="number" step="0.5" min="0" name="hours" /></label>
           </div>
+          <div className="row">
+            <label>Provider<input name="provider" /></label>
+            <label>Expiry (blank = automatic renewal date)<input type="date" name="expires_on" /></label>
+          </div>
           <label>Notes<input name="notes" /></label>
-          <button>Add training</button>
+          <button>Add training (verified)</button>
         </form>
       )}
     </main>

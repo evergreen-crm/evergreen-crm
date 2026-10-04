@@ -90,6 +90,19 @@ export default async function Dashboard() {
 
   if (pendingTime?.length) alerts.push({ level: 'warn', text: `${pendingTime.length} timesheet entr${pendingTime.length > 1 ? 'ies' : 'y'} waiting for approval`, href: '/timesheet' });
 
+  // Policies to sign and training to renew (everyone)
+  const [{ data: pols }, { data: myAcks }, { data: myTr }] = await Promise.all([
+    supabase.from('policies').select('id, current_version_id').eq('active', true).eq('require_signature', true).not('current_version_id', 'is', null),
+    supabase.from('policy_acks').select('policy_version_id').eq('profile_id', profile.id),
+    supabase.from('trainings').select('title, expires_on, completed_on').eq('profile_id', profile.id),
+  ]);
+  const unsigned = (pols ?? []).filter((p) => !(myAcks ?? []).some((a) => a.policy_version_id === p.current_version_id)).length;
+  if (unsigned) alerts.push({ level: 'warn', text: `You have ${unsigned} polic${unsigned > 1 ? 'ies' : 'y'} to read and sign`, href: '/policies' });
+  const latest = {};
+  for (const t of myTr ?? []) if (!latest[t.title] || t.completed_on > latest[t.title].completed_on) latest[t.title] = t;
+  const renew = Object.values(latest).filter((t) => t.expires_on && t.expires_on <= addDaysISO(today, 30));
+  if (renew.length) alerts.push({ level: renew.some((t) => t.expires_on < today) ? 'bad' : 'warn', text: `Your training to renew: ${renew.map((t) => t.title).join(', ')}`, href: '/academy?view=me' });
+
   // Onboarding
   const { data: myOnb } = await supabase.from('onboardings').select('status').eq('profile_id', profile.id).maybeSingle();
   if (myOnb && myOnb.status !== 'Complete') alerts.push({ level: 'warn', text: 'Finish your onboarding checklist', href: '/onboarding' });

@@ -11,6 +11,8 @@ const QUICK = [
   { href: '/calendar', icon: '📅', label: 'Calendar' },
   { href: '/schedule', icon: '🗓', label: 'Shift schedule' },
   { href: '/timesheet', icon: '⏱', label: 'Timesheet' },
+  { href: '/academy', icon: '🎓', label: 'Evergreen Academy' },
+  { href: '/policies', icon: '📘', label: 'Policies' },
   { href: '/hr', icon: '🪪', label: 'HR files', boss: true },
 ];
 

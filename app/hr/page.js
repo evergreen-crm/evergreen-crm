@@ -5,7 +5,9 @@ import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { summarize } from '@/lib/hr';
 
-export default async function HrPage() {
+export default async function HrPage({ searchParams }) {
+  const sp = await searchParams;
+  const former = sp.show === 'former';
   const { supabase, profile } = await requireUser();
   if (profile.role === 'staff') redirect(`/hr/${profile.id}`);
   if (profile.role === 'family') redirect('/');
@@ -13,7 +15,7 @@ export default async function HrPage() {
   const [{ data: people }, { data: details }, { data: certs }] = await Promise.all([
     supabase.from('profiles').select('id, full_name, role, active, homes(name)')
       .in('role', ['admin', 'manager', 'staff']).order('full_name'),
-    supabase.from('staff_details').select('profile_id, position, employment_type'),
+    supabase.from('staff_details').select('profile_id, position, employment_type, employee_no, employment_status, last_day'),
     supabase.from('certifications').select('profile_id, expires_on'),
   ]);
 
@@ -40,26 +42,37 @@ export default async function HrPage() {
         </div>
       </div>
 
+      <nav className="tabs-bar">
+        <Link href="/hr" className={!former ? 'on' : ''}>Current staff</Link>
+        <Link href="/hr?show=former" className={former ? 'on' : ''}>Resigned / former staff</Link>
+        <Link href="/academy">🎓 Evergreen Academy</Link>
+        <Link href="/policies">📘 Policies</Link>
+      </nav>
       <table>
         <thead>
-          <tr><th>Name</th><th>Position</th><th>Home</th><th>Certificates</th></tr>
+          <tr><th>Emp. no.</th><th>Name</th><th>Position</th><th>Home</th><th>{former ? 'Left' : 'Certificates'}</th></tr>
         </thead>
         <tbody>
-          {people?.map((p) => {
+          {people?.filter((p) => {
+            const st = detailsById[p.id]?.employment_status ?? 'Active';
+            const gone = ['Resigned', 'Terminated', 'Retired'].includes(st);
+            return former ? gone : !gone;
+          }).map((p) => {
             const d = detailsById[p.id];
             const s = summarize(certsById[p.id]);
             return (
               <tr key={p.id} className={p.active ? '' : 'inactive'}>
-                <td><Link href={`/hr/${p.id}`}>{p.full_name}</Link></td>
+                <td className="small">{d?.employee_no ?? '—'}</td>
+                <td><Link href={`/hr/${p.id}`}>{p.full_name}</Link>{d?.employment_status === 'On leave' && <span className="badge warn"> On leave</span>}</td>
                 <td>{d?.position ?? <span className="muted">—</span>}
                   {d?.employment_type && <span className="muted small"> · {d.employment_type}</span>}</td>
                 <td>{p.homes?.name ?? '—'}</td>
-                <td>
+                {former ? <td>{d?.employment_status} {d?.last_day && `· ${d.last_day}`}</td> : <td>
                   {s.expired > 0 && <span className="badge bad">{s.expired} expired</span>}{' '}
                   {s.soon > 0 && <span className="badge warn">{s.soon} expiring</span>}{' '}
                   {s.total === 0 && <span className="muted small">None on file</span>}
                   {s.total > 0 && s.expired === 0 && s.soon === 0 && <span className="badge">All valid</span>}
-                </td>
+                </td>}
               </tr>
             );
           })}

@@ -251,3 +251,42 @@ tr.late td { background: #fff5f4; }
   .onb-item:not([open]) > *:not(summary) { display: block; }
 }
 @media (max-width: 720px) { .cert-inner { padding: 12px; } .cert-name { font-size: 1.5rem; } .cert-kicker { font-size: 1.3rem; } .cert-logo { height: 70px; } .cert-sign { gap: 16px; flex-direction: column; } }
+
+/* ---------- Policies, Academy, notifications ---------- */
+.policy-viewer { width: 100%; height: 75vh; border: 1px solid var(--line); border-radius: 10px; background: #fff; margin: 12px 0; }
+.sign-box { border-left: 5px solid #5a3d8a; }
+.div-banner.academy { --div: #0b5a34; background: linear-gradient(135deg, var(--green-dark), var(--navy)); }
+.matrix-wrap { overflow-x: auto; }
+table.matrix { display: table; font-size: .85rem; }
+table.matrix th { vertical-align: bottom; padding: 6px 4px; }
+table.matrix th span { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; font-weight: 500; font-size: .75rem; max-height: 180px; overflow: hidden; display: inline-block; }
+table.matrix td { text-align: center; padding: 6px 4px; font-weight: 700; }
+table.matrix td:first-child { text-align: left; font-weight: 400; white-space: nowrap; }
+.m-ok { color: var(--green); } .m-soon, .m-pending { color: var(--amber); background: #fff8ec; }
+.m-expired { color: var(--red); background: #fdeeec; } .m-missing { color: #b0b6b2; }
+.bell { position: relative; font-size: 1.1rem; }
+.bell-count { position: absolute; top: -8px; right: -12px; background: var(--red); color: #fff; font-size: .65rem; font-weight: 700; border-radius: 999px; padding: 1px 5px; }
+.notif-list { list-style: none; padding: 0; }
+.notif-list form { margin: 0; }
+.notif { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left; background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 6px; }
+.notif:hover { background: #f3f6f3; }
+.notif small { color: var(--muted); }
+.unread .notif { border-left: 4px solid var(--green); background: #f4faf6; }
+.emp-no { font-family: ui-monospace, Menlo, Consolas, monospace; background: #eef1ec; padding: 2px 8px; border-radius: 6px; }
+.cert-academy { font-size: .95rem; letter-spacing: .25em; text-transform: uppercase; color: var(--navy); font-weight: 700; margin: 0; }
+.certificate.unverified { position: relative; }
+.certificate.unverified::after { content: 'NOT VERIFIED'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 5rem; font-weight: 800; color: rgba(179, 38, 30, .12); transform: rotate(-20deg); pointer-events: none; }
+
+/* ---------- Progress graph, gold seal ---------- */
+.progress-panel { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+.progress-panel .ring { width: 150px; height: 150px; flex: 0 0 auto; }
+.progress-bars { flex: 1; min-width: 240px; }
+.pbar { display: grid; grid-template-columns: 190px 1fr 44px; gap: 10px; align-items: center; margin: 6px 0; font-size: .88rem; }
+.pbar-track { height: 12px; background: #e7ece8; border-radius: 999px; overflow: hidden; }
+.pbar-track span { display: block; height: 100%; background: linear-gradient(90deg, #d4a72c, #2e8b57 60%, #0b5a34); border-radius: 999px; }
+.pbar-num { text-align: right; font-weight: 600; color: var(--navy); }
+.pbar-scale { display: flex; justify-content: space-between; margin-left: 200px; margin-right: 54px; font-size: .7rem; color: var(--muted); }
+@media (max-width: 720px) { .pbar { grid-template-columns: 1fr 1fr 40px; } .pbar-scale { margin-left: 0; } }
+.cert-inner { position: relative; }
+.cert-seal { position: absolute; right: 6%; bottom: 8%; width: 120px; height: 150px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
+@media print { .cert-seal { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
