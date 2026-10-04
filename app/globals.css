@@ -64,3 +64,45 @@ h3 { font-size: 1rem; margin: 0 0 12px; }
 .stat.bad { border-color: var(--red); } .stat.bad strong { color: var(--red); }
 .stat.warn { border-color: var(--amber); } .stat.warn strong { color: var(--amber); }
 .badge.bad { background: #fbe9e7; color: var(--red); }
+
+/* Houses, profiles, calendar */
+.title-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.title-row h1, .title-row h2 { margin: 8px 0; }
+a.button { display: inline-block; padding: 10px 16px; border-radius: 8px; background: var(--green); color: #fff; }
+a.button.secondary { background: #e7ece8; color: var(--text); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin: 16px 0; }
+.house { display: flex; flex-direction: column; gap: 6px; padding: 16px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; color: var(--text); }
+.house:hover { border-color: var(--green); }
+.stack { display: flex; flex-direction: column; gap: 4px; }
+fieldset.card { border: 1px solid var(--line); }
+legend { font-weight: 600; padding: 0 6px; }
+details summary { cursor: pointer; }
+details.card[open] summary { margin-bottom: 12px; }
+dl.facts { display: grid; grid-template-columns: minmax(140px, 220px) 1fr; gap: 6px 16px; margin: 0; }
+dl.facts dt { color: var(--muted); font-size: .9rem; }
+dl.facts dd { margin: 0; white-space: pre-wrap; }
+.agenda { list-style: none; padding: 0; }
+.agenda li { display: flex; gap: 16px; padding: 10px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; }
+.agenda .when { min-width: 150px; color: var(--muted); font-size: .9rem; }
+.agenda li.cancelled { opacity: .55; text-decoration: line-through; }
+.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.calendar .dow { text-align: center; font-size: .8rem; color: var(--muted); padding: 4px; }
+.calendar .day { min-height: 84px; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 4px; color: var(--text); display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+.calendar .day.empty { background: transparent; border: 0; }
+.calendar .day.today { border-color: var(--green); }
+.calendar .day.selected { outline: 2px solid var(--green); }
+.calendar .num { font-size: .8rem; font-weight: 600; }
+.calendar .chip { font-size: .7rem; background: #e6f2ea; color: var(--green-dark); border-radius: 4px; padding: 1px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.calendar .chip.cancelled { background: #eee; color: var(--muted); text-decoration: line-through; }
+@media (max-width: 600px) { .calendar .day { min-height: 56px; } .calendar .chip { display: none; } .agenda li { flex-direction: column; gap: 4px; } }
+
+/* Printing: hide menus and buttons, show everything else plainly */
+@media print {
+  .no-print, .topbar, button, a.button, form.card, form .row button { display: none !important; }
+  body { background: #fff; }
+  .page { max-width: none; padding: 0; }
+  .card, .agenda li, table { break-inside: avoid; border-color: #999; }
+  details { display: block; } details > summary { list-style: none; }
+  details:not([open]) > *:not(summary) { display: block !important; }
+  a { color: #000; text-decoration: none; }
+}

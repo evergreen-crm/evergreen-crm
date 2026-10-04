@@ -1,22 +1,36 @@
 // One resident: their details, a form for a new shift note,
 // and the timeline of notes (newest first).
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { addShiftNote, signShiftNote } from '@/app/actions';
+import { age, fmtDate, fmtTime, todayISO } from '@/lib/options';
+
+function Fact({ label, value }) {
+  if (!value) return null;
+  return (<><dt>{label}</dt><dd>{value}</dd></>);
+}
 
 export default async function ResidentPage({ params }) {
   const { id } = await params;
   const { supabase, user, profile } = await requireUser();
   const isStaff = ['admin', 'manager', 'staff'].includes(profile.role);
 
+  const canEdit = ['admin', 'manager'].includes(profile.role);
   const { data: resident } = await supabase
     .from('residents')
-    .select('id, first_name, last_name, date_of_birth, admission_date, status, allergies, homes(name)')
+    .select(isStaff ? '*, homes(id, name)' : 'id, first_name, last_name, preferred_name, status, homes(id, name)')
     .eq('id', id)
     .maybeSingle();
 
   // Not allowed to see them = looks the same as not existing.
   if (!resident) notFound();
+
+  const { data: appts } = await supabase
+    .from('appointments')
+    .select('id, title, category, appt_date, start_time, location')
+    .eq('resident_id', id).gte('appt_date', todayISO()).neq('status', 'Cancelled')
+    .order('appt_date').order('start_time').limit(5);
 
   const { data: notes } = await supabase
     .from('shift_notes')
@@ -27,13 +41,64 @@ export default async function ResidentPage({ params }) {
 
   return (
     <main>
-      <h1>{resident.first_name} {resident.last_name}</h1>
+      {isStaff && resident.homes && (
+        <p className="small"><Link href={`/homes/${resident.homes.id}`}>← {resident.homes.name}</Link></p>
+      )}
+      <div className="title-row">
+        <h1>
+          {resident.first_name} {resident.last_name}
+          {resident.preferred_name && <span className="muted"> ("{resident.preferred_name}")</span>}
+        </h1>
+        {canEdit && <Link className="button secondary" href={`/residents/${id}/edit`}>Edit profile</Link>}
+      </div>
       <p className="muted">
         {resident.homes?.name} · {resident.status}
-        {resident.admission_date && ` · admitted ${resident.admission_date}`}
+        {resident.care_type && ` · ${resident.care_type}`}
+        {resident.date_of_birth && ` · age ${age(resident.date_of_birth)}`}
+        {resident.admission_date && ` · admitted ${fmtDate(resident.admission_date)}`}
       </p>
       {isStaff && resident.allergies && (
         <p className="alert">Allergies: {resident.allergies}</p>
+      )}
+
+      {isStaff && (
+        <details className="card">
+          <summary><strong>Profile</strong> <span className="muted small">— contacts, health, funding</span></summary>
+          <dl className="facts">
+            <Fact label="Funder" value={[resident.funder, resident.file_number && `File ${resident.file_number}`].filter(Boolean).join(' · ')} />
+            <Fact label="Social worker / facilitator" value={[resident.case_worker_name, resident.case_worker_phone, resident.case_worker_email].filter(Boolean).join(' · ')} />
+            <Fact label="Guardian" value={[resident.guardian_name, resident.guardian_relationship, resident.guardian_phone].filter(Boolean).join(' · ')} />
+            <Fact label="Emergency contact" value={[resident.emergency_contact_name, resident.emergency_contact_phone].filter(Boolean).join(' · ')} />
+            <Fact label="PHN" value={resident.phn} />
+            <Fact label="Family doctor" value={[resident.doctor_name, resident.doctor_phone].filter(Boolean).join(' · ')} />
+            <Fact label="Diagnoses" value={resident.diagnoses} />
+            <Fact label="Medications" value={resident.medications_summary} />
+            <Fact label="Dietary needs" value={resident.dietary_needs} />
+            <Fact label="School / day program" value={resident.school_or_day_program} />
+            <Fact label="Behaviour support" value={resident.behaviour_support_notes} />
+            <Fact label="Care plan review" value={resident.care_plan_review_date && fmtDate(resident.care_plan_review_date)} />
+            <Fact label="Notes" value={resident.profile_notes} />
+          </dl>
+        </details>
+      )}
+
+      {appts?.length > 0 && (
+        <>
+          <h2>Upcoming</h2>
+          <ul className="agenda">
+            {appts.map((a) => (
+              <li key={a.id}>
+                <span className="when">{fmtDate(a.appt_date)}{a.start_time && ` · ${fmtTime(a.start_time)}`}</span>
+                <span><strong>{a.title}</strong><span className="muted small"> · {a.category}{a.location && ` · ${a.location}`}</span></span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {isStaff && resident.homes && (
+        <p className="small">
+          <Link href={`/calendar?home=${resident.homes.id}&resident=${id}`}>+ Add an appointment for {resident.preferred_name || resident.first_name}</Link>
+        </p>
       )}
 
       {isStaff && (

@@ -1,28 +1,25 @@
-// Home page: the residents this person is allowed to see.
-// The database rules do the filtering: staff see their home,
-// family see only their own family member.
+// Home: staff/managers/admins start at Houses; families see their family member.
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 
 export default async function HomePage() {
   const { supabase, profile } = await requireUser();
+  if (profile.role !== 'family') redirect('/homes');
 
-  const { data: residents, error } = await supabase
-    .from('residents')
-    .select('id, first_name, last_name, status, homes(name)')
-    .order('last_name');
+  const { data: residents } = await supabase
+    .from('residents').select('id, first_name, last_name, homes(name)').order('last_name');
 
   return (
     <main>
-      <h1>{profile.role === 'family' ? 'Your family member' : 'Residents'}</h1>
-      {error && <p className="message">{error.message}</p>}
-      {residents?.length === 0 && <p className="muted">No residents to show yet.</p>}
+      <h1>Your family member</h1>
+      {residents?.length === 0 && <p className="muted">Nothing to show yet.</p>}
       <ul className="list">
         {residents?.map((r) => (
           <li key={r.id}>
             <Link href={`/residents/${r.id}`}>
               <strong>{r.first_name} {r.last_name}</strong>
-              <span className="muted">{r.homes?.name} · {r.status}</span>
+              <span className="muted">{r.homes?.name}</span>
             </Link>
           </li>
         ))}
