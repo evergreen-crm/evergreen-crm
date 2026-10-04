@@ -20,6 +20,7 @@ export async function saveStaffDetails(formData) {
     emergency_contact: text(formData, 'emergency_contact'),
     emergency_phone: text(formData, 'emergency_phone'),
     notes: text(formData, 'notes'),
+    program: ['MCFD', 'CLBC', 'Both'].includes(text(formData, 'program')) ? text(formData, 'program') : 'Both',
     updated_at: new Date().toISOString(),
   });
   if (error) throw new Error('Could not save details: ' + error.message);

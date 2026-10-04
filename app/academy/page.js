@@ -1,7 +1,8 @@
 // Evergreen Academy: mandatory training matrix, renewals and certificates.
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
-import { TRAINING_MATRIX, trainingStatus } from '@/lib/onboarding';
+import { TRAINING_MATRIX, trainingStatus, trainingsFor, appliesTo } from '@/lib/onboarding';
+import ProgramBadge from '@/app/components/ProgramBadge';
 import { fmtDate, todayISO } from '@/lib/options';
 import { verifyTraining, rejectTraining } from '@/app/academy/actions';
 import AddTraining from './AddTraining';
@@ -16,14 +17,18 @@ export default async function Academy({ searchParams }) {
   const today = todayISO();
   const view = isBoss ? (sp.view ?? 'team') : 'me';
 
-  const { data: mine } = await supabase.from('trainings').select('*').eq('profile_id', user.id).order('completed_on', { ascending: false });
-  const myRows = TRAINING_MATRIX.map((t) => ({ t, s: trainingStatus(mine ?? [], t.title, today) }));
+  const [{ data: mine }, { data: me }] = await Promise.all([
+    supabase.from('trainings').select('*').eq('profile_id', user.id).order('completed_on', { ascending: false }),
+    supabase.from('staff_details').select('program').eq('profile_id', user.id).maybeSingle(),
+  ]);
+  const myProgram = me?.program ?? 'Both';
+  const myRows = trainingsFor(myProgram).map((t) => ({ t, s: trainingStatus(mine ?? [], t.title, today) }));
   const myDue = myRows.filter((r) => ['missing', 'expired', 'soon'].includes(r.s.key) && !r.t.ifApplicable).length;
 
   let team = [], all = [], pending = [];
   if (isBoss && view === 'team') {
     const [{ data: people }, { data: trs }] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, role, staff_details(employee_no, employment_status)')
+      supabase.from('profiles').select('id, full_name, role, staff_details(employee_no, employment_status, program)')
         .in('role', ['staff', 'manager']).eq('active', true).order('full_name'),
       supabase.from('trainings').select('id, profile_id, title, completed_on, expires_on, verified_by, provider, file_path, person:profile_id(full_name)'),
     ]);
@@ -51,8 +56,12 @@ export default async function Academy({ searchParams }) {
         </nav>
       )}
 
+      <p className="small legend">
+        <ProgramBadge program="MCFD" /> children & youth (MCFD SHSS Standard G.3) · <ProgramBadge program="CLBC" /> adults (CLBC) · <ProgramBadge program="Both" /> required for everyone
+      </p>
       {view === 'me' && (
         <>
+          <p className="small">You work in: <ProgramBadge program={myProgram} /> — this list shows the training required for your program.</p>
           <div className="stats">
             <div className={`stat ${myDue ? 'bad' : ''}`}><strong>{myDue}</strong><span>to do or renew</span></div>
             <div className="stat"><strong>{(mine ?? []).filter((m) => m.verified_by).length}</strong><span>certificates</span></div>
@@ -62,7 +71,7 @@ export default async function Academy({ searchParams }) {
             <tbody>
               {myRows.map(({ t, s }) => (
                 <tr key={t.key} className={s.key === 'expired' || (s.key === 'missing' && !t.ifApplicable) ? 'late' : ''}>
-                  <td><strong>{t.title}</strong><div className="muted small">{t.hours} h module{t.ifApplicable ? ' · if it applies to your role' : ''}</div></td>
+                  <td><ProgramBadge program={t.program} /> <strong>{t.title}</strong><div className="muted small">{t.hours} h module{t.ifApplicable ? ' · if it applies to your role' : ''}</div></td>
                   <td className="small">{t.when}<div className="muted">Renew: {t.renewMonths ? (t.renewMonths === 12 ? 'every year' : `every ${t.renewMonths / 12} years`) : 'per certificate'}</div></td>
                   <td>{s.last ? fmtDate(s.last.completed_on) : '—'}</td>
                   <td><span className={`badge ${s.key === 'ok' ? '' : s.key === 'pending' || s.key === 'soon' ? 'warn' : 'bad'}`}>{ICON[s.key]} {s.label}</span></td>
@@ -71,7 +80,7 @@ export default async function Academy({ searchParams }) {
               ))}
             </tbody>
           </table>
-          <AddTraining profileId={user.id} trainings={TRAINING_MATRIX} today={today} />
+          <AddTraining profileId={user.id} trainings={trainingsFor(myProgram)} today={today} />
           {(mine ?? []).filter((m) => !TRAINING_MATRIX.some((t) => t.title.toLowerCase() === m.title.toLowerCase())).length > 0 && (
             <>
               <h2>Other training</h2>
@@ -114,22 +123,27 @@ export default async function Academy({ searchParams }) {
             </section>
           )}
           <h2>Team compliance</h2>
-          <p className="muted small">✓ valid · ! renew within 30 days · ✗ expired · ○ not done · … waiting for verification. Click a name for their HR file.</p>
+          <p className="muted small">✓ valid · ! renew within 30 days · ✗ expired · ○ not done · … waiting for verification · – not required for their program (M = MCFD, C = CLBC). Click a name for their HR file.</p>
           <div className="matrix-wrap">
             <table className="matrix">
               <thead>
-                <tr><th>Staff</th>{TRAINING_MATRIX.map((t) => <th key={t.key} title={t.title}><span>{t.title}</span></th>)}</tr>
+                <tr><th>Staff</th>{TRAINING_MATRIX.map((t) => <th key={t.key} title={t.title} className={`th-${t.program}`}><span>{t.title}</span></th>)}</tr>
+                <tr className="prog-row"><th></th>{TRAINING_MATRIX.map((t) => <th key={t.key}><span className={`prog-dot prog-${t.program}`}>{t.program === 'Both' ? 'M+C' : t.program === 'MCFD' ? 'M' : 'C'}</span></th>)}</tr>
               </thead>
               <tbody>
-                {team.map((p) => (
+                {team.map((p) => {
+                  const sd = Array.isArray(p.staff_details) ? p.staff_details[0] : p.staff_details;
+                  return (
                   <tr key={p.id}>
-                    <td><Link href={`/hr/${p.id}`}>{p.full_name}</Link><div className="muted small">{p.staff_details?.employee_no ?? p.staff_details?.[0]?.employee_no}</div></td>
+                    <td><Link href={`/hr/${p.id}`}>{p.full_name}</Link><div className="muted small">{sd?.employee_no} <ProgramBadge program={sd?.program} /></div></td>
                     {TRAINING_MATRIX.map((t) => {
+                      if (!appliesTo(t.program, sd?.program)) return <td key={t.key} className="m-na" title="Not required for this program">–</td>;
                       const s = trainingStatus(all.filter((x) => x.profile_id === p.id), t.title, today);
                       return <td key={t.key} className={`m-${s.key}`} title={`${t.title}: ${s.label}`}>{ICON[s.key]}</td>;
                     })}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

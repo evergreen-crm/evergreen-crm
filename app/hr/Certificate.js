@@ -1,5 +1,5 @@
 // The Evergreen certificate of completion (used on single and print-all pages).
-import { certificateNo, hoursFor } from '@/lib/onboarding';
+import { certificateNo, hoursFor, TRAINING_MATRIX } from '@/lib/onboarding';
 
 // Gold seal drawn in SVG so it prints sharply.
 function GoldSeal() {
@@ -31,6 +31,8 @@ function GoldSeal() {
 
 export default function Certificate({ t, name, employeeNo }) {
   const hours = t.hours ?? hoursFor(t.title);
+  const prog = TRAINING_MATRIX.find((x) => x.title.toLowerCase() === (t.title ?? '').toLowerCase())?.program;
+  const std = prog === 'MCFD' ? 'MCFD only · SHSS Standard G.3' : prog === 'CLBC' ? 'CLBC only · adult services training' : prog === 'Both' ? 'MCFD & CLBC · Standard G.3' : 'Evergreen training record';
   const long = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
   return (
     <div className={`certificate ${t.verified_by ? '' : 'unverified'}`}>
@@ -52,7 +54,7 @@ export default function Certificate({ t, name, employeeNo }) {
           <div><span>{t.verifier?.full_name ?? ''}</span><hr />Verified by, Evergreen Community Care Inc.</div>
           <div><span>{long(t.completed_on)}</span><hr />Date</div>
         </div>
-        <p className="cert-no">Certificate no. {certificateNo(t)} · Evergreen Academy · MCFD Standard G.3 training record</p>
+        <p className="cert-no">Certificate no. {certificateNo(t)} · Evergreen Academy · {std}</p>
       </div>
     </div>
   );

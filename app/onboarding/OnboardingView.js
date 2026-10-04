@@ -1,6 +1,7 @@
 // The onboarding checklist — used by the staff member (/onboarding) and by managers (/hr/[id]/onboarding).
 import Link from 'next/link';
-import { SECTIONS, LEGACY_SECTIONS, templateFor } from '@/lib/onboarding';
+import { SECTIONS, LEGACY_SECTIONS, templateFor, appliesTo } from '@/lib/onboarding';
+import ProgramBadge from '@/app/components/ProgramBadge';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/options';
 import { savePersonal, submitItem, submitOnboarding, reviewItem, completeOnboarding } from '@/app/onboarding/actions';
 import SignaturePad from './SignaturePad';
@@ -162,11 +163,13 @@ export default async function OnboardingView({ supabase, onb, person, viewer }) 
     const { data } = await supabase.storage.from('staff-files').createSignedUrls(paths, 3600);
     urls = Object.fromEntries((data ?? []).map((s) => [s.path, s.signedUrl]));
   }
-  const [{ data: policies }, { data: acks }] = await Promise.all([
-    supabase.from('policies').select('id, title, code, current_version_id, current:current_version_id(version_label)')
+  const [{ data: policiesAll }, { data: acks }] = await Promise.all([
+    supabase.from('policies').select('id, title, code, applies_to, current_version_id, current:current_version_id(version_label)')
       .eq('active', true).eq('require_signature', true).order('title'),
     supabase.from('policy_acks').select('policy_version_id, signed_at, signed_name').eq('profile_id', onb.profile_id),
   ]);
+  const program = onb.program ?? 'Both';
+  const policies = (policiesAll ?? []).filter((p) => appliesTo(p.applies_to, program));
   const ackFor = (pol) => acks?.find((a) => a.policy_version_id === pol.current_version_id);
   const polSigned = (policies ?? []).filter(ackFor).length;
   const today = todayISO();
@@ -184,7 +187,7 @@ export default async function OnboardingView({ supabase, onb, person, viewer }) 
         <span className="div-icon">👥</span>
         <div>
           <h1>{isSelf ? 'My onboarding' : `Onboarding — ${person.full_name}`}</h1>
-          <p>Hire date {fmtDate(onb.hire_date)} · personnel file due {fmtDate(onb.due_date)} · Status: {onb.status}</p>
+          <p>Program: {program === 'Both' ? 'MCFD & CLBC' : program} · Hire date {fmtDate(onb.hire_date)} · personnel file due {fmtDate(onb.due_date)} · Status: {onb.status}</p>
         </div>
         <span className="no-print"><PrintButton label="Print" /></span>
       </div>
@@ -268,7 +271,7 @@ export default async function OnboardingView({ supabase, onb, person, viewer }) 
                     return (
                       <li key={pol.id}>
                         <Link href={`/policies/${pol.id}`}>
-                          <span><strong>{pol.title}</strong> <span className="muted small">v{pol.current?.version_label ?? '—'}{pol.code && ` · ${pol.code}`}</span></span>
+                          <span><ProgramBadge program={pol.applies_to} /> <strong>{pol.title}</strong> <span className="muted small">v{pol.current?.version_label ?? '—'}{pol.code && ` · ${pol.code}`}</span></span>
                           <span className="small">{a ? <span className="badge">✓ Signed {fmtDateTime(a.signed_at)}</span> : <span className="badge bad">Read and sign</span>}</span>
                         </Link>
                       </li>
@@ -286,7 +289,7 @@ export default async function OnboardingView({ supabase, onb, person, viewer }) 
               return (
                 <details key={item.id} className={`onb-item s-${item.status.replace(/[^a-z]/gi, '')}`} open={open}>
                   <summary>
-                    <span className="onb-title">{tpl.no ? `${tpl.no}. ` : ''}{item.title}{tpl.ifApplicable && <span className="muted small"> (if applicable)</span>}</span>
+                    <span className="onb-title">{tpl.program && <><ProgramBadge program={tpl.program} /> </>}{tpl.no ? `${tpl.no}. ` : ''}{item.title}{tpl.ifApplicable && <span className="muted small"> (if applicable)</span>}</span>
                     <span className="small">
                       {item.due_date && <span className={overdue ? 'badge bad' : 'muted'}>{overdue ? 'Overdue · ' : 'Due '}{fmtDate(item.due_date)}</span>}{' '}
                       <span className={`badge ${badge(item.status)}`}>{item.status}</span>

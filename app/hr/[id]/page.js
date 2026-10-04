@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { CERT_TYPES, certStatus } from '@/lib/hr';
-import { TRAINING_MATRIX } from '@/lib/onboarding';
-const REQUIRED_TRAINING = TRAINING_MATRIX.filter((t) => !t.ifApplicable);
+import { trainingsFor } from '@/lib/onboarding';
+import ProgramBadge from '@/app/components/ProgramBadge';
 import { fmtDate, todayISO } from '@/lib/options';
 import {
   saveStaffDetails, addCertification, deleteCertification, addTraining, deleteTraining, saveEmployment,
@@ -39,6 +39,7 @@ export default async function StaffHrPage({ params }) {
       </p>
       <p className="small">
         <span className="emp-no">Employee no. {details?.employee_no ?? '—'}</span>{' '}
+        <ProgramBadge program={details?.program} />{' '}
         <span className={`badge ${details?.employment_status && details.employment_status !== 'Active' ? 'warn' : ''}`}>{details?.employment_status ?? 'Active'}</span>
         {details?.last_day && <span className="muted"> · last day {fmtDate(details.last_day)}</span>}
         {' · '}<Link href="/academy">🎓 Evergreen Academy</Link>
@@ -57,7 +58,8 @@ export default async function StaffHrPage({ params }) {
           <p className="small">Status: <span className="badge">{onb.status}</span> · {onbDone} of {onbItems?.length ?? 0} items complete
             {canEdit && onbWaiting > 0 && <> · <span className="badge warn">{onbWaiting} waiting for review</span></>}</p>
         ) : <p className="muted small">No onboarding checklist yet.</p>}
-        <p className="small"><Link href={`/hr/${person.id}/certificates`}>🏅 Print all training certificates</Link></p>
+        <p className="small"><Link href={`/hr/${person.id}/certificates`}>🏅 Print all training certificates</Link>
+          {canEdit && <> · <Link href={`/policies/report?person=${person.id}`}>📘 Print policy sign-off record</Link></>}</p>
       </div>
 
       {/* ---------- Details ---------- */}
@@ -77,6 +79,13 @@ export default async function StaffHrPage({ params }) {
               </select>
             </label>
             <label>Hire date<input type="date" name="hire_date" defaultValue={details?.hire_date ?? ''} /></label>
+            <label>Program
+              <select name="program" defaultValue={details?.program ?? 'Both'}>
+                <option value="MCFD">MCFD only — children & youth</option>
+                <option value="CLBC">CLBC only — adults</option>
+                <option value="Both">Both MCFD and CLBC</option>
+              </select>
+            </label>
           </div>
           <div className="row">
             <label>Emergency contact<input name="emergency_contact" defaultValue={details?.emergency_contact ?? ''} /></label>
@@ -179,7 +188,7 @@ export default async function StaffHrPage({ params }) {
       <h2>Required training</h2>
       {!details?.hire_date && <p className="muted small">Add a hire date above to see due dates.</p>}
       <ul className="checklist card">
-        {REQUIRED_TRAINING.map((rt) => {
+        {trainingsFor(details?.program).filter((t) => !t.ifApplicable).map((rt) => {
           const done = trainings?.find((t) => t.title.toLowerCase() === rt.title.toLowerCase());
           let due = null;
           if (details?.hire_date) {
@@ -191,7 +200,7 @@ export default async function StaffHrPage({ params }) {
             <li key={rt.title} className={done ? 'done' : overdue ? 'overdue' : ''}>
               <div className="req-text">
                 <span className="tick">{done ? '✓' : overdue ? '!' : '○'}</span>
-                <span>{rt.title}
+                <span><ProgramBadge program={rt.program} /> {rt.title}
                   <div className="muted small">
                     {done ? `Completed ${fmtDate(done.completed_on)}` : due ? `Due ${fmtDate(due)}${rt.days === 0 ? ' (before first shift)' : ` (within ${rt.days} days of hire)`}` : ''}
                     {overdue && <span className="badge bad">Overdue</span>}
@@ -202,7 +211,7 @@ export default async function StaffHrPage({ params }) {
           );
         })}
       </ul>
-      <p className="muted small">From Evergreen’s training matrix (Standard G.3). Items that only apply to some roles (OFA 2, medication, working alone, driving) are tracked in onboarding. Record completions below using the exact training name.</p>
+      <p className="muted small">From Evergreen’s training matrix, filtered to this person’s program. Items that only apply to some roles (OFA 2, medication, working alone, driving) are tracked in onboarding. Record completions below using the exact training name.</p>
 
       {/* ---------- Training ---------- */}
       <h2>Training</h2>

@@ -290,3 +290,18 @@ table.matrix td:first-child { text-align: left; font-weight: 400; white-space: n
 .cert-inner { position: relative; }
 .cert-seal { position: absolute; right: 6%; bottom: 8%; width: 120px; height: 150px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
 @media print { .cert-seal { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+/* ---------- MCFD / CLBC labels ---------- */
+.prog { display: inline-block; font-size: .68rem; font-weight: 700; letter-spacing: .03em; padding: 2px 7px; border-radius: 4px; vertical-align: middle; white-space: nowrap; }
+.prog-MCFD { background: #e3ecf8; color: #0f3059; border: 1px solid #b9cbe6; }
+.prog-CLBC { background: #e4f3ea; color: #0b5a34; border: 1px solid #b7dcc5; }
+.prog-Both { background: #fbf2d8; color: #7a5a0a; border: 1px solid #ead79a; }
+.prog-dot { font-size: .62rem; font-weight: 700; padding: 1px 4px; border-radius: 3px; writing-mode: horizontal-tb !important; transform: none !important; }
+table.matrix .prog-row th span.prog-dot { writing-mode: horizontal-tb; transform: none; }
+.m-na { color: #c9cec9; background: #fafafa; }
+.legend .prog { margin: 0 2px; }
+.report-head { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+.report-head img { height: 64px; }
+.report-head h1 { margin: 0; color: var(--green-dark); }
+.report-head > span:last-child { margin-left: auto; }
+@media print { .report .page-break { break-before: page; } .report table { font-size: .85rem; } }

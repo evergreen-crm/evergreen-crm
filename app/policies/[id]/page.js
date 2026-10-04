@@ -2,7 +2,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
-import { POLICY_CATEGORIES } from '@/lib/onboarding';
+import { POLICY_CATEGORIES, appliesTo } from '@/lib/onboarding';
+import ProgramBadge from '@/app/components/ProgramBadge';
 import { fmtDate, fmtDateTime } from '@/lib/options';
 import { signPolicy, updatePolicy, restoreVersion } from '@/app/policies/actions';
 import PolicyUpload from '@/app/policies/PolicyUpload';
@@ -24,9 +25,13 @@ export default async function PolicyPage({ params }) {
   const [{ data: versions }, { data: acks }, { data: people }, { data: onb }] = await Promise.all([
     supabase.from('policy_versions').select('*, publisher:published_by(full_name)').eq('policy_id', id).order('published_at', { ascending: false }),
     supabase.from('policy_acks').select('*, person:profile_id(full_name)').eq('policy_id', id).order('signed_at', { ascending: false }),
-    isBoss ? supabase.from('profiles').select('id, full_name, role, active').in('role', ['admin', 'manager', 'staff']).eq('active', true).order('full_name') : { data: [] },
+    isBoss ? supabase.from('profiles').select('id, full_name, role, active, staff_details(program)').in('role', ['admin', 'manager', 'staff']).eq('active', true).order('full_name') : { data: [] },
     supabase.from('onboardings').select('signature_image').eq('profile_id', user.id).maybeSingle(),
   ]);
+  const { data: me } = await supabase.from('staff_details').select('program').eq('profile_id', user.id).maybeSingle();
+  const progOf = (x) => x.staff_details?.program ?? x.staff_details?.[0]?.program ?? 'Both';
+  const forMe = appliesTo(p.applies_to, me?.program ?? 'Both');
+  const team = (people ?? []).filter((x) => appliesTo(p.applies_to, progOf(x)));
   const current = versions?.find((v) => v.id === p.current_version_id);
   const myAck = acks?.find((a) => a.profile_id === user.id && a.policy_version_id === current?.id);
   const myOld = acks?.filter((a) => a.profile_id === user.id && a.policy_version_id !== current?.id) ?? [];
@@ -45,7 +50,7 @@ export default async function PolicyPage({ params }) {
         <span className="div-icon">📘</span>
         <div>
           <h1>{p.title}</h1>
-          <p>{[p.code, p.category, current && `Version ${current.version_label}`, current?.effective_date && `effective ${fmtDate(current.effective_date)}`].filter(Boolean).join(' · ')}</p>
+          <p><ProgramBadge program={p.applies_to} /> {[p.code, p.category, current && `Version ${current.version_label}`, current?.effective_date && `effective ${fmtDate(current.effective_date)}`].filter(Boolean).join(' · ')}</p>
         </div>
         <span className="no-print"><PrintButton label="Print" /></span>
       </div>
@@ -61,7 +66,10 @@ export default async function PolicyPage({ params }) {
       {!current && <p className="muted">No file has been uploaded yet.</p>}
 
       {/* ---------- Sign ---------- */}
-      {current && p.require_signature && (
+      {current && p.require_signature && !forMe && (
+        <p className="card muted">This policy is for {p.applies_to === 'MCFD' ? 'MCFD (children & youth)' : 'CLBC (adult)'} programs only — you don’t need to sign it, but you can read it.</p>
+      )}
+      {current && p.require_signature && forMe && (
         <section className="card sign-box">
           <h2>Digital signature</h2>
           {myAck ? (
@@ -87,15 +95,15 @@ export default async function PolicyPage({ params }) {
       {isBoss && current && p.require_signature && (
         <section>
           <h2>Signatures for version {current.version_label}</h2>
-          <p className="small">{people?.filter((x) => signedCurrent(x.id)).length ?? 0} of {people?.length ?? 0} active staff have signed.</p>
+          <p className="small">{team.filter((x) => signedCurrent(x.id)).length} of {team.length} active staff in {p.applies_to === 'Both' ? 'MCFD & CLBC' : p.applies_to} programs have signed.</p>
           <table>
-            <thead><tr><th>Name</th><th>Role</th><th>Signed</th></tr></thead>
+            <thead><tr><th>Name</th><th>Role</th><th>Program</th><th>Signed</th></tr></thead>
             <tbody>
-              {people?.map((x) => {
+              {team.map((x) => {
                 const a = signedCurrent(x.id);
                 return (
                   <tr key={x.id}>
-                    <td>{x.full_name}</td><td>{x.role}</td>
+                    <td>{x.full_name}</td><td>{x.role}</td><td><ProgramBadge program={progOf(x)} /></td>
                     <td>{a ? <>✓ {a.signed_name} · {fmtDateTime(a.signed_at)}</> : <span className="badge bad">Not signed</span>}</td>
                   </tr>
                 );
@@ -155,6 +163,13 @@ export default async function PolicyPage({ params }) {
                 <label>Document code<input name="code" defaultValue={p.code ?? ''} /></label>
                 <label>Category<select name="category" defaultValue={p.category ?? 'HR'}>{POLICY_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select></label>
               </div>
+              <label>Applies to
+                <select name="applies_to" defaultValue={p.applies_to ?? 'Both'}>
+                  <option value="Both">MCFD & CLBC (both programs)</option>
+                  <option value="MCFD">MCFD only — children & youth</option>
+                  <option value="CLBC">CLBC only — adults</option>
+                </select>
+              </label>
               <label>Short description<input name="description" defaultValue={p.description ?? ''} /></label>
               <label className="check"><input type="checkbox" name="require_signature" defaultChecked={p.require_signature} /> Staff must read and sign it</label>
               <label className="check"><input type="checkbox" name="active" defaultChecked={p.active} /> Active (untick to archive)</label>

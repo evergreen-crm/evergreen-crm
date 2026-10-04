@@ -1,7 +1,8 @@
 // Policy library: every Evergreen policy, its current version and whether you've signed it.
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
-import { POLICY_CATEGORIES } from '@/lib/onboarding';
+import { POLICY_CATEGORIES, appliesTo, PROGRAMS } from '@/lib/onboarding';
+import ProgramBadge from '@/app/components/ProgramBadge';
 import { fmtDate, fmtDateTime } from '@/lib/options';
 import PolicyUpload from './PolicyUpload';
 import PrintButton from '@/app/PrintButton';
@@ -10,14 +11,19 @@ export default async function PoliciesPage({ searchParams }) {
   const sp = await searchParams;
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const isAdmin = profile.role === 'admin';
-  const [{ data: policies }, { data: myAcks }] = await Promise.all([
+  const [{ data: policies }, { data: myAcks }, { data: me }] = await Promise.all([
     supabase.from('policies').select('*, current:current_version_id(id, version_label, effective_date, published_at, change_note)')
       .order('category').order('title'),
     supabase.from('policy_acks').select('policy_id, policy_version_id, signed_at').eq('profile_id', user.id),
+    supabase.from('staff_details').select('program').eq('profile_id', user.id).maybeSingle(),
   ]);
-  const shown = (policies ?? []).filter((p) => (sp.archived ? !p.active : p.active));
+  const myProgram = me?.program ?? 'Both';
+  const prog = sp.program ?? '';
+  const shown = (policies ?? []).filter((p) => (sp.archived ? !p.active : p.active))
+    .filter((p) => !prog || (p.applies_to ?? 'Both') === prog || (prog !== 'Both' && p.applies_to === 'Both'));
+  const forMe = (p) => appliesTo(p.applies_to, myProgram);
   const signedFor = (p) => myAcks?.find((a) => a.policy_version_id === p.current?.id);
-  const needed = shown.filter((p) => p.require_signature && p.current && !signedFor(p));
+  const needed = shown.filter((p) => p.require_signature && p.current && forMe(p) && !signedFor(p));
   const groups = {};
   for (const p of shown) (groups[p.category ?? 'Other'] ??= []).push(p);
 
@@ -34,6 +40,13 @@ export default async function PoliciesPage({ searchParams }) {
         <div className="stat"><strong>{shown.length}</strong><span>policies</span></div>
       </div>
 
+      <p className="small">You work in: <ProgramBadge program={myProgram} /> — you only need to sign policies marked for your program.</p>
+      <nav className="tabs-bar no-print">
+        <Link href="/policies" className={!prog ? 'on' : ''}>All</Link>
+        <Link href="/policies?program=MCFD" className={prog === 'MCFD' ? 'on' : ''}>MCFD (children & youth)</Link>
+        <Link href="/policies?program=CLBC" className={prog === 'CLBC' ? 'on' : ''}>CLBC (adults)</Link>
+        <Link href="/policies?program=Both" className={prog === 'Both' ? 'on' : ''}>Both only</Link>
+      </nav>
       {Object.entries(groups).map(([cat, list]) => (
         <section key={cat}>
           <h2>{cat}</h2>
@@ -44,11 +57,12 @@ export default async function PoliciesPage({ searchParams }) {
                 <li key={p.id}>
                   <Link href={`/policies/${p.id}`}>
                     <span>
-                      <strong>{p.title}</strong>
+                      <ProgramBadge program={p.applies_to} /> <strong>{p.title}</strong>
                       <span className="muted small"> · {p.code ? `${p.code} · ` : ''}v{p.current?.version_label ?? '—'}{p.current?.effective_date && ` · effective ${fmtDate(p.current.effective_date)}`}</span>
                     </span>
                     <span className="small">
                       {!p.require_signature ? <span className="badge">For reference</span>
+                        : !forMe(p) ? <span className="muted">Not for your program</span>
                         : ack ? <span className="badge">✓ Signed {fmtDateTime(ack.signed_at)}</span>
                         : <span className="badge bad">Read and sign</span>}
                     </span>
@@ -61,6 +75,9 @@ export default async function PoliciesPage({ searchParams }) {
       ))}
       {shown.length === 0 && <p className="muted">{isAdmin ? 'No policies yet — add your first one below.' : 'No policies have been added yet.'}</p>}
 
+      {['admin', 'manager'].includes(profile.role) && (
+        <p className="no-print"><Link className="button secondary" href="/policies/report">🖨 Print all policies — read & signature report</Link></p>
+      )}
       <p className="small no-print">{sp.archived ? <Link href="/policies">← Current policies</Link> : <Link href="/policies?archived=1">Archived policies</Link>}</p>
       {isAdmin && <PolicyUpload mode="new" categories={POLICY_CATEGORIES} />}
     </main>

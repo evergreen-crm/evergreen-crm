@@ -27,7 +27,7 @@ export default function PolicyUpload({ mode, policyId, suggestedVersion = '1.0',
     let res;
     if (mode === 'new') {
       res = await createPolicy({ ...info, title: f.title.value, code: f.code.value, category: f.category.value,
-        description: f.description.value, require_signature: f.require_signature.checked });
+        description: f.description.value, applies_to: f.applies_to.value, require_signature: f.require_signature.checked });
     } else {
       res = await publishVersion({ ...info, policy_id: policyId });
     }
@@ -50,7 +50,16 @@ export default function PolicyUpload({ mode, policyId, suggestedVersion = '1.0',
               <select name="category" defaultValue="HR">{categories.map((c) => <option key={c}>{c}</option>)}</select>
             </label>
           </div>
-          <label>Short description<input name="description" /></label>
+          <div className="row">
+            <label>Applies to
+              <select name="applies_to" defaultValue="Both">
+                <option value="Both">MCFD & CLBC (both programs)</option>
+                <option value="MCFD">MCFD only — children & youth</option>
+                <option value="CLBC">CLBC only — adults</option>
+              </select>
+            </label>
+            <label>Short description<input name="description" /></label>
+          </div>
           <label className="check"><input type="checkbox" name="require_signature" defaultChecked /> Staff must read and sign it</label>
         </>
       )}

@@ -15,6 +15,7 @@ export async function createPolicy(info) {
   if (!clean(info.title) || !clean(info.file_path)) return { error: 'Title and file are required.' };
   const { data: pol, error } = await supabase.from('policies').insert({
     title: clean(info.title), code: clean(info.code), category: clean(info.category), description: clean(info.description),
+    applies_to: ['MCFD', 'CLBC', 'Both'].includes(info.applies_to) ? info.applies_to : 'Both',
     require_signature: info.require_signature !== false, created_by: user.id,
   }).select('id').single();
   if (error) return { error: error.message };
@@ -55,7 +56,7 @@ export async function updatePolicy(formData) {
   const id = text(formData, 'id');
   const { error } = await supabase.from('policies').update({
     title: text(formData, 'title'), code: text(formData, 'code'), category: text(formData, 'category'),
-    description: text(formData, 'description'), require_signature: formData.get('require_signature') === 'on',
+    description: text(formData, 'description'), applies_to: text(formData, 'applies_to') ?? 'Both', require_signature: formData.get('require_signature') === 'on',
     active: formData.get('active') === 'on',
   }).eq('id', id);
   if (error) throw new Error('Could not save: ' + error.message);

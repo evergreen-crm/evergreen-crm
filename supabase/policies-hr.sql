@@ -271,18 +271,10 @@ begin
     perform notify_managers(r.full_name || ': onboarding item overdue — ' || r.title, null, '/hr/' || r.profile_id || '/onboarding', 'onbod:' || r.id);
   end loop;
 
-  -- Policies still unsigned 14 days after a version was published
-  for r in
-    select pol.id as policy_id, pol.title, v.id as version_id, pr.id as profile_id, pr.full_name
-    from policies pol join policy_versions v on v.id = pol.current_version_id
-    cross join profiles pr
-    where pol.active and pol.require_signature and pr.active and pr.role in ('admin','manager','staff')
-      and v.published_at < now() - interval '14 days'
-      and not exists (select 1 from policy_acks a where a.policy_version_id = v.id and a.profile_id = pr.id)
-  loop
-    perform notify(r.profile_id, 'Reminder: please sign ' || r.title, null, '/policies/' || r.policy_id, 'pol14:' || r.version_id || ':' || r.profile_id);
-    perform notify_managers(r.full_name || ' has not signed ' || r.title || ' (14 days)', null, '/policies/' || r.policy_id, 'pol14:' || r.version_id || ':' || r.profile_id);
-  end loop;
+  -- Policies still unsigned 14 days after a version was published (program-aware, see programs.sql)
+  if to_regproc('public.daily_unsigned_policy_reminders') is not null then
+    perform public.daily_unsigned_policy_reminders();
+  end if;
 end $$;
 revoke execute on function daily_reminders() from public, authenticated;
 

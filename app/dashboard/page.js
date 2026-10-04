@@ -92,11 +92,13 @@ export default async function Dashboard() {
 
   // Policies to sign and training to renew (everyone)
   const [{ data: pols }, { data: myAcks }, { data: myTr }] = await Promise.all([
-    supabase.from('policies').select('id, current_version_id').eq('active', true).eq('require_signature', true).not('current_version_id', 'is', null),
+    supabase.from('policies').select('id, current_version_id, applies_to').eq('active', true).eq('require_signature', true).not('current_version_id', 'is', null),
     supabase.from('policy_acks').select('policy_version_id').eq('profile_id', profile.id),
     supabase.from('trainings').select('title, expires_on, completed_on').eq('profile_id', profile.id),
   ]);
-  const unsigned = (pols ?? []).filter((p) => !(myAcks ?? []).some((a) => a.policy_version_id === p.current_version_id)).length;
+  const { data: myHr } = await supabase.from('staff_details').select('program').eq('profile_id', profile.id).maybeSingle();
+  const myProg = myHr?.program ?? 'Both';
+  const unsigned = (pols ?? []).filter((p) => (p.applies_to ?? 'Both') === 'Both' || myProg === 'Both' || p.applies_to === myProg).filter((p) => !(myAcks ?? []).some((a) => a.policy_version_id === p.current_version_id)).length;
   if (unsigned) alerts.push({ level: 'warn', text: `You have ${unsigned} polic${unsigned > 1 ? 'ies' : 'y'} to read and sign`, href: '/policies' });
   const latest = {};
   for (const t of myTr ?? []) if (!latest[t.title] || t.completed_on > latest[t.title].completed_on) latest[t.title] = t;

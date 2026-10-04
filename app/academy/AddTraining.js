@@ -41,7 +41,7 @@ export default function AddTraining({ profileId, trainings, today, preset }) {
         <label>Training
           <select value={title} onChange={(e) => setTitle(e.target.value)} required>
             <option value="" disabled>Choose…</option>
-            {trainings.map((t) => <option key={t.key}>{t.title}</option>)}
+            {trainings.map((t) => <option key={t.key} value={t.title}>{t.title} — {t.program === 'Both' ? 'MCFD & CLBC' : `${t.program} only`}</option>)}
             <option>Other</option>
           </select>
         </label>

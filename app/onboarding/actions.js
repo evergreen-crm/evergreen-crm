@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
-import { SECTIONS, templateFor } from '@/lib/onboarding';
+import { SECTIONS, templateFor, appliesTo } from '@/lib/onboarding';
 import { addDaysISO, todayISO } from '@/lib/options';
 
 const text = (formData, key) => {
@@ -22,20 +22,21 @@ export async function startOnboarding(formData) {
   const { supabase, user } = await requireUser(BOSS);
   const profileId = text(formData, 'profile_id');
   const hire = text(formData, 'hire_date') ?? todayISO();
+  const program = ['MCFD', 'CLBC', 'Both'].includes(text(formData, 'program')) ? text(formData, 'program') : 'Both';
   const { data: onb, error } = await supabase.from('onboardings').insert({
-    profile_id: profileId, hire_date: hire, due_date: addDaysISO(hire, 30), sent_by: user.id,
+    profile_id: profileId, hire_date: hire, due_date: addDaysISO(hire, 30), sent_by: user.id, program,
   }).select('id').single();
   if (error) throw new Error(error.code === '23505' ? 'This person already has an onboarding checklist.' : 'Could not start onboarding: ' + error.message);
 
   const rows = [];
-  for (const s of SECTIONS) s.items.forEach((it, i) => rows.push({
+  for (const s of SECTIONS) s.items.filter((it) => appliesTo(it.program, program)).forEach((it, i) => rows.push({
     onboarding_id: onb.id, profile_id: profileId, section: s.key, item_key: it.key, title: it.title,
     sort: i, due_date: addDaysISO(hire, it.days ?? 30),
     status: it.kind === 'manager' ? 'To do' : 'To do',
   }));
   const { error: e2 } = await supabase.from('onboarding_items').insert(rows);
   if (e2) throw new Error('Could not create checklist: ' + e2.message);
-  await supabase.from('staff_details').upsert({ profile_id: profileId, hire_date: hire, updated_at: new Date().toISOString() });
+  await supabase.from('staff_details').upsert({ profile_id: profileId, hire_date: hire, program, updated_at: new Date().toISOString() });
   refreshFor(profileId);
   redirect(`/hr/${profileId}/onboarding`);
 }
