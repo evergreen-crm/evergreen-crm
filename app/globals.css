@@ -365,3 +365,13 @@ table.matrix .prog-row th span.prog-dot { writing-mode: horizontal-tb; transform
   .idcard { width: 85.6mm; max-width: none; height: 54mm; aspect-ratio: auto; box-shadow: none; border: .2mm solid #999;
     -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+.photo-editor { display: grid; gap: 10px; justify-items: start; }
+.pe-frame { position: relative; border-radius: 12px; overflow: hidden; touch-action: none; cursor: grab; background: #e7ece8; border: 3px solid #d4a72c; }
+.pe-frame:active { cursor: grabbing; }
+.pe-frame canvas { display: block; }
+.pe-guide { position: absolute; left: 50%; top: 42%; width: 58%; height: 52%; transform: translate(-50%, -50%);
+  border: 2px dashed rgba(255,255,255,.85); border-radius: 50%; box-shadow: 0 0 0 9999px rgba(0,0,0,.18); pointer-events: none; }
+.pe-zoom { display: flex; align-items: center; gap: 10px; width: 270px; }
+.pe-zoom input { flex: 1; }
+.photo-pick .row { gap: 8px; }
+.photo-pick label.button { cursor: pointer; }

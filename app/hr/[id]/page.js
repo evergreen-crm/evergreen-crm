@@ -34,6 +34,11 @@ export default async function StaffHrPage({ params, searchParams }) {
     const { data } = await supabase.storage.from('id-photos').createSignedUrl(idCard.photo_path, 3600);
     idPhoto = data?.signedUrl ?? null;
   }
+  let idNewPhoto = null;
+  if (idCard?.new_photo_path && idCard.new_photo_status === 'Pending') {
+    const { data } = await supabase.storage.from('id-photos').createSignedUrl(idCard.new_photo_path, 3600);
+    idNewPhoto = data?.signedUrl ?? null;
+  }
 
   // Staff can only open their own record (the database also enforces this).
   if (!person) notFound();
@@ -89,6 +94,22 @@ export default async function StaffHrPage({ params, searchParams }) {
                   {idCard?.issued_on && <> · issued {fmtDate(idCard.issued_on)} · valid until {fmtDate(idCard.expires_on)}</>}
                   {' · '}Photo: {idCard?.photo_status ?? 'None'}
                   {' · '}Location notice: {idCard?.location_ack_at ? 'read' : 'not yet'}</p>
+                {canEdit && idCard?.new_photo_status === 'Pending' && (
+                  <div className="card">
+                    <p className="small"><strong>New photo sent.</strong> Current photo (left) stays on the card until you approve the new one (right).</p>
+                    <div className="row">
+                      <div className="id-admin-photo">{idPhoto && <img src={idPhoto} alt="Current" />}</div>
+                      <span>→</span>
+                      <div className="id-admin-photo">{idNewPhoto && <img src={idNewPhoto} alt="New" />}</div>
+                    </div>
+                    <form action={reviewIdPhoto} className="row">
+                      <input type="hidden" name="profile_id" value={person.id} />
+                      <input name="note" placeholder="Note (needed to send back)" />
+                      <button name="decision" value="approve">✓ Approve new photo</button>
+                      <button name="decision" value="return" className="secondary">Keep old photo</button>
+                    </form>
+                  </div>
+                )}
                 {canEdit && idCard?.photo_status === 'Pending' && (
                   <form action={reviewIdPhoto} className="row">
                     <input type="hidden" name="profile_id" value={person.id} />

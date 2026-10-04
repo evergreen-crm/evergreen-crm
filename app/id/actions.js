@@ -79,9 +79,22 @@ export async function reviewIdPhoto(formData) {
   const decision = text(formData, 'decision');
   const note = text(formData, 'note');
   if (decision === 'return' && !note) redirect(`/hr/${pid}?idmsg=${encodeURIComponent('Add a note saying what to fix in the photo.')}#id-card`);
-  const { error } = await supabase.from('id_cards')
-    .update({ photo_status: decision === 'approve' ? 'Approved' : 'Returned', photo_note: note }).eq('profile_id', pid);
+  const { data: card } = await supabase.from('id_cards').select('photo_path, new_photo_path, new_photo_status').eq('profile_id', pid).maybeSingle();
+  let patch;
+  if (card?.new_photo_status === 'Pending' && card.new_photo_path) {
+    // A replacement photo for a card that is already in use.
+    patch = decision === 'approve'
+      ? { photo_path: card.new_photo_path, photo_status: 'Approved', photo_note: null, new_photo_path: null, new_photo_status: null, new_photo_note: null }
+      : { new_photo_status: 'Returned', new_photo_note: note };
+  } else {
+    patch = { photo_status: decision === 'approve' ? 'Approved' : 'Returned', photo_note: note };
+  }
+  const { error } = await supabase.from('id_cards').update(patch).eq('profile_id', pid);
   if (error) throw new Error('Could not save: ' + error.message);
+  // Remove the old photo file once a replacement is approved (keeps storage small).
+  if (patch.new_photo_path === null && card?.photo_path && card.photo_path !== card.new_photo_path) {
+    await supabase.storage.from('id-photos').remove([card.photo_path]);
+  }
   refresh(pid);
 }
 
