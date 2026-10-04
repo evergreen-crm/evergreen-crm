@@ -49,23 +49,20 @@ drop policy if exists "records see" on records;
 drop policy if exists "records add" on records;
 drop policy if exists "records edit" on records;
 drop policy if exists "records delete" on records;
+-- Only the admin sees every division. Everyone else (managers included)
+-- sees a division only after the admin gives them access.
 create policy "records see" on records for select using (
-  app_role() in ('admin','manager')
-  or has_division(division)
-  or (app_role() = 'staff' and visibility = 'staff' and (home_id is null or home_id = app_home())));
+  app_role() = 'admin' or has_division(division));
 create policy "records add" on records for insert with check (
-  created_by = auth.uid() and (
-    app_role() in ('admin','manager')
-    or has_division(division)
-    or (app_role() = 'staff' and visibility = 'staff' and (home_id is null or home_id = app_home()))));
+  created_by = auth.uid() and (app_role() = 'admin' or has_division(division)));
 create policy "records edit" on records for update using (
-  app_role() in ('admin','manager') or has_division(division, true) or created_by = auth.uid())
-  with check (app_role() in ('admin','manager') or has_division(division, true) or created_by = auth.uid());
+  app_role() = 'admin' or has_division(division, true) or (created_by = auth.uid() and has_division(division)))
+  with check (app_role() = 'admin' or has_division(division, true) or (created_by = auth.uid() and has_division(division)));
 create policy "records delete" on records for delete using (app_role() = 'admin');
 
 drop policy if exists "access see" on portal_access;
 drop policy if exists "access manage" on portal_access;
-create policy "access see" on portal_access for select using (profile_id = auth.uid() or app_role() in ('admin','manager'));
+create policy "access see" on portal_access for select using (profile_id = auth.uid() or app_role() = 'admin');
 create policy "access manage" on portal_access for all using (app_role() = 'admin') with check (app_role() = 'admin');
 
 drop trigger if exists audit_records on records;

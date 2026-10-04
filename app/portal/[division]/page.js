@@ -14,8 +14,8 @@ export default async function DivisionPage({ params }) {
   const full = findDivision(division);
   if (!full) notFound();
   const grants = await getGrants(supabase, profile);
-  const areas = full.areas.filter((a) => canSee(profile, grants, full, a));
-  if (areas.length === 0) notFound();
+  if (!canSee(profile, grants, full)) notFound();
+  const areas = full.areas;
   const isAdmin = profile.role === 'admin';
   const today = todayISO();
 
@@ -65,8 +65,8 @@ export default async function DivisionPage({ params }) {
         <section className="card no-print">
           <h2>Who has access to this division</h2>
           <p className="muted small">
-            Admins and managers always have access. Staff see only the areas marked for front-line staff, for their own house.
-            Add a person here to let them see every area of this division.
+            Only you (admin) can see this division until you add people here. Nobody else, including managers, can see it.
+            “View and add” lets a person see all records and add their own. “Can edit everyone’s records” also lets them edit others’ records.
           </p>
           {access?.length === 0 && <p className="muted">No one else has been added.</p>}
           {access?.length > 0 && (
@@ -94,7 +94,7 @@ export default async function DivisionPage({ params }) {
             <label>Person
               <select name="profile_id" required defaultValue="">
                 <option value="" disabled>Choose…</option>
-                {people?.filter((p) => p.role === 'staff').map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+                {people?.map((p) => <option key={p.id} value={p.id}>{p.full_name} ({p.role})</option>)}
               </select>
             </label>
             <label className="check"><input type="checkbox" name="can_edit" /> Can edit everyone’s records</label>

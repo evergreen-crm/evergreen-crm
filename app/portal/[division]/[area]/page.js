@@ -17,7 +17,7 @@ export default async function AreaPage({ params, searchParams }) {
   const { div, area } = findArea(division, areaKey);
   if (!area) notFound();
   const grants = await getGrants(supabase, profile);
-  if (!canSee(profile, grants, div, area)) notFound();
+  if (!canSee(profile, grants, div)) notFound();
   const today = todayISO();
   const show = sp.show ?? 'all';
   const base = `/portal/${division}/${areaKey}`;
