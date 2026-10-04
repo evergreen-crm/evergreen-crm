@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { CERT_TYPES, certStatus } from '@/lib/hr';
+import { REQUIRED_TRAINING } from '@/lib/requirements';
+import { fmtDate, todayISO } from '@/lib/options';
 import {
   saveStaffDetails, addCertification, deleteCertification, addTraining, deleteTraining,
 } from '@/app/hr/actions';
@@ -116,6 +118,35 @@ export default async function StaffHrPage({ params }) {
         </form>
       )}
 
+      {/* ---------- Required training (MCFD policy 5.3) ---------- */}
+      <h2>Required training</h2>
+      {!details?.hire_date && <p className="muted small">Add a hire date above to see due dates.</p>}
+      <ul className="checklist card">
+        {REQUIRED_TRAINING.map((rt) => {
+          const done = trainings?.find((t) => t.title.toLowerCase() === rt.title.toLowerCase());
+          let due = null;
+          if (details?.hire_date) {
+            const d = new Date(details.hire_date + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + rt.days);
+            due = d.toISOString().slice(0, 10);
+          }
+          const overdue = !done && due && due < todayISO();
+          return (
+            <li key={rt.title} className={done ? 'done' : overdue ? 'overdue' : ''}>
+              <div className="req-text">
+                <span className="tick">{done ? '✓' : overdue ? '!' : '○'}</span>
+                <span>{rt.title}
+                  <div className="muted small">
+                    {done ? `Completed ${fmtDate(done.completed_on)}` : due ? `Due ${fmtDate(due)}${rt.days === 0 ? ' (before first shift)' : ` (within ${rt.days} days of hire)`}` : ''}
+                    {overdue && <span className="badge bad">Overdue</span>}
+                  </div>
+                </span>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="muted small">From Evergreen's MCFD policy 5.3. Record completions below using the exact training name.</p>
+
       {/* ---------- Training ---------- */}
       <h2>Training</h2>
       {trainings?.length === 0 && <p className="muted">No training recorded.</p>}
@@ -147,7 +178,8 @@ export default async function StaffHrPage({ params }) {
           <h3>Add training</h3>
           <input type="hidden" name="profile_id" value={person.id} />
           <div className="row">
-            <label>Training<input name="title" required placeholder="e.g., New staff orientation" /></label>
+            <label>Training<input name="title" required list="required-training" placeholder="Pick or type a training" /></label>
+            <datalist id="required-training">{REQUIRED_TRAINING.map((t) => <option key={t.title} value={t.title} />)}</datalist>
             <label>Completed on<input type="date" name="completed_on" required /></label>
             <label>Hours<input type="number" step="0.5" min="0" name="hours" /></label>
           </div>

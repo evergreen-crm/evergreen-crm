@@ -106,3 +106,28 @@ dl.facts dd { margin: 0; white-space: pre-wrap; }
   details:not([open]) > *:not(summary) { display: block !important; }
   a { color: #000; text-decoration: none; }
 }
+
+/* Tabs, checklists, incidents */
+.tabs-bar { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 2px solid var(--line); margin: 16px 0; }
+.tabs-bar a { padding: 10px 14px; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -2px; }
+.tabs-bar a.on { color: var(--green-dark); border-bottom-color: var(--green); font-weight: 600; }
+.checklist { list-style: none; padding: 0; margin: 0; }
+.checklist li { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.checklist li:last-child { border-bottom: 0; }
+.checklist .req-text { display: flex; gap: 10px; flex: 1 1 320px; }
+.checklist .tick { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: #eef1ef; font-size: .8rem; flex: none; }
+.checklist li.done .tick { background: var(--green); color: #fff; }
+.checklist li.overdue .tick { background: var(--red); color: #fff; }
+.checklist li.soon .tick { background: #fff4e0; color: var(--amber); }
+.req-form { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.req-form select, .req-form input { width: auto; margin: 0; padding: 6px 8px; font-size: .85rem; }
+.req-form input[name="notes"] { width: 160px; }
+.req-form button { padding: 6px 12px; font-size: .85rem; }
+.incident.closed { opacity: .7; }
+.print-only { display: none; }
+@media print {
+  .print-only { display: block; }
+  .page-break { break-before: page; }
+  .tabs-bar { display: none; }
+  .checklist .tick { border: 1px solid #333; }
+}

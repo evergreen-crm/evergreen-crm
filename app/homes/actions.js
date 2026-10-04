@@ -47,6 +47,7 @@ const RESIDENT_FIELDS = [
 function residentRow(formData) {
   const row = Object.fromEntries(RESIDENT_FIELDS.map((k) => [k, text(formData, k)]));
   if (!row.status) row.status = 'active';
+  for (const flag of ['is_indigenous', 'has_bsp', 'on_medication']) row[flag] = formData.get(flag) === 'on';
   return row;
 }
 

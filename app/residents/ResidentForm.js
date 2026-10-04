@@ -48,6 +48,14 @@ export default function ResidentForm({ action, resident = {}, homes, homeId, can
       </fieldset>
 
       <fieldset className="card">
+        <legend>Checklist settings</legend>
+        <p className="muted small">These switch on extra MCFD / CLBC requirement items.</p>
+        <label className="check"><input type="checkbox" name="is_indigenous" defaultChecked={!!resident.is_indigenous} /> Indigenous (Cultural Plan and Nation notification required)</label>
+        <label className="check"><input type="checkbox" name="has_bsp" defaultChecked={!!resident.has_bsp} /> Has a Behaviour Support / Safety Plan</label>
+        <label className="check"><input type="checkbox" name="on_medication" defaultChecked={!!resident.on_medication} /> Takes medication (MAR required)</label>
+      </fieldset>
+
+      <fieldset className="card">
         <legend>Funding &amp; case worker</legend>
         <div className="row">
           <label>
