@@ -36,7 +36,7 @@ export default function LoginPage() {
     setBusy(false);
     if (error) {
       // Same message whether or not the account exists (don't reveal who has accounts).
-      setMessage('We could not send a code. Check what you typed, or ask your manager for access.');
+      setMessage('We could not send a code. Check what you typed, or ask your manager for access. (Details: ' + error.message + ')');
       return;
     }
     setStep('enter-code');
@@ -54,7 +54,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.verifyOtp(params);
     setBusy(false);
     if (error) {
-      setMessage('That code is wrong or has expired. Try again or send a new code.');
+      setMessage('That code is wrong or has expired. Try again or send a new code. (Details: ' + error.message + ')');
       return;
     }
     router.push('/');
