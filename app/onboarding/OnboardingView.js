@@ -168,6 +168,8 @@ export default async function OnboardingView({ supabase, onb, person, viewer, no
       .eq('active', true).eq('require_signature', true).order('title'),
     supabase.from('policy_acks').select('policy_version_id, signed_at, signed_name').eq('profile_id', onb.profile_id),
   ]);
+  const { data: idCard } = await supabase.from('id_cards').select('photo_status, photo_note, issued_on, expires_on, location_ack_at').eq('profile_id', onb.profile_id).maybeSingle();
+  const idDone = (idCard?.photo_status === 'Approved' ? 1 : 0) + (idCard?.location_ack_at ? 1 : 0);
   const program = onb.program ?? 'Both';
   const policies = (policiesAll ?? []).filter((p) => appliesTo(p.applies_to, program));
   const ackFor = (pol) => acks?.find((a) => a.policy_version_id === pol.current_version_id);
@@ -194,9 +196,10 @@ export default async function OnboardingView({ supabase, onb, person, viewer, no
 
       {notice && <p className={`message ${notice.bad ? '' : 'ok'}`}>{notice.text}</p>}
       <ProgressPanel
-        overall={{ done: done + polSigned, total: all.length + (policies?.length ?? 0) }}
+        overall={{ done: done + polSigned + idDone, total: all.length + (policies?.length ?? 0) + 2 }}
         parts={[
           { label: 'Signature & personal info', done: (onb.signature_image ? 1 : 0) + (onb.personal?.phone ? 1 : 0), total: 2 },
+          { label: 'Digital ID card', done: idDone, total: 2 },
           { label: 'Personnel file', done: all.filter((i) => i.section === 'file' && DONE.includes(i.status)).length, total: all.filter((i) => i.section === 'file').length },
           { label: 'Policies signed', done: polSigned, total: policies?.length ?? 0 },
           { label: 'Evergreen Academy training', done: all.filter((i) => i.section === 'training' && DONE.includes(i.status)).length, total: all.filter((i) => i.section === 'training').length },
@@ -252,6 +255,20 @@ export default async function OnboardingView({ supabase, onb, person, viewer, no
             <dt>Languages</dt><dd>{p.languages ?? '—'}</dd>
           </dl>
         )}
+      </section>
+
+
+      <section className="card" id="id-card">
+        <h2>2b. Digital ID card &amp; shift check-in</h2>
+        <p className="small">
+          Photo: <span className={`badge ${idCard?.photo_status === 'Approved' ? '' : idCard?.photo_status === 'Pending' ? 'warn' : 'bad'}`}>{idCard?.photo_status === 'Approved' ? '✓ Approved' : idCard?.photo_status === 'Pending' ? 'Waiting for approval' : idCard?.photo_status === 'Returned' ? 'New photo needed' : 'To do'}</span>
+          {' · '}Location notice: <span className={`badge ${idCard?.location_ack_at ? '' : 'bad'}`}>{idCard?.location_ack_at ? '✓ Read' : 'To do'}</span>
+          {idCard?.issued_on && <> · Card issued {fmtDate(idCard.issued_on)}, valid until {fmtDate(idCard.expires_on)}</>}
+        </p>
+        {idCard?.photo_status === 'Returned' && idCard.photo_note && <p className="message small">Manager note: {idCard.photo_note}</p>}
+        <p className="small">Your ID card lives on your phone. Add a photo, read the location notice, and your manager issues the card. Your emergency contact (above) is printed on the back. While on shift you check in from the card every few hours.</p>
+        <p className="no-print"><Link className="button" href={isSelf ? '/id' : `/id?person=${onb.profile_id}`}>{isSelf ? 'Open my ID card' : 'Open ID card'}</Link>
+          {viewer.isBoss && <> <Link className="button secondary" href={`/hr/${onb.profile_id}#id-card`}>Approve / issue</Link></>}</p>
       </section>
 
       {[...SECTIONS, ...LEGACY_SECTIONS].map((s, si) => {

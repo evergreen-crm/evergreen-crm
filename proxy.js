@@ -27,7 +27,9 @@ export async function proxy(request) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user && !request.nextUrl.pathname.startsWith('/login')) {
+  const path = request.nextUrl.pathname;
+  // /verify is public: anyone can scan a staff ID card's QR code.
+  if (!user && !path.startsWith('/login') && !path.startsWith('/verify/')) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

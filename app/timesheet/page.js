@@ -43,7 +43,7 @@ export default async function TimesheetPage({ searchParams }) {
           <Link href={qs({ p: addDaysISO(period.start, 14) })}>Next →</Link>
         </span>
       </div>
-      <p className="muted">Pay period {fmtDate(period.start)} to {fmtDate(period.end)}</p>
+      <p className="muted">Pay period {fmtDate(period.start)} to {fmtDate(period.end)} · <Link href="/id">📍 Clock in and check in with location from your ID card</Link>{isMgr && <> · <Link href="/checkins">Check-in log</Link></>}</p>
 
       <div className="card no-print">
         {openEntry ? (

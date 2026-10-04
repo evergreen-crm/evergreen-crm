@@ -1,5 +1,6 @@
 // One house: its residents, upcoming calendar, and house details (editable).
 import Link from 'next/link';
+import UseMyLocation from './UseMyLocation';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { HOUSE_TYPES, fmtDate, fmtTime, todayISO, age, daysUntil } from '@/lib/options';
@@ -70,6 +71,16 @@ export default async function HomePage({ params, searchParams }) {
             <label>Capacity<input type="number" min="1" name="capacity" defaultValue={home.capacity ?? ''} /></label>
           </div>
           <label>Licence number<input name="licence_number" defaultValue={home.licence_number ?? ''} /></label>
+          <fieldset className="card">
+            <legend>House location (for staff check-ins)</legend>
+            <div className="row">
+              <label>Latitude<input name="lat" inputMode="decimal" defaultValue={home.lat ?? ''} placeholder="49.2827" /></label>
+              <label>Longitude<input name="lng" inputMode="decimal" defaultValue={home.lng ?? ''} placeholder="-123.1207" /></label>
+              <label>Counts as “at the house” within (metres)<input type="number" min="25" max="2000" name="geofence_m" defaultValue={home.geofence_m ?? 200} /></label>
+            </div>
+            <UseMyLocation />
+            <p className="muted small">Stand at the house and tap the button, or in Google Maps right-click the house and copy the two numbers.</p>
+          </fieldset>
           <label>Notes<textarea name="notes" rows={2} defaultValue={home.notes ?? ''} /></label>
           <div className="row">
             <button>Save</button>

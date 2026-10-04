@@ -6,12 +6,15 @@ import { CERT_TYPES, certStatus } from '@/lib/hr';
 import { trainingsFor } from '@/lib/onboarding';
 import ProgramBadge from '@/app/components/ProgramBadge';
 import { fmtDate, todayISO } from '@/lib/options';
+import { cardStatus } from '@/lib/idcard';
+import { reviewIdPhoto, issueIdCard, replaceIdQr } from '@/app/id/actions';
 import {
   saveStaffDetails, addCertification, deleteCertification, addTraining, deleteTraining, saveEmployment,
 } from '@/app/hr/actions';
 
-export default async function StaffHrPage({ params }) {
+export default async function StaffHrPage({ params, searchParams }) {
   const { id } = await params;
+  const sp = (await searchParams) ?? {};
   const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
   const canEdit = ['admin', 'manager'].includes(profile.role);
 
@@ -25,6 +28,12 @@ export default async function StaffHrPage({ params }) {
   const { data: onbItems } = onb ? await supabase.from('onboarding_items').select('status').eq('profile_id', id) : { data: [] };
   const onbDone = (onbItems ?? []).filter((i) => ['Verified', 'N/A'].includes(i.status)).length;
   const onbWaiting = (onbItems ?? []).filter((i) => i.status === 'Submitted').length;
+  const { data: idCard } = await supabase.from('id_cards').select('*').eq('profile_id', id).maybeSingle();
+  let idPhoto = null;
+  if (idCard?.photo_path) {
+    const { data } = await supabase.storage.from('id-photos').createSignedUrl(idCard.photo_path, 3600);
+    idPhoto = data?.signedUrl ?? null;
+  }
 
   // Staff can only open their own record (the database also enforces this).
   if (!person) notFound();
@@ -60,6 +69,52 @@ export default async function StaffHrPage({ params }) {
         ) : <p className="muted small">No onboarding checklist yet.</p>}
         <p className="small"><Link href={`/hr/${person.id}/certificates`}>🏅 Print all training certificates</Link>
           {canEdit && <> · <Link href={`/policies/report?person=${person.id}`}>📘 Print policy sign-off record</Link></>}</p>
+      </div>
+
+
+      {/* ---------- Digital ID card ---------- */}
+      <div className="card" id="id-card">
+        <div className="title-row">
+          <h2>Digital ID card</h2>
+          <Link className="button secondary" href={canEdit ? `/id?person=${person.id}` : '/id'}>Open card</Link>
+        </div>
+        {sp.idmsg && <p className="message">{sp.idmsg}</p>}
+        {(() => {
+          const st = cardStatus({ card: idCard, details, active: person.active, today: todayISO() });
+          return (
+            <div className="id-admin">
+              <div className="id-admin-photo">{idPhoto ? <img src={idPhoto} alt="" /> : <span className="muted small">No photo</span>}</div>
+              <div>
+                <p className="small">Card: <span className={`badge ${st === 'Valid' ? '' : st === 'Not issued' ? 'warn' : 'bad'}`}>{st}</span>
+                  {idCard?.issued_on && <> · issued {fmtDate(idCard.issued_on)} · valid until {fmtDate(idCard.expires_on)}</>}
+                  {' · '}Photo: {idCard?.photo_status ?? 'None'}
+                  {' · '}Location notice: {idCard?.location_ack_at ? 'read' : 'not yet'}</p>
+                {canEdit && idCard?.photo_status === 'Pending' && (
+                  <form action={reviewIdPhoto} className="row">
+                    <input type="hidden" name="profile_id" value={person.id} />
+                    <input name="note" placeholder="Note (needed to send back)" />
+                    <button name="decision" value="approve">✓ Approve photo</button>
+                    <button name="decision" value="return" className="secondary">Ask for new photo</button>
+                  </form>
+                )}
+                {canEdit && idCard?.photo_status === 'Approved' && (
+                  <form action={issueIdCard} className="row">
+                    <input type="hidden" name="profile_id" value={person.id} />
+                    <label>Valid for<select name="months" defaultValue="12"><option value="12">1 year</option><option value="24">2 years</option><option value="6">6 months</option></select></label>
+                    <button>{idCard.issued_on ? 'Renew card from today' : 'Issue card'}</button>
+                  </form>
+                )}
+                {canEdit && idCard?.issued_on && (
+                  <form action={replaceIdQr}>
+                    <input type="hidden" name="profile_id" value={person.id} />
+                    <button className="link small">Lost card or phone? Replace the QR code (the old one stops working)</button>
+                  </form>
+                )}
+                {!idCard?.photo_path && <p className="muted small">The staff member adds their photo from <strong>My ID card</strong>. The card stops working automatically when their status is not Active.</p>}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* ---------- Details ---------- */}

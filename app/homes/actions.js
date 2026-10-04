@@ -26,6 +26,12 @@ export async function updateHome(formData) {
   const id = text(formData, 'id');
   const row = Object.fromEntries(HOME_FIELDS.map((k) => [k, text(formData, k)]));
   row.capacity = text(formData, 'capacity');
+  if (formData.has('lat')) {
+    const n = (k, lo, hi) => { const v = Number(text(formData, k)); return text(formData, k) !== null && Number.isFinite(v) && v >= lo && v <= hi ? v : null; };
+    row.lat = n('lat', -90, 90);
+    row.lng = n('lng', -180, 180);
+    row.geofence_m = Math.round(n('geofence_m', 25, 2000) ?? 200);
+  }
   const { error } = await supabase.from('homes').update(row).eq('id', id);
   if (error) throw new Error('Could not save house: ' + error.message);
   revalidatePath(`/homes/${id}`);

@@ -29,6 +29,8 @@ export default async function RootLayout({ children }) {
               {['admin', 'manager'].includes(profile.role) && <Link href="/hr">HR</Link>}
               {profile.role !== 'family' && <Link href="/academy">Evergreen Academy</Link>}
               {profile.role !== 'family' && <Link href="/policies">Policies</Link>}
+              {profile.role !== 'family' && <Link href="/id">🪪 My ID</Link>}
+              {['admin', 'manager'].includes(profile.role) && <Link href="/checkins">Check-ins</Link>}
               {profile.role === 'staff' && <Link href={`/hr/${profile.id}`}>My HR</Link>}
               {onb && onb.status !== 'Complete' && <Link href="/onboarding" className="nav-alert">My onboarding</Link>}
               {profile.role === 'admin' && <Link href="/admin">Admin</Link>}
