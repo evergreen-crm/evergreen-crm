@@ -168,3 +168,46 @@ tr.late td { background: #fff5f4; }
   .topbar .brand small { display: none; }
 }
 @media print { .print-head { text-align: center; margin-bottom: 8px; } }
+
+/* ---------- Portal (7 divisions) ---------- */
+.portal-hero { display: flex; align-items: center; gap: 16px; margin: 8px 0 16px; }
+.portal-hero img { height: 72px; }
+.portal-hero h1 { color: var(--green-dark); margin: 0; }
+.quick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.quick { display: flex; flex-direction: column; gap: 4px; padding: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; color: var(--navy); font-weight: 600; font-size: .9rem; }
+.quick span { font-size: 1.4rem; }
+.quick:hover { border-color: var(--green); }
+.div-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.div-card { --div: var(--green); background: var(--card); border: 1px solid var(--line); border-top: 6px solid var(--div); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+.div-head { display: flex; gap: 10px; align-items: center; padding: 14px; background: color-mix(in srgb, var(--div) 10%, white); color: var(--text); }
+.div-head strong { display: block; color: var(--div); font-size: 1.05rem; }
+.div-head small { color: var(--muted); }
+.div-head .badge { margin-left: auto; }
+.div-icon { font-size: 1.8rem; line-height: 1; }
+.area-list { list-style: none; margin: 0; padding: 4px 0; flex: 1; }
+.area-list a { display: flex; justify-content: space-between; gap: 8px; padding: 8px 14px; color: var(--text); font-size: .92rem; border-left: 3px solid transparent; }
+.area-list a:hover { background: color-mix(in srgb, var(--div) 6%, white); border-left-color: var(--div); }
+.div-foot { margin: 0; padding: 8px 14px; border-top: 1px solid var(--line); color: var(--muted); }
+.div-banner { display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin: 8px 0; border-radius: 12px; background: var(--div, var(--green)); color: #fff; }
+.div-banner h1 { margin: 0; color: #fff; }
+.div-banner p { margin: 2px 0 0; opacity: .9; font-size: .9rem; }
+.div-banner > span:last-child { margin-left: auto; }
+.div-banner button, .div-banner a.button { background: #fff; color: var(--div, var(--green)); }
+.area-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin: 16px 0; }
+.area-tile { display: flex; flex-direction: column; gap: 6px; padding: 14px; background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--div, var(--green)); border-radius: 10px; color: var(--text); }
+.area-tile:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.area-tile .std { font-size: .75rem; font-weight: 700; color: var(--div, var(--green)); text-transform: uppercase; letter-spacing: .04em; }
+.rules { margin: 4px 0 8px; padding-left: 20px; } .rules li { margin: 3px 0; }
+.register tr.done-row td { color: var(--muted); }
+.filters { align-items: flex-end; }
+.sign-lines { margin-top: 32px; }
+@media print {
+  .div-banner { background: none !important; color: #000; border-bottom: 4px solid var(--div, #000); border-radius: 0; padding: 0 0 8px; }
+  .div-banner h1 { color: #000; }
+  details.card > summary { list-style: none; }
+  details:not([open]) { display: none; }
+  .register select { border: 0; padding: 0; appearance: none; }
+  .div-card, .area-tile { break-inside: avoid; }
+  table { display: table; }
+}
+@media (max-width: 720px) { .portal-hero img { height: 48px; } .div-banner { flex-wrap: wrap; } }

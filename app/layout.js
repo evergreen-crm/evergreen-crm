@@ -17,7 +17,7 @@ export default async function RootLayout({ children }) {
             <nav>
               {profile.role === 'family'
                 ? <Link href="/">My family member</Link>
-                : <><Link href="/dashboard">Dashboard</Link><Link href="/homes">Houses</Link><Link href="/calendar">Calendar</Link><Link href="/schedule">Schedule</Link><Link href="/timesheet">Timesheet</Link></>}
+                : <><Link href="/portal">Portal</Link><Link href="/dashboard">Dashboard</Link><Link href="/homes">Houses</Link><Link href="/calendar">Calendar</Link><Link href="/schedule">Schedule</Link><Link href="/timesheet">Timesheet</Link></>}
               {['admin', 'manager'].includes(profile.role) && <Link href="/hr">HR</Link>}
               {profile.role === 'staff' && <Link href={`/hr/${profile.id}`}>My HR</Link>}
               {profile.role === 'admin' && <Link href="/admin">Admin</Link>}
