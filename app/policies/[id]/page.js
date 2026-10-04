@@ -14,8 +14,9 @@ function nextVersion(label) {
   return `${maj}.${Number(min) + 1}`;
 }
 
-export default async function PolicyPage({ params }) {
+export default async function PolicyPage({ params, searchParams }) {
   const { id } = await params;
+  const sp = await searchParams;
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const isAdmin = profile.role === 'admin';
   const isBoss = ['admin', 'manager'].includes(profile.role);
@@ -70,8 +71,10 @@ export default async function PolicyPage({ params }) {
         <p className="card muted">This policy is for {p.applies_to === 'MCFD' ? 'MCFD (children & youth)' : 'CLBC (adult)'} programs only — you don’t need to sign it, but you can read it.</p>
       )}
       {current && p.require_signature && forMe && (
-        <section className="card sign-box">
+        <section className="card sign-box" id="sign">
           <h2>Digital signature</h2>
+          {sp.error && <p className="message">{sp.error}</p>}
+          {sp.signed && myAck && <p className="message ok">✓ Signed. Thank you — your signature, date and time are saved.</p>}
           {myAck ? (
             <div className="signed">
               {onb?.signature_image && <img src={onb.signature_image} alt="" />}
@@ -83,7 +86,7 @@ export default async function PolicyPage({ params }) {
               <input type="hidden" name="version_id" value={current.id} />
               {myOld.length > 0 && <p className="alert">This policy was updated. Please read the new version and sign again.</p>}
               <label className="check"><input type="checkbox" name="agree" required /> I have read and understand <strong>{p.title}, version {current.version_label}</strong>, and I agree to follow it.</label>
-              <label>Type your full name to sign<input name="signed_name" required placeholder={profile.full_name} /></label>
+              <label>Type your full name to sign — <strong>{profile.full_name}</strong><input name="signed_name" required placeholder={profile.full_name} autoComplete="off" /></label>
               <p className="muted small">Your name, the date and the exact time are recorded by the system when you click Sign.</p>
               <button>Sign</button>
             </form>

@@ -78,7 +78,7 @@ function StaffForm({ tpl, item, profileId, fullName }) {
         <>
           <p className="statement">{tpl.statement}</p>
           <label className="check"><input type="checkbox" name="agree" required /> I have read this and I agree.</label>
-          <label>Type your full name to sign<input name="signed_name" required placeholder={fullName} autoComplete="name" /></label>
+          <label>Type your full name to sign — <strong>{fullName}</strong><input name="signed_name" required placeholder={fullName} autoComplete="off" /></label>
           <button>Sign</button>
         </>
       )}
@@ -154,7 +154,7 @@ function ReviewForm({ tpl, item }) {
   );
 }
 
-export default async function OnboardingView({ supabase, onb, person, viewer }) {
+export default async function OnboardingView({ supabase, onb, person, viewer, notice }) {
   const { data: items } = await supabase.from('onboarding_items')
     .select('*, reviewer:reviewed_by(full_name)').eq('onboarding_id', onb.id).order('sort');
   const paths = (items ?? []).map((i) => i.file_path).filter(Boolean);
@@ -192,6 +192,7 @@ export default async function OnboardingView({ supabase, onb, person, viewer }) 
         <span className="no-print"><PrintButton label="Print" /></span>
       </div>
 
+      {notice && <p className={`message ${notice.bad ? '' : 'ok'}`}>{notice.text}</p>}
       <ProgressPanel
         overall={{ done: done + polSigned, total: all.length + (policies?.length ?? 0) }}
         parts={[
@@ -287,7 +288,7 @@ export default async function OnboardingView({ supabase, onb, person, viewer }) 
               const overdue = !DONE.includes(item.status) && item.status !== 'Submitted' && item.due_date && item.due_date < today;
               const open = isSelf ? ['To do', 'Returned'].includes(item.status) : item.status === 'Submitted';
               return (
-                <details key={item.id} className={`onb-item s-${item.status.replace(/[^a-z]/gi, '')}`} open={open}>
+                <details key={item.id} id={`item-${item.id}`} className={`onb-item s-${item.status.replace(/[^a-z]/gi, '')}`} open={open}>
                   <summary>
                     <span className="onb-title">{tpl.program && <><ProgramBadge program={tpl.program} /> </>}{tpl.no ? `${tpl.no}. ` : ''}{item.title}{tpl.ifApplicable && <span className="muted small"> (if applicable)</span>}</span>
                     <span className="small">

@@ -2,7 +2,8 @@
 import { requireUser } from '@/lib/auth';
 import OnboardingView from './OnboardingView';
 
-export default async function MyOnboarding() {
+export default async function MyOnboarding({ searchParams }) {
+  const sp = await searchParams;
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const { data: onb } = await supabase.from('onboardings').select('*').eq('profile_id', user.id).maybeSingle();
   if (!onb) {
@@ -14,5 +15,5 @@ export default async function MyOnboarding() {
     );
   }
   return <OnboardingView supabase={supabase} onb={onb} person={profile}
-    viewer={{ isSelf: true, isBoss: false }} />;
+    viewer={{ isSelf: true, isBoss: false }} notice={sp.error ? { bad: true, text: sp.error } : sp.saved ? { bad: false, text: 'Saved.' } : null} />;
 }

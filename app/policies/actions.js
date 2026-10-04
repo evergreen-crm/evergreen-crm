@@ -1,6 +1,7 @@
 'use server';
 // Policy library: add policies, publish new versions (version control), sign digitally.
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 
 const text = (formData, key) => {
@@ -75,14 +76,17 @@ export async function restoreVersion(formData) {
 export async function signPolicy(formData) {
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const policyId = text(formData, 'policy_id');
-  if (formData.get('agree') !== 'on') throw new Error('Please tick the box to confirm you have read it.');
+  const back = (msg) => redirect(`/policies/${policyId}?error=${encodeURIComponent(msg)}#sign`);
+  if (formData.get('agree') !== 'on') back('Please tick the box to confirm you have read it.');
+  const norm = (v) => (v ?? '').toLowerCase().replace(/[^a-z]+/g, ' ').trim();
   const typed = (text(formData, 'signed_name') ?? '').replace(/\s+/g, ' ');
-  if (typed.toLowerCase() !== (profile.full_name ?? '').toLowerCase().replace(/\s+/g, ' ')) {
-    throw new Error(`Type your full name exactly as "${profile.full_name}" to sign.`);
+  if (!typed || norm(typed) !== norm(profile.full_name)) {
+    back(`To sign, type your full name exactly as it is on your account: "${profile.full_name}". If your name is wrong, ask the admin to correct it.`);
   }
   const { error } = await supabase.from('policy_acks').insert({
     policy_id: policyId, policy_version_id: text(formData, 'version_id'), profile_id: user.id, signed_name: typed,
   });
-  if (error) throw new Error(error.code === '23505' ? 'You already signed this version.' : 'Could not sign: ' + error.message);
+  if (error) back(error.code === '23505' ? 'You already signed this version.' : 'Could not sign: ' + error.message);
   revalidatePath('/policies'); revalidatePath(`/policies/${policyId}`); revalidatePath('/onboarding');
+  redirect(`/policies/${policyId}?signed=1#sign`);
 }

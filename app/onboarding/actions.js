@@ -74,46 +74,49 @@ export async function saveSignature(dataUrl) {
 export async function submitItem(formData) {
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const id = text(formData, 'id');
+  const fail = (msg) => redirect(`/onboarding?error=${encodeURIComponent(msg)}#item-${id}`);
   const { data: item } = await supabase.from('onboarding_items').select('*, onboardings(signature_image)').eq('id', id).maybeSingle();
-  if (!item || item.profile_id !== user.id) throw new Error('This is not your checklist item.');
+  if (!item || item.profile_id !== user.id) fail('This is not your checklist item.');
   const tpl = templateFor(item.item_key);
   const data = { ...(item.data ?? {}) };
   const patch = { status: 'Submitted' };
 
   if (tpl.kind === 'sign') {
-    if (formData.get('agree') !== 'on') throw new Error('Please tick the box to confirm you agree.');
+    if (formData.get('agree') !== 'on') fail('Please tick the box to confirm you agree.');
     const typed = text(formData, 'signed_name') ?? '';
-    if (typed.toLowerCase().replace(/\s+/g, ' ') !== (profile.full_name ?? '').toLowerCase().replace(/\s+/g, ' ')) {
-      throw new Error(`Type your full name exactly as "${profile.full_name}" to sign.`);
+    const norm = (v) => (v ?? '').toLowerCase().replace(/[^a-z]+/g, ' ').trim();
+    if (norm(typed) !== norm(profile.full_name)) {
+      fail(`To sign, type your full name exactly as it is on your account: "${profile.full_name}".`);
     }
-    if (!item.onboardings?.signature_image) throw new Error('Please draw your signature at the top of the page first.');
+    if (!item.onboardings?.signature_image) fail('Please draw your signature at the top of the page first.');
     patch.signed_name = typed;
   } else if (tpl.kind === 'refs') {
     for (const k of ['r1_name', 'r1_phone', 'r1_relationship', 'r2_name', 'r2_phone', 'r2_relationship']) data[k] = text(formData, k);
-    if (!data.r1_name || !data.r1_phone || !data.r2_name || !data.r2_phone) throw new Error('Please give two references with phone numbers.');
+    if (!data.r1_name || !data.r1_phone || !data.r2_name || !data.r2_phone) fail('Please give two references with phone numbers.');
   } else if (tpl.kind === 'declare') {
     data.fit = text(formData, 'fit');
     data.accommodations = text(formData, 'accommodations');
-    if (!data.fit) throw new Error('Please answer the question.');
+    if (!data.fit) fail('Please answer the question.');
   } else if (tpl.kind === 'upload') {
     data.date = text(formData, 'date');
     data.notes = text(formData, 'notes');
-    if (!item.file_path) throw new Error('Please upload the file first.');
+    if (!item.file_path) fail('Please upload the file first.');
   } else if (tpl.kind === 'training') {
     data.completed_on = text(formData, 'completed_on');
     data.provider = text(formData, 'provider');
     data.hours = text(formData, 'hours');
     data.expires_on = text(formData, 'expires_on');
     data.notes = text(formData, 'notes');
-    if (!data.completed_on) throw new Error('Please enter the date you completed the training.');
+    if (!data.completed_on) fail('Please enter the date you completed the training.');
   } else {
-    throw new Error('Your manager completes this item.');
+    fail('Your manager completes this item.');
   }
   patch.data = data;
   const { error } = await supabase.from('onboarding_items').update(patch).eq('id', id);
-  if (error) throw new Error('Could not save: ' + error.message);
+  if (error) fail('Could not save: ' + error.message);
   await supabase.from('onboardings').update({ status: 'In progress' }).eq('profile_id', user.id).eq('status', 'Sent');
   refreshFor(user.id);
+  redirect(`/onboarding?saved=1#item-${id}`);
 }
 
 export async function attachItemFile(itemId, path) {
