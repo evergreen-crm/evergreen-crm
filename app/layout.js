@@ -15,6 +15,8 @@ export default async function RootLayout({ children }) {
             <Link href="/" className="brand">Evergreen</Link>
             <nav>
               <Link href="/">Residents</Link>
+              {['admin', 'manager'].includes(profile.role) && <Link href="/hr">HR</Link>}
+              {profile.role === 'staff' && <Link href={`/hr/${profile.id}`}>My HR</Link>}
               {profile.role === 'admin' && <Link href="/admin">Admin</Link>}
               <span className="muted">{profile.full_name} · {profile.role}</span>
               <form action="/auth/signout" method="post">
