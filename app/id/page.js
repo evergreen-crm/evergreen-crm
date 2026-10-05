@@ -91,7 +91,7 @@ export default async function IdPage({ searchParams }) {
       {isSelf && !emergency.name && <p className="muted small no-print">Add your emergency contact in <Link href="/onboarding">My onboarding → Personal information</Link>.</p>}
 
       {isSelf && (
-        <section className="card no-print">
+        <section className="card no-print" id="checkin">
           <h2>Shift check-in</h2>
           {!card?.location_ack_at ? (
             <form action={ackLocationNotice}>

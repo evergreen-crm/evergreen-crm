@@ -408,3 +408,25 @@ table.matrix .prog-row th span.prog-dot { writing-mode: horizontal-tb; transform
   .nm-panel { position: absolute; left: 8px; right: 8px; top: calc(100% + 6px); width: auto; max-height: 75vh; overflow: auto; }
   .nm-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ---------- Phone app (PWA) ---------- */
+.mtabs { display: none; }
+@media (max-width: 720px) {
+  .mtabs { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    background: #fff; border-top: 1px solid var(--line); box-shadow: 0 -4px 16px rgba(15,48,89,.08);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+  .mtabs a { display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--muted); font-size: .7rem; font-weight: 600; padding: 4px 0; border-radius: 10px; }
+  .mtabs a.on { color: var(--green); background: #eaf6ee; }
+  .mt-icon { position: relative; font-size: 1.35rem; line-height: 1; }
+  .mt-icon b { position: absolute; top: -6px; right: -12px; background: var(--red); color: #fff; font-size: .6rem; border-radius: 999px; padding: 1px 5px; }
+  .page.has-tabs { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+}
+@media (display-mode: standalone) {
+  .topbar { padding-top: calc(8px + env(safe-area-inset-top)); }
+}
+#checkin { scroll-margin-top: 80px; }
+.install { max-width: 620px; margin: 0 auto; }
+.install-hero { display: flex; gap: 16px; align-items: center; margin: 8px 0 16px; }
+.install-hero img { width: 84px; height: 84px; border-radius: 20px; box-shadow: 0 6px 18px rgba(15,48,89,.18); }
+.install ol, .install ul { padding-left: 20px; line-height: 1.7; }
+.big-install { width: 100%; padding: 16px; font-size: 1.1rem; border-radius: 12px; margin-bottom: 12px; }

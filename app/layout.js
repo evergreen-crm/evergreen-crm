@@ -3,8 +3,18 @@ import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth';
 import PrintButton from '@/app/PrintButton';
 import NavMenu from '@/app/components/NavMenu';
+import MobileTabs from '@/app/components/MobileTabs';
+import PwaRegister from '@/app/components/PwaRegister';
 
-export const metadata = { title: 'Evergreen Community Care', description: 'Supporting Growth. Building Futures.' };
+export const metadata = {
+  title: 'Evergreen Community Care',
+  description: 'Supporting Growth. Building Futures.',
+  applicationName: 'Evergreen',
+  appleWebApp: { capable: true, title: 'Evergreen', statusBarStyle: 'default' },
+  icons: { apple: '/icons/apple-touch-icon.png' },
+  formatDetection: { telephone: false },
+};
+export const viewport = { themeColor: '#0b5a34', width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 
 export default async function RootLayout({ children }) {
   const { supabase, profile } = await getCurrentUser();
@@ -44,6 +54,7 @@ export default async function RootLayout({ children }) {
                     { href: '/academy', label: 'Evergreen Academy', icon: '🎓', color: '#1f6fb2' },
                     { href: '/policies', label: 'Policies', icon: '📘', color: '#0f3059' },
                     { href: '/notifications', label: 'Notifications', icon: '🔔', color: '#b3261e', badge: unread || null },
+                    { href: '/install', label: 'Install app', icon: '📲', color: '#0b5a34' },
                   ] },
                   ...(isMgr ? [{ title: 'Manage', items: [
                     { href: '/hr', label: 'HR & staff', icon: '👥', color: '#5a3d8a' },
@@ -68,7 +79,9 @@ export default async function RootLayout({ children }) {
           </header>
         )}
         <div className="print-only print-head"><img src="/logo.png" alt="Evergreen Community Care" className="print-logo" /></div>
-        <div className="page">{children}</div>
+        <div className={`page${profile && profile.role !== 'family' ? ' has-tabs' : ''}`}>{children}</div>
+        {profile && profile.role !== 'family' && <MobileTabs unread={unread} />}
+        <PwaRegister />
       </body>
     </html>
   );
