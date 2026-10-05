@@ -5,7 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { levelOf } from '@/lib/levels';
-import { loadKpiData, detectIssues, pickOwner } from '@/lib/kpis';
+import { scanIssues } from '@/lib/actionScan';
+import { runDailyJob } from '@/lib/automation';
 
 const text = (formData, key) => {
   const v = formData.get(key);
@@ -21,51 +22,30 @@ async function logEvent(supabase, itemId, userId, action, note) {
 export async function scanActionItems() {
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   if (levelOf(profile) < 3) back('/action-items', 'Only a Program Manager or above can run the scan.', true);
-
-  const data = await loadKpiData(supabase);
-  const issues = detectIssues(data);
-  const { data: existing, error } = await supabase.from('action_items').select('id, source_key, status, severity, auto, title').not('source_key', 'is', null);
-  if (error) back('/action-items', 'Run supabase/kpi-actions.sql in Supabase first. (' + error.message + ')', true);
-
-  const byKey = Object.fromEntries((existing ?? []).map((x) => [x.source_key, x]));
-  const now = new Date().toISOString();
-  let created = 0, closed = 0, raised = 0;
-
-  for (const iss of issues) {
-    const ex = byKey[iss.source_key];
-    if (ex) {
-      if (['Closed', 'Dismissed'].includes(ex.status)) {
-        // The same problem is back after being closed: reopen it.
-        if (ex.auto && ex.status === 'Closed') {
-          await supabase.from('action_items').update({ status: 'Open', title: iss.title, details: iss.details ?? null, severity: iss.severity, due_date: iss.due_date, approved_by: null, approved_at: null, closed_by: null, closed_at: null, closed_note: null }).eq('id', ex.id);
-          await logEvent(supabase, ex.id, user.id, 'Reopened', 'The problem is showing again'); created++;
-        }
-        continue;
-      }
-      if (ex.severity !== iss.severity || ex.title !== iss.title) {
-        await supabase.from('action_items').update({ severity: iss.severity, title: iss.title, details: iss.details ?? null, due_date: iss.due_date }).eq('id', ex.id);
-        if (iss.severity === 'red' && ex.severity !== 'red') { raised++; await logEvent(supabase, ex.id, user.id, 'Escalated to red', 'Now overdue'); }
-      }
-      continue;
-    }
-    const { data: row, error: insErr } = await supabase.from('action_items').insert({
-      source_key: iss.source_key, auto: true, title: iss.title, details: iss.details ?? null, category: iss.category, severity: iss.severity,
-      home_id: iss.home_id ?? null, resident_id: iss.resident_id ?? null, subject_profile_id: iss.subject_profile_id ?? null,
-      link: iss.link ?? null, due_date: iss.due_date ?? null, owner_id: pickOwner(iss, data.profiles), created_by: user.id,
-    }).select('id').single();
-    if (!insErr && row) { created++; await logEvent(supabase, row.id, user.id, 'Created', 'Found by the automatic check'); }
-  }
-
-  const live = new Set(issues.map((i) => i.source_key));
-  for (const ex of existing ?? []) {
-    if (ex.auto && ex.status === 'Open' && !live.has(ex.source_key)) {
-      await supabase.from('action_items').update({ status: 'Closed', closed_at: now, closed_by: user.id, closed_note: 'Resolved — the problem is no longer showing in the records.' }).eq('id', ex.id);
-      await logEvent(supabase, ex.id, user.id, 'Auto-closed', 'The problem cleared in the records');
-      closed++;
-    }
-  }
+  const r = await scanIssues(supabase, user.id);
+  if (r.error) back('/action-items', 'Run supabase/kpi-actions.sql in Supabase first. (' + r.error + ')', true);
   revalidatePath('/action-items'); revalidatePath('/portal'); revalidatePath('/kpi');
-  back('/action-items', `Scan complete: ${created} new, ${raised} escalated, ${closed} closed automatically.`);
+  back('/action-items', `Scan complete: ${r.created + r.reopened} new, ${r.raised} escalated, ${r.closed} closed automatically.`);
+}
+
+// Run the full nightly job now (scan + reminder emails + weekly summary if Monday + monthly snapshot).
+export async function runDailyNow() {
+  const { user, profile } = await requireUser(['admin', 'manager']);
+  if (levelOf(profile) < 4) back('/action-items', 'Only a Director of Operations or above can run the daily job.', true);
+  const r = await runDailyJob({ trigger: 'manual', actorId: user.id, forceWeekly: true });
+  revalidatePath('/action-items'); revalidatePath('/portal'); revalidatePath('/kpi');
+  if (r.error) back('/action-items', r.error, true);
+  back('/action-items', `Daily job done: ${r.summary.text}`);
+}
+
+// Turn my own reminder emails on or off.
+export async function setMyEmailAlerts(formData) {
+  const { supabase, user } = await requireUser(['admin', 'manager', 'staff']);
+  const on = formData.get('on') === '1';
+  const { error } = await supabase.rpc('set_my_email_alerts', { on_off: on });
+  if (error) back('/action-items', 'Run supabase/kpi-phase2.sql in Supabase first. (' + error.message + ')', true);
+  revalidatePath('/action-items');
+  back('/action-items', on ? 'Reminder emails are on.' : 'Reminder emails are off. You will still see items here and on the portal.');
 }
 
 export async function createActionItem(formData) {

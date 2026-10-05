@@ -22,8 +22,9 @@ export default async function ExecDashboard({ supabase, profile, userId }) {
   const today = todayISO();
   const [{ data: mine, error }, kpis] = await Promise.all([
     supabase.from('action_items').select('id, title, due_date, status, severity').eq('owner_id', userId).not('status', 'in', '("Closed","Dismissed")').order('due_date').limit(8),
-    lvl >= 2 ? loadKpiData(supabase).then((d) => visibleKpis(computeKpis(d), profile)) : Promise.resolve([]),
+    lvl >= 2 ? loadKpiData(supabase).then((d) => { const all = computeKpis(d); return Object.assign(visibleKpis(all, profile), { owned: all.filter((k) => d.kpiOwners[k.key] === userId) }); }) : Promise.resolve([]),
   ]);
+  const owned = kpis.owned ?? [];
   const by = Object.fromEntries(kpis.map((k) => [k.key, k]));
   const overall = overallCompliance(kpis);
   const tiles = TILES.filter((t) => by[t.key]);
@@ -50,6 +51,19 @@ export default async function ExecDashboard({ supabase, profile, userId }) {
             })}
           </div>
         </>
+      )}
+      {owned.length > 0 && (
+        <div className="card">
+          <div className="exec-head"><h2>👤 KPIs you own</h2><Link href="/kpi" className="small">All KPIs →</Link></div>
+          <div className="exec-tiles">
+            {owned.map((k) => (
+              <Link key={k.key} href={k.href ?? '/kpi'} className={`exec-tile kpi-${k.status}`} title={k.detail}>
+                <strong>{k.value}</strong>
+                <span>{k.label} {k.status !== 'none' && STATUS[k.status].dot}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
       )}
       {lvl === 2 && kpis.length > 0 && <p className="small"><Link href="/kpi">📊 KPIs for your house →</Link></p>}
       {!error && (

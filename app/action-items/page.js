@@ -3,8 +3,11 @@ import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { levelOf } from '@/lib/levels';
 import { fmtDate, todayISO } from '@/lib/options';
-import { scanActionItems } from './actions';
+import { scanActionItems, runDailyNow, setMyEmailAlerts } from './actions';
+import { automationSetup } from '@/lib/automation';
 import { Dot, isDoneStatus, categoryLabel } from './ui';
+
+export const maxDuration = 60; // the "Run daily job now" button can take a little while
 
 const VIEWS = [
   { key: 'mine', label: 'Mine' },
@@ -21,11 +24,15 @@ export default async function ActionItems({ searchParams }) {
   const view = sp.view ?? (lvl >= 3 ? 'open' : 'mine');
   const today = todayISO();
 
-  const [{ data: items, error }, { data: people }, { data: homes }] = await Promise.all([
+  const [{ data: items, error }, { data: people }, { data: homes }, { data: me }, { data: runs }] = await Promise.all([
     supabase.from('action_items').select('*').order('due_date', { ascending: true, nullsFirst: false }).limit(500),
     supabase.from('profiles').select('id, full_name'),
     supabase.from('homes').select('id, name'),
+    supabase.from('profiles').select('email_alerts').eq('id', user.id).maybeSingle(),
+    lvl >= 3 ? supabase.from('automation_runs').select('ran_at, trigger, ok, summary').order('ran_at', { ascending: false }).limit(5) : Promise.resolve({ data: null }),
   ]);
+  const emailsOn = me?.email_alerts !== false;
+  const setup = lvl >= 4 ? automationSetup() : null;
   const pName = Object.fromEntries((people ?? []).map((p) => [p.id, p.full_name]));
   const hName = Object.fromEntries((homes ?? []).map((h) => [h.id, h.name]));
   const all = items ?? [];
@@ -61,7 +68,55 @@ export default async function ActionItems({ searchParams }) {
         ))}
       </nav>
 
-      {filtered.length === 0 ? (
+      {renderList()}
+
+      <section className="card no-print" style={{ marginTop: 24 }}>
+        <h2>📧 Reminder emails</h2>
+        <p className="small">Each morning the portal checks the records. If you own an item that is overdue, due within 2 days, red, or new, you get one email that day.{lvl >= 4 ? ' On Mondays you also get the weekly KPI summary.' : ''}</p>
+        <form action={setMyEmailAlerts} className="row" style={{ alignItems: 'center' }}>
+          <span>My reminder emails are <strong>{emailsOn ? 'ON' : 'OFF'}</strong></span>
+          <input type="hidden" name="on" value={emailsOn ? '0' : '1'} />
+          <button className="secondary">{emailsOn ? 'Turn off' : 'Turn on'}</button>
+        </form>
+      </section>
+
+      {lvl >= 3 && (
+        <section className="card no-print">
+          <h2>🤖 Automatic daily check</h2>
+          <p className="small muted">Runs every morning around 7:00 a.m.: finds new issues, closes fixed ones, saves the KPI scorecard for the month, emails owners, and on Mondays emails the weekly summary to level 4+.</p>
+          {setup && (
+            <ul className="small" style={{ margin: '6px 0 10px' }}>
+              <li>{setup.serviceKey ? '✅' : '❌'} Supabase secret key in Vercel</li>
+              <li>{setup.email ? '✅' : '❌'} Email sending (RESEND_API_KEY in Vercel){!setup.email && ' — until this is set, reminders appear only inside the portal'}</li>
+              <li>{setup.cronSecret ? '✅' : '❌'} Schedule key (CRON_SECRET in Vercel){!setup.cronSecret && ' — needed for the 7:00 a.m. automatic run'}</li>
+            </ul>
+          )}
+          {runs?.length ? (
+            <table>
+              <thead><tr><th>When</th><th>How</th><th>Result</th></tr></thead>
+              <tbody>
+                {runs.map((r) => (
+                  <tr key={r.ran_at}>
+                    <td className="small">{new Date(r.ran_at).toLocaleString('en-CA', { timeZone: 'America/Vancouver', dateStyle: 'medium', timeStyle: 'short' })}</td>
+                    <td className="small">{r.trigger === 'cron' ? 'Automatic' : 'By hand'}</td>
+                    <td className="small">{r.ok ? '✅' : '⚠️'} {r.summary?.text ?? r.summary?.error ?? ''}{r.summary?.emailErrors?.length ? <><br /><span className="bad-text">{r.summary.emailErrors.join(' · ')}</span></> : null}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : <p className="small muted">{runs ? 'It has not run yet.' : 'Run supabase/kpi-phase2.sql in Supabase to turn this on.'}</p>}
+          {lvl >= 4 && (
+            <form action={runDailyNow} style={{ marginTop: 10 }}>
+              <button className="secondary">▶️ Run the daily job now (sends emails + weekly summary)</button>
+            </form>
+          )}
+        </section>
+      )}
+    </main>
+  );
+
+  function renderList() {
+    return filtered.length === 0 ? (
         <p className="card muted">{view === 'mine' ? 'Nothing assigned to you. 🎉' : 'Nothing here.'}</p>
       ) : (
         <table>
@@ -80,7 +135,6 @@ export default async function ActionItems({ searchParams }) {
             ))}
           </tbody>
         </table>
-      )}
-    </main>
-  );
+      );
+  }
 }

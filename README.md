@@ -131,3 +131,11 @@ Every person has one **access level** (their security level), set on **Admin**:
 
 **Tip:** for each new table, always add `enable row level security` and policies like the ones in
 `schema.sql`, and add an `audit_...` trigger line. No policy = nobody can see it (safe default).
+
+## KPI Phase 2 — automatic daily job and emails
+
+- Run `supabase/kpi-phase2.sql` once in Supabase → SQL Editor.
+- In Vercel → Settings → Environment Variables you need: `CRON_SECRET` (any long random text), `RESEND_API_KEY` (from resend.com), plus the Supabase secret key that is already there.
+- `vercel.json` runs `/api/cron/daily` every day at 14:00 UTC (about 7 a.m. in Vancouver). It scans for issues, saves the month's scorecard (`kpi_snapshots`), emails owners about overdue / due-soon / new items (once per day), and on Mondays emails the weekly summary to level 4+.
+- Each run is logged in `automation_runs` and shown on the Action required page. Level 4+ can press "Run the daily job now". Everyone can turn their own reminder emails on or off there.
+- **KPI owners** (`/kpi/owners`): level 4+ assigns one accountable person per KPI (`kpi_owners` table). Action items for that KPI go to its owner; owners see "KPIs you own" on the portal and get them in their reminder email; the weekly summary names each red/yellow KPI's owner.

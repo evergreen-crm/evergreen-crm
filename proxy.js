@@ -29,7 +29,8 @@ export async function proxy(request) {
 
   const path = request.nextUrl.pathname;
   // /verify is public: anyone can scan a staff ID card's QR code.
-  if (!user && !path.startsWith('/login') && !path.startsWith('/verify/') && !path.startsWith('/f/')) {
+  // /api/cron/ is called by Vercel's scheduler and checks its own secret.
+  if (!user && !path.startsWith('/login') && !path.startsWith('/verify/') && !path.startsWith('/f/') && !path.startsWith('/api/cron/')) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
