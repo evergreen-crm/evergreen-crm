@@ -430,3 +430,26 @@ table.matrix .prog-row th span.prog-dot { writing-mode: horizontal-tb; transform
 .install-hero img { width: 84px; height: 84px; border-radius: 20px; box-shadow: 0 6px 18px rgba(15,48,89,.18); }
 .install ol, .install ul { padding-left: 20px; line-height: 1.7; }
 .big-install { width: 100%; padding: 16px; font-size: 1.1rem; border-radius: 12px; margin-bottom: 12px; }
+
+/* ---------- Intake ---------- */
+.intake-prog { display: inline-flex; align-items: center; gap: 8px; }
+.intake-prog .pbar-track { width: 90px; }
+.intake-forms { display: grid; gap: 6px; margin: 6px 0 12px; }
+.intake-group table { margin-top: 6px; }
+.if-page { max-width: 760px; margin: 0 auto; }
+.if-head { text-align: center; margin: 8px 0 12px; }
+.if-head img { height: 90px; }
+.if-title h1 { margin: 4px 0 8px; color: var(--navy); }
+.if-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 14px; }
+.if-grid .if-wide { grid-column: 1 / -1; }
+.if-grid label { display: grid; gap: 4px; }
+.if-radio { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.if-radio legend { width: 100%; margin-bottom: 4px; font-weight: 500; }
+.if-sign .check { align-items: flex-start; }
+.if-done { border-left: 5px solid var(--green); }
+.if-foot { text-align: center; margin: 18px 0 30px; }
+.intake-print .fact-row { display: grid; grid-template-columns: 38% 1fr; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.intake-print dt { color: var(--muted); font-size: .9rem; }
+.intake-print dd { margin: 0; white-space: pre-wrap; }
+.intake-sec { break-inside: avoid-page; }
+.intake-sig { max-width: 320px; max-height: 110px; border-bottom: 1px solid var(--text); display: block; }

@@ -29,7 +29,7 @@ export async function proxy(request) {
 
   const path = request.nextUrl.pathname;
   // /verify is public: anyone can scan a staff ID card's QR code.
-  if (!user && !path.startsWith('/login') && !path.startsWith('/verify/')) {
+  if (!user && !path.startsWith('/login') && !path.startsWith('/verify/') && !path.startsWith('/f/')) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

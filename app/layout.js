@@ -57,6 +57,7 @@ export default async function RootLayout({ children }) {
                     { href: '/install', label: 'Install app', icon: '📲', color: '#0b5a34' },
                   ] },
                   ...(isMgr ? [{ title: 'Manage', items: [
+                    { href: '/intake', label: 'Intake', icon: '📨', color: '#1f6fb2' },
                     { href: '/hr', label: 'HR & staff', icon: '👥', color: '#5a3d8a' },
                     { href: '/checkins', label: 'Check-ins', icon: '📍', color: '#b3261e' },
                     ...(profile.role === 'admin' ? [{ href: '/admin', label: 'Admin', icon: '⚙️', color: '#3d4a44' }] : []),
