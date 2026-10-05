@@ -5,6 +5,7 @@ import PrintButton from '@/app/PrintButton';
 import NavMenu from '@/app/components/NavMenu';
 import MobileTabs from '@/app/components/MobileTabs';
 import PwaRegister from '@/app/components/PwaRegister';
+import { levelOf, personLabel } from '@/lib/levels';
 
 export const metadata = {
   title: 'Evergreen Community Care',
@@ -44,6 +45,8 @@ export default async function RootLayout({ children }) {
                   { title: 'Daily work', items: [
                     { href: '/portal', label: 'Portal', icon: '🏛', color: '#0f3059' },
                     { href: '/dashboard', label: 'Dashboard', icon: '📊', color: '#0b5a34' },
+                    { href: '/action-items', label: 'Action required', icon: '⚠️', color: '#b3261e' },
+                    ...(levelOf(profile) >= 2 ? [{ href: '/kpi', label: 'KPIs', icon: '📈', color: '#1f6fb2' }] : []),
                     { href: '/homes', label: 'Houses', icon: '🏡', color: '#2e8b57' },
                     { href: '/calendar', label: 'Calendar', icon: '📅', color: '#1f6fb2' },
                     { href: '/schedule', label: 'Schedule', icon: '🗓', color: '#5a3d8a' },
@@ -74,7 +77,7 @@ export default async function RootLayout({ children }) {
                   {staffLike && <Link href="/id" className="navquick">🪪 <span>My ID</span></Link>}
                   {onb && onb.status !== 'Complete' && <Link href="/onboarding" className="nav-alert">My onboarding</Link>}
                   <Link href="/notifications" className="bell" title="Notifications">🔔{unread > 0 && <span className="bell-count">{unread > 99 ? '99+' : unread}</span>}</Link>
-                  <span className="muted who">{profile.full_name} · {profile.role}</span>
+                  <span className="muted who">{profile.full_name} · {personLabel(profile)}</span>
                   <PrintButton />
                   <form action="/auth/signout" method="post">
                     <button className="link">Sign out</button>

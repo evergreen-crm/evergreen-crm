@@ -4,9 +4,13 @@ import { requireUser } from '@/lib/auth';
 import { visibleDivisions, getGrants, isBoss } from '@/lib/portal';
 import { isDone } from '@/lib/divisions';
 import { todayISO, fmtDate } from '@/lib/options';
+import ExecDashboard from './ExecDashboard';
+import { levelOf } from '@/lib/levels';
 
 const QUICK = [
   { href: '/dashboard', icon: '🔔', label: 'Today’s alerts' },
+  { href: '/action-items', icon: '⚠️', label: 'Action required' },
+  { href: '/kpi', icon: '📈', label: 'KPIs & scorecard', minLevel: 2 },
   { href: '/homes', icon: '🏡', label: 'Houses & residents' },
   { href: '/calendar', icon: '📅', label: 'Calendar' },
   { href: '/schedule', icon: '🗓', label: 'Shift schedule' },
@@ -44,8 +48,10 @@ export default async function PortalHome() {
         </div>
       </div>
 
+      <ExecDashboard supabase={supabase} profile={profile} userId={user.id} />
+
       <div className="quick-grid no-print">
-        {QUICK.filter((q) => !q.boss || isBoss(profile)).map((q) => (
+        {QUICK.filter((q) => (!q.boss || isBoss(profile)) && levelOf(profile) >= (q.minLevel ?? 0)).map((q) => (
           <Link key={q.href} href={q.href} className="quick"><span>{q.icon}</span>{q.label}</Link>
         ))}
       </div>
