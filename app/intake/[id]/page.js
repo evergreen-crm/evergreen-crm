@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { fmtDate, fmtDateTime } from '@/lib/options';
 import { siteOrigin } from '@/lib/idcard';
+import { emailReady } from '@/lib/email';
 import { formsForStream, DEFAULT_PACKAGE, SIGNER_ROLES } from '@/lib/intakeForms';
 import ProgramBadge from '@/app/components/ProgramBadge';
 import CopyLink from './CopyLink';
@@ -14,7 +15,7 @@ const badge = { Sent: 'warn', Opened: 'warn', Completed: '', Cancelled: 'bad' };
 function mailto(email, name, person, reqs, origin, sender) {
   const lines = reqs.map((r) => `• ${r.form_title}\n  ${origin}/f/${r.token}`).join('\n\n');
   const subject = `Evergreen Community Care — intake form${reqs.length > 1 ? 's' : ''} for ${person}`;
-  const body = `Hello ${name},\n\nEvergreen Community Care is completing intake for ${person}. Please open each link below, fill in the form and sign it on your phone or computer. Each link is private to you and works for 21 days.\n\n${lines}\n\nIf you have documents to share (court orders, plans, health records), please reply to this email with them attached.\n\nThank you,\n${sender}\nEvergreen Community Care`;
+  const body = `Hello ${name},\n\nEvergreen Community Care is completing intake for ${person}. Please open each link below, fill in the form and sign it on your phone or computer. Each link is private to you and works for 21 days. When you open a link, we will email you a 6-digit code to confirm it is you.\n\n${lines}\n\nIf you have documents to share (court orders, plans, health records), please reply to this email with them attached.\n\nThank you,\n${sender}\nEvergreen Community Care`;
   return `mailto:${encodeURIComponent(email ?? '')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
@@ -24,11 +25,12 @@ export default async function IntakeCase({ params, searchParams }) {
   const { supabase, profile } = await requireUser(['admin', 'manager']);
   const [{ data: c }, { data: reqs }, { data: homes }] = await Promise.all([
     supabase.from('intake_cases').select('*, homes(name)').eq('id', id).maybeSingle(),
-    supabase.from('intake_requests').select('id, form_key, form_title, recipient_name, recipient_email, recipient_role, token, status, sent_at, opened_at, completed_at, expires_at, signed_name, signer_role').eq('case_id', id).order('sent_at'),
+    supabase.from('intake_requests').select('id, form_key, form_title, recipient_name, recipient_email, recipient_role, token, status, sent_at, opened_at, completed_at, expires_at, signed_name, signer_role, require_code, verified_at').eq('case_id', id).order('sent_at'),
     supabase.from('homes').select('id, name').order('name'),
   ]);
   if (!c) notFound();
   const origin = await siteOrigin();
+  const codesReady = emailReady() && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
   const forms = formsForStream(c.stream);
   const external = forms.filter((f) => !f.internal);
   const suggested = new Set((DEFAULT_PACKAGE[c.stream] ?? []).map((p) => p.key));
@@ -76,7 +78,9 @@ export default async function IntakeCase({ params, searchParams }) {
                         <span className={`badge ${expired ? 'bad' : badge[r.status]}`}>{expired ? 'Expired' : r.status === 'Completed' ? '✓ Signed' : r.status}</span>
                         <div className="muted small">
                           {r.status === 'Completed' ? `${r.signed_name}${r.signer_role ? ` (${r.signer_role})` : ''} · ${fmtDateTime(r.completed_at)}`
+                            : r.verified_at ? `Email code confirmed ${fmtDateTime(r.verified_at)}`
                             : r.opened_at ? `Opened ${fmtDateTime(r.opened_at)}` : `Made ${fmtDateTime(r.sent_at)}`}
+                          {r.require_code && r.recipient_email && r.status !== 'Completed' && ' · 🔒 email code'}
                         </div>
                       </td>
                       <td>{r.status === 'Completed'
@@ -112,6 +116,8 @@ export default async function IntakeCase({ params, searchParams }) {
               </select>
             </label>
           </div>
+          <label className="check"><input type="checkbox" name="require_code" defaultChecked /> 🔒 Require an email code before they can open the form (recommended)</label>
+          {!codesReady && <p className="message small">Email codes need a one-time setup (Resend email key in Vercel). Until then, people with a 🔒 link will see “codes not switched on”. Untick the box above to send links without a code.</p>}
           <p className="small"><strong>Forms to send</strong> <span className="muted">(suggested ones are ticked — untick any that don’t apply to this person)</span></p>
           <div className="intake-forms">
             {external.map((f) => (

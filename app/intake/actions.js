@@ -42,6 +42,7 @@ export async function sendForms(fd) {
   const rows = keys.map((k) => ({
     case_id: caseId, form_key: k, form_title: formByKey(k).title, recipient_name: name,
     recipient_email: email ? email.toLowerCase() : null, recipient_role: text(fd, 'recipient_role'), token: newToken(),
+    require_code: !!email && fd.get('require_code') === 'on',
   }));
   const { error } = await supabase.from('intake_requests').insert(rows);
   if (error) back(error.message);
@@ -57,7 +58,7 @@ export async function fillInternal(fd) {
   const token = newToken();
   const { error } = await supabase.from('intake_requests').insert({
     case_id: caseId, form_key: key, form_title: formByKey(key).title, recipient_name: profile.full_name,
-    recipient_role: 'Program Manager', token,
+    recipient_role: 'Program Manager', token, require_code: false,
   });
   if (error) redirect(`/intake/${caseId}?error=${encodeURIComponent(error.message)}`);
   redirect(`/f/${token}`);
@@ -77,6 +78,7 @@ export async function renewRequest(fd) {
   const id = text(fd, 'id'); const caseId = text(fd, 'case_id');
   const { error } = await supabase.from('intake_requests').update({
     token: newToken(), status: 'Sent', opened_at: null, sent_at: new Date().toISOString(),
+    verified_at: null, session_hash: null, otp_hash: null, otp_sent_at: null, otp_attempts: 0,
     expires_at: new Date(Date.now() + 21 * 86400000).toISOString(),
   }).eq('id', id).neq('status', 'Completed');
   if (error) redirect(`/intake/${caseId}?error=${encodeURIComponent(error.message)}`);
