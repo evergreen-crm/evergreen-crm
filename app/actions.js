@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { roleForLevel, levelName, needsHome } from '@/lib/levels';
 
 const text = (formData, key) => {
   const v = formData.get(key);
@@ -89,15 +90,23 @@ export async function inviteUser(formData) {
   const fullName = text(formData, 'full_name');
   const email = text(formData, 'email')?.toLowerCase() ?? null;
   const phone = cleanPhone(text(formData, 'phone'));
-  const role = text(formData, 'role');
+  // "level" is 1-8 (staff levels) or "family". Older forms may still send "role".
+  const levelChoice = text(formData, 'level') ?? text(formData, 'role');
+  const isFamily = levelChoice === 'family';
+  const legacy = { admin: 8, manager: 3, staff: 1 };
+  const level = isFamily ? null : Number(legacy[levelChoice] ?? levelChoice);
+  const role = isFamily ? 'family' : roleForLevel(level);
   const homeId = text(formData, 'home_id');
   const residentId = text(formData, 'resident_id');
 
   if (!fullName || (!email && !phone)) {
     redirect('/admin?error=' + encodeURIComponent('Name and an email or cell number are required.'));
   }
-  if (role === 'staff' && !homeId) {
-    redirect('/admin?error=' + encodeURIComponent('Pick a home for staff members.'));
+  if (!isFamily && !(level >= 1 && level <= 8)) {
+    redirect('/admin?error=' + encodeURIComponent('Choose an access level.'));
+  }
+  if (!isFamily && needsHome(level) && !homeId) {
+    redirect('/admin?error=' + encodeURIComponent(`Pick a home for ${levelName(level)} staff.`));
   }
   if (role === 'family' && !residentId) {
     redirect('/admin?error=' + encodeURIComponent('Pick the resident this family member may see.'));
@@ -121,14 +130,21 @@ export async function inviteUser(formData) {
   const userId = created.user.id;
 
   // 3. Their profile = role + home.
-  const { error: profileError } = await admin.from('profiles').insert({
+  const profileRow = {
     id: userId,
     full_name: fullName,
     email,
     phone,
     role,
+    level,
     home_id: role === 'staff' || role === 'manager' ? homeId : null,
-  });
+  };
+  let { error: profileError } = await admin.from('profiles').insert(profileRow);
+  if (profileError && /level/.test(profileError.message)) {
+    // supabase/access-levels.sql not run yet: save without the level.
+    delete profileRow.level;
+    ({ error: profileError } = await admin.from('profiles').insert(profileRow));
+  }
   if (profileError) {
     await admin.auth.admin.deleteUser(userId); // undo half-made account
     redirect('/admin?error=' + encodeURIComponent('Could not save profile: ' + profileError.message));
@@ -163,4 +179,43 @@ export async function setUserActive(formData) {
   await admin.auth.admin.updateUserById(userId, { ban_duration: active ? 'none' : '876000h' });
 
   revalidatePath('/admin');
+}
+
+// Move a person to another access level (their security level) and/or home.
+export async function setUserLevel(formData) {
+  const { supabase, user } = await requireUser(['admin']);
+  const userId = text(formData, 'user_id');
+  const level = Number(text(formData, 'level'));
+  const homeId = text(formData, 'home_id');
+  if (!(level >= 1 && level <= 8)) redirect('/admin?error=' + encodeURIComponent('Choose a level from 1 to 8.'));
+  if (userId === user.id && level < 8) {
+    redirect('/admin?error=' + encodeURIComponent("You can't lower your own level — ask another Administrator."));
+  }
+  if (needsHome(level) && !homeId) {
+    redirect('/admin?error=' + encodeURIComponent(`Pick a home for ${levelName(level)} staff.`));
+  }
+  // Signed in as the admin: the database rules check this is allowed.
+  const { error } = await supabase.from('profiles')
+    .update({ level, role: roleForLevel(level), home_id: homeId })
+    .eq('id', userId);
+  if (error) redirect('/admin?error=' + encodeURIComponent('Could not change level: ' + error.message));
+  revalidatePath('/admin');
+  redirect('/admin?ok=' + encodeURIComponent(`Moved to level ${level} · ${levelName(level)}.`) + '#people');
+}
+
+// Which level opens each portal division (view + add) and lets people edit everyone's records.
+export async function setDivisionLevels(formData) {
+  const { supabase } = await requireUser(['admin']);
+  const rows = [];
+  for (const [k, v] of formData.entries()) {
+    const m = /^view_(.+)$/.exec(k);
+    if (!m) continue;
+    const view = Number(v), edit = Math.max(view, Number(formData.get('edit_' + m[1]) || view));
+    if (view >= 1 && view <= 8) rows.push({ division: m[1], view_level: view, edit_level: Math.min(edit, 8), updated_at: new Date().toISOString() });
+  }
+  const { error } = await supabase.from('division_levels').upsert(rows);
+  if (error) redirect('/admin?error=' + encodeURIComponent('Could not save division levels: ' + error.message + ' (run supabase/access-levels.sql first)'));
+  revalidatePath('/admin');
+  revalidatePath('/portal');
+  redirect('/admin?ok=' + encodeURIComponent('Division access by level saved.') + '#divisions');
 }

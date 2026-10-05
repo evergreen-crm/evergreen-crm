@@ -87,6 +87,25 @@ In Supabase → **Authentication**:
 
 ---
 
+## Access levels 1–8
+
+Every person has one **access level** (their security level), set on **Admin**:
+
+| Level | Group | Sees |
+|---|---|---|
+| 1 | Frontline | Their home |
+| 2 | Program Coordinator | Their home |
+| 3 | Program Manager | All homes |
+| 4 | Director of Operations | All homes |
+| 5 | Executive Director | All homes |
+| 6 | CSO | All homes |
+| 7 | CEO | All homes |
+| 8 | Administrator | Everything, including giving access |
+
+- The database keeps `role` in step with the level (1–2 = staff, 3–7 = manager, 8 = admin), so every existing rule keeps working.
+- The seven portal divisions open automatically by level (**Admin → Portal divisions by level**). A division's "Who has access" still adds one-off people.
+- To switch it on: Supabase → SQL Editor → run `supabase/access-levels.sql` (safe to run again). It also removes duplicate test homes/residents that have no records attached.
+
 ## How the files fit together
 
 | File | What it does |

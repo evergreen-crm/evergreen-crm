@@ -1,6 +1,9 @@
 // Admin: give each person access, turn access off, add homes and residents.
 import { requireUser } from '@/lib/auth';
-import { inviteUser, setUserActive, addHome, addResident } from '@/app/actions';
+import { inviteUser, setUserActive, addHome, addResident, setUserLevel, setDivisionLevels } from '@/app/actions';
+import { LEVELS, levelOf, personLabel } from '@/lib/levels';
+import { DIVISIONS } from '@/lib/divisions';
+import { getDivisionLevels } from '@/lib/portal';
 import Link from 'next/link';
 import StorageUsage from './StorageUsage';
 
@@ -8,11 +11,17 @@ export default async function AdminPage({ searchParams }) {
   const { supabase, user } = await requireUser(['admin']);
   const { ok, error } = await searchParams;
 
-  const [{ data: people }, { data: homes }, { data: residents }] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, email, phone, role, active, homes(name)').order('full_name'),
+  const [{ data: peopleL, error: peopleErr }, { data: homes }, { data: residents }, divLevels] = await Promise.all([
+    supabase.from('profiles').select('id, full_name, email, phone, role, level, home_id, active, homes(name)').order('full_name'),
     supabase.from('homes').select('id, name').order('name'),
-    supabase.from('residents').select('id, first_name, last_name').order('last_name'),
+    supabase.from('residents').select('id, first_name, last_name, homes(name)').order('last_name'),
+    getDivisionLevels(supabase),
   ]);
+  // Before supabase/access-levels.sql is run there is no `level` column.
+  const levelsReady = !peopleErr;
+  const people = levelsReady ? peopleL
+    : (await supabase.from('profiles').select('id, full_name, email, phone, role, home_id, active, homes(name)').order('full_name')).data;
+  const LevelOptions = () => LEVELS.map((l) => <option key={l.level} value={l.level}>{l.level} · {l.name}</option>);
 
   return (
     <main>
@@ -36,16 +45,14 @@ export default async function AdminPage({ searchParams }) {
         </div>
         <div className="row">
           <label>
-            Role
-            <select name="role" required defaultValue="staff">
-              <option value="staff">Staff</option>
-              <option value="manager">Manager (all homes)</option>
+            Access level
+            <select name="level" required defaultValue="1">
+              <LevelOptions />
               <option value="family">Family (one resident)</option>
-              <option value="admin">Admin</option>
             </select>
           </label>
           <label>
-            Home (staff)
+            Home (levels 1–2)
             <select name="home_id" defaultValue="">
               <option value="">—</option>
               {homes?.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -57,7 +64,7 @@ export default async function AdminPage({ searchParams }) {
             Resident (family)
             <select name="resident_id" defaultValue="">
               <option value="">—</option>
-              {residents?.map((r) => <option key={r.id} value={r.id}>{r.first_name} {r.last_name}</option>)}
+              {residents?.map((r) => <option key={r.id} value={r.id}>{r.first_name} {r.last_name}{r.homes?.name ? ` · ${r.homes.name}` : ''}</option>)}
             </select>
           </label>
           <label>Relationship (family)<input name="relationship" placeholder="e.g., daughter" /></label>
@@ -66,16 +73,31 @@ export default async function AdminPage({ searchParams }) {
       </form>
 
       {/* ---------- Everyone with access ---------- */}
-      <h2>People</h2>
+      <h2 id="people">People</h2>
+      {!levelsReady && (
+        <p className="message">Run <code>supabase/access-levels.sql</code> in Supabase → SQL Editor to switch on access levels 1–8.</p>
+      )}
       <table>
         <thead>
-          <tr><th>Name</th><th>Role</th><th>Home</th><th>Email / cell</th><th>Access</th></tr>
+          <tr><th>Name</th><th>Level</th><th>Home</th><th>Email / cell</th><th>Access</th></tr>
         </thead>
         <tbody>
           {people?.map((p) => (
             <tr key={p.id} className={p.active ? '' : 'inactive'}>
               <td>{p.full_name}</td>
-              <td>{p.role}</td>
+              <td>
+                {p.role === 'family' || !levelsReady ? personLabel(p) : (
+                  <form action={setUserLevel} className="row" style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input type="hidden" name="user_id" value={p.id} />
+                    <select name="level" defaultValue={levelOf(p)} aria-label={`Level for ${p.full_name}`}><LevelOptions /></select>
+                    <select name="home_id" defaultValue={p.home_id ?? ''} aria-label={`Home for ${p.full_name}`}>
+                      <option value="">All homes / none</option>
+                      {homes?.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
+                    </select>
+                    <button className="secondary small">Save</button>
+                  </form>
+                )}
+              </td>
               <td>{p.homes?.name ?? '—'}</td>
               <td className="small">{[p.email, p.phone].filter(Boolean).join(' · ')}</td>
               <td>
@@ -95,6 +117,42 @@ export default async function AdminPage({ searchParams }) {
           ))}
         </tbody>
       </table>
+
+      {/* ---------- Access levels ---------- */}
+      <section className="card" id="levels">
+        <h2>Access levels</h2>
+        <p className="muted small">Each person has one level — their security level. Levels 1–2 see their own home, 3–7 see all homes, 8 can do everything including giving access. Move anyone with the Level menu above.</p>
+        <table>
+          <thead><tr><th>Level</th><th>Group</th><th>What it’s for</th><th>People</th></tr></thead>
+          <tbody>
+            {LEVELS.map((l) => (
+              <tr key={l.level}><td>{l.level}</td><td><strong>{l.name}</strong></td><td className="small">{l.hint}</td>
+                <td>{people?.filter((p) => p.active && p.role !== 'family' && levelOf(p) === l.level).length ?? 0}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <form action={setDivisionLevels} className="card" id="divisions">
+        <h2>Portal divisions by level</h2>
+        <p className="muted small">A division opens automatically for everyone at or above its level. “Edit everyone’s records” is the level that can also change other people’s records. You can still add one-off people on a division’s “Who has access”.</p>
+        <table>
+          <thead><tr><th>Division</th><th>Can see and add</th><th>Can edit everyone’s records</th></tr></thead>
+          <tbody>
+            {DIVISIONS.map((d) => {
+              const dl = divLevels[d.key] ?? { view_level: 8, edit_level: 8 };
+              return (
+                <tr key={d.key}>
+                  <td>{d.icon} {d.num}. {d.title}</td>
+                  <td><select name={`view_${d.key}`} defaultValue={dl.view_level}>{LEVELS.map((l) => <option key={l.level} value={l.level}>{l.level} · {l.name} and up</option>)}</select></td>
+                  <td><select name={`edit_${d.key}`} defaultValue={dl.edit_level}>{LEVELS.map((l) => <option key={l.level} value={l.level}>{l.level} · {l.name} and up</option>)}</select></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <button disabled={!levelsReady}>Save division levels</button>
+      </form>
 
       {/* ---------- Homes & residents ---------- */}
       <div className="grid2">

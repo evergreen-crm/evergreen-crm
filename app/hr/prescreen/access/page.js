@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { requirePrescreen } from '@/lib/prescreenAuth';
 import { grantAccess, revokeAccess } from '../actions';
+import { personLabel } from '@/lib/levels';
 
 export const metadata = { title: 'Prescreening access · Evergreen' };
 const LABEL = { hr: 'HR staff — full screening access and clearance decisions', interviewer: 'Interviewer — interviews and reference checks only' };
@@ -11,7 +12,7 @@ export default async function PrescreenAccess({ searchParams }) {
   const { supabase } = await requirePrescreen(['admin']);
   const [{ data: access }, { data: people }] = await Promise.all([
     supabase.from('prescreen_access').select('profile_id, access, granted_at'),
-    supabase.from('profiles').select('id, full_name, role, active').in('role', ['manager', 'staff']).eq('active', true).order('full_name'),
+    supabase.from('profiles').select('id, full_name, role, level, active').in('role', ['manager', 'staff']).eq('active', true).order('full_name'),
   ]);
   const byId = Object.fromEntries((people ?? []).map((p) => [p.id, p]));
   const has = new Set((access ?? []).map((a) => a.profile_id));
@@ -29,7 +30,7 @@ export default async function PrescreenAccess({ searchParams }) {
         <div className="row">
           <label>Person
             <select name="profile_id" required defaultValue=""><option value="" disabled>Choose…</option>
-              {(people ?? []).filter((p) => !has.has(p.id)).map((p) => <option key={p.id} value={p.id}>{p.full_name} ({p.role})</option>)}
+              {(people ?? []).filter((p) => !has.has(p.id)).map((p) => <option key={p.id} value={p.id}>{p.full_name} ({personLabel(p)})</option>)}
             </select>
           </label>
           <label>Role

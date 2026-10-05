@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { findDivision, isDone } from '@/lib/divisions';
-import { getGrants, canSee } from '@/lib/portal';
+import { getGrants, canSee, getDivisionLevels } from '@/lib/portal';
+import { levelName, personLabel } from '@/lib/levels';
 import { todayISO } from '@/lib/options';
 import { grantAccess, revokeAccess } from '@/app/portal/actions';
 import PrintButton from '@/app/PrintButton';
@@ -19,10 +20,11 @@ export default async function DivisionPage({ params }) {
   const isAdmin = profile.role === 'admin';
   const today = todayISO();
 
+  const dl = (await getDivisionLevels(supabase))[division] ?? { view_level: 8, edit_level: 8 };
   const [{ data: rows }, { data: access }, { data: people }] = await Promise.all([
     supabase.from('records').select('area, status, due_date').eq('division', division),
-    isAdmin ? supabase.from('portal_access').select('profile_id, can_edit, profiles:profile_id(full_name, role)').eq('division', division) : { data: [] },
-    isAdmin ? supabase.from('profiles').select('id, full_name, role').in('role', ['staff', 'manager']).eq('active', true).order('full_name') : { data: [] },
+    isAdmin ? supabase.from('portal_access').select('profile_id, can_edit, profiles:profile_id(full_name, role, level)').eq('division', division) : { data: [] },
+    isAdmin ? supabase.from('profiles').select('id, full_name, role, level').in('role', ['staff', 'manager']).eq('active', true).order('full_name') : { data: [] },
   ]);
   const count = {};
   for (const r of rows ?? []) {
@@ -65,7 +67,8 @@ export default async function DivisionPage({ params }) {
         <section className="card no-print">
           <h2>Who has access to this division</h2>
           <p className="muted small">
-            Only you (admin) can see this division until you add people here. Nobody else, including managers, can see it.
+            Opens automatically for <strong>level {dl.view_level} ({levelName(dl.view_level)}) and up</strong>; level {dl.edit_level} ({levelName(dl.edit_level)}) and up can also edit everyone’s records.
+            Change this on Admin → Portal divisions by level. Add anyone below that level here as a one-off.
             “View and add” lets a person see all records and add their own. “Can edit everyone’s records” also lets them edit others’ records.
           </p>
           {access?.length === 0 && <p className="muted">No one else has been added.</p>}
@@ -75,7 +78,7 @@ export default async function DivisionPage({ params }) {
               <tbody>
                 {access.map((g) => (
                   <tr key={g.profile_id}>
-                    <td>{g.profiles?.full_name} <span className="muted small">· {g.profiles?.role}</span></td>
+                    <td>{g.profiles?.full_name} <span className="muted small">· {personLabel(g.profiles)}</span></td>
                     <td>{g.can_edit ? 'View, add and edit' : 'View and add'}</td>
                     <td>
                       <form action={revokeAccess}>
@@ -94,7 +97,7 @@ export default async function DivisionPage({ params }) {
             <label>Person
               <select name="profile_id" required defaultValue="">
                 <option value="" disabled>Choose…</option>
-                {people?.map((p) => <option key={p.id} value={p.id}>{p.full_name} ({p.role})</option>)}
+                {people?.map((p) => <option key={p.id} value={p.id}>{p.full_name} ({personLabel(p)})</option>)}
               </select>
             </label>
             <label className="check"><input type="checkbox" name="can_edit" /> Can edit everyone’s records</label>

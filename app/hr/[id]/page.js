@@ -1,5 +1,6 @@
 // One staff member's HR record: details, certifications, training.
 import Link from 'next/link';
+import { personLabel } from '@/lib/levels';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { CERT_TYPES, certStatus } from '@/lib/hr';
@@ -19,7 +20,7 @@ export default async function StaffHrPage({ params, searchParams }) {
   const canEdit = ['admin', 'manager'].includes(profile.role);
 
   const [{ data: person }, { data: details }, { data: certs }, { data: trainings }] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, email, phone, role, active, homes(name)').eq('id', id).maybeSingle(),
+    supabase.from('profiles').select('id, full_name, email, phone, role, level, active, homes(name)').eq('id', id).maybeSingle(),
     supabase.from('staff_details').select('*').eq('profile_id', id).maybeSingle(),
     supabase.from('certifications').select('*').eq('profile_id', id).order('expires_on', { ascending: true, nullsFirst: false }),
     supabase.from('trainings').select('*').eq('profile_id', id).order('completed_on', { ascending: false }),
@@ -48,7 +49,7 @@ export default async function StaffHrPage({ params, searchParams }) {
       {canEdit && <p className="small"><Link href="/hr">← All staff</Link></p>}
       <h1>{person.full_name}</h1>
       <p className="muted">
-        {person.role} · {person.homes?.name ?? 'No home'} · {[person.email, person.phone].filter(Boolean).join(' · ')}
+        {personLabel(person)} · {person.homes?.name ?? 'No home'} · {[person.email, person.phone].filter(Boolean).join(' · ')}
         {!person.active && <span className="badge bad"> Access turned off</span>}
       </p>
       <p className="small">

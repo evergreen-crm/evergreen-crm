@@ -8,6 +8,7 @@ import { fmtDate, fmtDateTime } from '@/lib/options';
 import { signPolicy, updatePolicy, restoreVersion } from '@/app/policies/actions';
 import PolicyUpload from '@/app/policies/PolicyUpload';
 import PrintButton from '@/app/PrintButton';
+import { personLabel } from '@/lib/levels';
 
 function nextVersion(label) {
   const [maj, min = '0'] = String(label ?? '1.0').split('.');
@@ -26,7 +27,7 @@ export default async function PolicyPage({ params, searchParams }) {
   const [{ data: versions }, { data: acks }, { data: people }, { data: onb }] = await Promise.all([
     supabase.from('policy_versions').select('*, publisher:published_by(full_name)').eq('policy_id', id).order('published_at', { ascending: false }),
     supabase.from('policy_acks').select('*, person:profile_id(full_name)').eq('policy_id', id).order('signed_at', { ascending: false }),
-    isBoss ? supabase.from('profiles').select('id, full_name, role, active, staff_details(program)').in('role', ['admin', 'manager', 'staff']).eq('active', true).order('full_name') : { data: [] },
+    isBoss ? supabase.from('profiles').select('id, full_name, role, level, active, staff_details(program)').in('role', ['admin', 'manager', 'staff']).eq('active', true).order('full_name') : { data: [] },
     supabase.from('onboardings').select('signature_image').eq('profile_id', user.id).maybeSingle(),
   ]);
   const { data: me } = await supabase.from('staff_details').select('program').eq('profile_id', user.id).maybeSingle();
@@ -106,7 +107,7 @@ export default async function PolicyPage({ params, searchParams }) {
                 const a = signedCurrent(x.id);
                 return (
                   <tr key={x.id}>
-                    <td>{x.full_name}</td><td>{x.role}</td><td><ProgramBadge program={progOf(x)} /></td>
+                    <td>{x.full_name}</td><td>{personLabel(x)}</td><td><ProgramBadge program={progOf(x)} /></td>
                     <td>{a ? <>✓ {a.signed_name} · {fmtDateTime(a.signed_at)}</> : <span className="badge bad">Not signed</span>}</td>
                   </tr>
                 );

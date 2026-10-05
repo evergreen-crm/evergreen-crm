@@ -51,10 +51,10 @@ export default async function PortalHome() {
       </div>
 
       {divisions.length === 0 && (
-        <p className="card muted">No divisions have been shared with you yet. Your administrator can give you access.</p>
+        <p className="card muted">No divisions are open at your access level yet. Your administrator can change your level or give you access.</p>
       )}
       {profile.role === 'admin' && divisions.length > 0 && (
-        <p className="muted small no-print">Only you can see these divisions. To share one, open it and use “Who has access”.</p>
+        <p className="muted small no-print">Divisions open for staff by access level (Admin → Portal divisions by level). Add one-off people on a division’s “Who has access”.</p>
       )}
       <div className="div-grid">
         {divisions.map((d) => {

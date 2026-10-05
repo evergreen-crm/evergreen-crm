@@ -2,6 +2,7 @@
 -- Evergreen CRM - Portal (7 operational divisions, ECC-DIV-2026-001)
 -- One records table for every area, plus per-person access to divisions.
 -- Run once in Supabase SQL Editor (after modules-2.sql). Safe to run again.
+-- If you run this file again, run access-levels.sql again afterwards (it extends has_division with staff levels).
 -- =====================================================================
 
 create table if not exists records (
