@@ -23,8 +23,10 @@ export default async function RootLayout({ children }) {
     const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('profile_id', profile.id).is('read_at', null);
     unread = count ?? 0;
   }
+  let psRole = null;
   if (profile && profile.role !== 'family') {
     ({ data: onb } = await supabase.from('onboardings').select('status').eq('profile_id', profile.id).maybeSingle());
+    ({ data: psRole } = await supabase.rpc('prescreen_role'));
   }
 
   return (
@@ -56,10 +58,13 @@ export default async function RootLayout({ children }) {
                     { href: '/notifications', label: 'Notifications', icon: '🔔', color: '#b3261e', badge: unread || null },
                     { href: '/install', label: 'Install app', icon: '📲', color: '#0b5a34' },
                   ] },
-                  ...(isMgr ? [{ title: 'Manage', items: [
-                    { href: '/intake', label: 'Intake', icon: '📨', color: '#1f6fb2' },
-                    { href: '/hr', label: 'HR & staff', icon: '👥', color: '#5a3d8a' },
-                    { href: '/checkins', label: 'Check-ins', icon: '📍', color: '#b3261e' },
+                  ...(isMgr || psRole ? [{ title: 'Manage', items: [
+                    ...(isMgr ? [
+                      { href: '/intake', label: 'Intake', icon: '📨', color: '#1f6fb2' },
+                      { href: '/hr', label: 'HR & staff', icon: '👥', color: '#5a3d8a' },
+                    ] : []),
+                    ...(psRole ? [{ href: '/hr/prescreen', label: 'Prescreening', icon: '🧾', color: '#0b5a34' }] : []),
+                    ...(isMgr ? [{ href: '/checkins', label: 'Check-ins', icon: '📍', color: '#b3261e' }] : []),
                     ...(profile.role === 'admin' ? [{ href: '/admin', label: 'Admin', icon: '⚙️', color: '#3d4a44' }] : []),
                   ] }] : []),
                 ];

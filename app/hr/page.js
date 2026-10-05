@@ -13,11 +13,12 @@ export default async function HrPage({ searchParams }) {
   if (profile.role === 'staff') redirect(`/hr/${profile.id}`);
   if (profile.role === 'family') redirect('/');
 
-  const [{ data: people }, { data: details }, { data: certs }] = await Promise.all([
+  const [{ data: people }, { data: details }, { data: certs }, { data: psRole }] = await Promise.all([
     supabase.from('profiles').select('id, full_name, role, active, homes(name)')
       .in('role', ['admin', 'manager', 'staff']).order('full_name'),
     supabase.from('staff_details').select('profile_id, position, employment_type, employee_no, employment_status, last_day, program'),
     supabase.from('certifications').select('profile_id, expires_on'),
+    supabase.rpc('prescreen_role'),
   ]);
 
   const detailsById = Object.fromEntries((details ?? []).map((d) => [d.profile_id, d]));
@@ -46,6 +47,7 @@ export default async function HrPage({ searchParams }) {
       <nav className="tabs-bar">
         <Link href="/hr" className={!former ? 'on' : ''}>Current staff</Link>
         <Link href="/hr?show=former" className={former ? 'on' : ''}>Resigned / former staff</Link>
+        {psRole && <Link href="/hr/prescreen">🧾 Prescreening</Link>}
         <Link href="/academy">🎓 Evergreen Academy</Link>
         <Link href="/policies">📘 Policies</Link>
       </nav>
