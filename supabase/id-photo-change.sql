@@ -52,3 +52,14 @@ begin
   new.updated_at := now();
   return new;
 end $$;
+
+-- Let the public verify page show an approved photo of an issued card (id_cards itself stays private).
+create or replace function id_photo_is_public(p text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from id_cards c where c.photo_path = p and c.photo_status = 'Approved' and c.issued_on is not null);
+$$;
+revoke execute on function id_photo_is_public(text) from public;
+grant execute on function id_photo_is_public(text) to anon, authenticated;
+drop policy if exists "id photos verify" on storage.objects;
+create policy "id photos verify" on storage.objects for select to anon, authenticated using (
+  bucket_id = 'id-photos' and public.id_photo_is_public(name));
