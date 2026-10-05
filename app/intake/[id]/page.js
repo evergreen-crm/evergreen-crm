@@ -30,7 +30,7 @@ export default async function IntakeCase({ params, searchParams }) {
   ]);
   if (!c) notFound();
   const origin = await siteOrigin();
-  const codesReady = emailReady() && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const codesReady = emailReady() && !!(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY);
   const forms = formsForStream(c.stream);
   const external = forms.filter((f) => !f.internal);
   const suggested = new Set((DEFAULT_PACKAGE[c.stream] ?? []).map((p) => p.key));

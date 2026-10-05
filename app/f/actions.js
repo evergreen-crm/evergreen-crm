@@ -3,12 +3,12 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { cookies, headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient, adminKey } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email';
 import { formByKey } from '@/lib/intakeForms';
 
 const sha = (s) => createHash('sha256').update(s).digest('hex');
-const codeHash = (token, code) => sha(`${token}:${code}:${process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''}`);
+const codeHash = (token, code) => sha(`${token}:${code}:${adminKey() ?? ''}`);
 const cookieName = (token) => `evg_if_${token.slice(0, 16)}`;
 const validToken = (t) => typeof t === 'string' && /^[0-9a-f]{40,80}$/i.test(t);
 
@@ -19,7 +19,7 @@ export async function sessionHashFor(token) {
 
 export async function requestCode(token) {
   if (!validToken(token)) return { error: 'This link is not valid.' };
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.RESEND_API_KEY) {
+  if (!adminKey() || !process.env.RESEND_API_KEY) {
     return { error: 'Email codes are not switched on yet. Please contact Evergreen Community Care.' };
   }
   const code = String(randomInt(0, 1000000)).padStart(6, '0');
