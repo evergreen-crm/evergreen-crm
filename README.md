@@ -144,3 +144,9 @@ Every person has one **access level** (their security level), set on **Admin**:
 - Run `supabase/staff-groups.sql` once. Admin page → Access level now also lists **HR** and **Payroll** (stored as level 2 + `profiles.staff_group`, no home).
 - HR: all staff files, certificates, training, onboarding, ID cards, policy sign-off report, prescreening, HR portal division, HR/training KPIs. Payroll: timesheets (fix/approve), schedules, employment details, Finance division, payroll/staffing KPIs. Neither sees residents or care records.
 - KPI owners page: "Fill in by role" uses `DEFAULT_KPI_ROLE` in `lib/kpis.js` (levels 2–7, HR, Payroll). Executive owners (4–7) are accountable; house-level fixes still go to the house's Program Coordinator. Staff-file items go to HR when there is an HR person.
+
+## House dashboards and notice board
+- Run `supabase/house-dashboards.sql` once (tables `house_posts`, `house_post_reads`).
+- Each house opens on a **📊 Dashboard** tab: house compliance %, KPI tiles for that house (same engine via `lib/houseKpis.js`), notice board, today's shifts and appointments, open action items for the house, latest communication book.
+- The main **Dashboard** starts with a card per house (compliance, residents/capacity, on duty, action items, key KPIs) and the notice board for all houses.
+- Posting: Program Coordinators (level 2) post to their own house; level 3+ post to any house or All houses. Important/Urgent posts send an in-app notification. Staff mark posts as read; level 2+ see who has read them.

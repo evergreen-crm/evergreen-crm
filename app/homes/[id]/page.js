@@ -1,6 +1,7 @@
 // One house: its residents, upcoming calendar, and house details (editable).
 import Link from 'next/link';
 import UseMyLocation from './UseMyLocation';
+import HouseDashboard from './HouseDashboard';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { HOUSE_TYPES, fmtDate, fmtTime, todayISO, age, daysUntil } from '@/lib/options';
@@ -10,12 +11,13 @@ import EntryList from '@/app/components/EntryList';
 
 export default async function HomePage({ params, searchParams }) {
   const { id } = await params;
-  const { edit, tab = 'residents' } = await searchParams;
-  const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
+  const sp = await searchParams;
+  const { edit, tab = 'dashboard' } = sp;
+  const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const canEdit = ['admin', 'manager'].includes(profile.role);
 
   const today = todayISO();
-  const [{ data: home }, { data: residents }, { data: appts }] = await Promise.all([
+  const [{ data: home }, { data: residents }, { data: appts }, { data: allHomes }] = await Promise.all([
     supabase.from('homes').select('*').eq('id', id).maybeSingle(),
     supabase.from('residents')
       .select('id, first_name, last_name, preferred_name, date_of_birth, care_type, status, allergies, care_plan_review_date')
@@ -24,6 +26,7 @@ export default async function HomePage({ params, searchParams }) {
       .select('id, title, category, appt_date, start_time, status, residents(first_name, last_name)')
       .eq('home_id', id).gte('appt_date', today).neq('status', 'Cancelled')
       .order('appt_date').order('start_time').limit(8),
+    supabase.from('homes').select('id, name').order('name'),
   ]);
   if (!home) notFound();
 
@@ -37,7 +40,7 @@ export default async function HomePage({ params, searchParams }) {
   const { data: lastDrill } = await supabase.from('entries').select('entry_date')
     .eq('home_id', id).eq('kind', 'fire_drill').order('entry_date', { ascending: false }).limit(1).maybeSingle();
   const drillThisMonth = lastDrill?.entry_date?.slice(0, 7) === today.slice(0, 7);
-  const TABS = [['residents', 'Residents'], ['commbook', 'Communication book'], ['safety', 'Fire drills & safety']];
+  const TABS = [['dashboard', '📊 Dashboard'], ['residents', 'Residents'], ['commbook', 'Communication book'], ['safety', 'Fire drills & safety']];
 
   const current = residents?.filter((r) => r.status !== 'discharged') ?? [];
   const past = residents?.filter((r) => r.status === 'discharged') ?? [];
@@ -94,6 +97,10 @@ export default async function HomePage({ params, searchParams }) {
         {TABS.map(([k, label]) => <Link key={k} href={`${path}?tab=${k}`} className={tab === k ? 'on' : ''}>{label}</Link>)}
         <Link href={`/schedule?home=${id}`}>Schedule →</Link>
       </nav>
+
+      {tab === 'dashboard' && !edit && (
+        <HouseDashboard supabase={supabase} profile={profile} userId={user.id} home={home} homes={allHomes ?? []} sp={sp} />
+      )}
 
       {tab === 'commbook' && (
         <section>

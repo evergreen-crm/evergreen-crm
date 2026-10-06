@@ -535,3 +535,19 @@ table.matrix .prog-row th span.prog-dot { writing-mode: horizontal-tb; transform
 .facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
 .facts dt { color: var(--muted); } .facts dd { margin: 0; }
 .timeline { padding-left: 18px; } .timeline li { margin: 4px 0; }
+
+/* ---------- House dashboards & notice board ---------- */
+.house-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.house-card { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 10px; border: 1px solid #dde5e0; border-left-width: 6px; background: #fff; color: inherit; text-decoration: none; }
+.house-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+.house-card.kpi-green { border-left-color: #2e8b57; } .house-card.kpi-yellow { border-left-color: #d4a72c; } .house-card.kpi-red { border-left-color: #b3261e; } .house-card.kpi-none { border-left-color: #c9d3cd; }
+.house-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 1.05rem; }
+.house-kpis { list-style: none; margin: 0; padding: 0; font-size: .9rem; }
+.house-kpis li { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-top: 1px solid #eef2ef; }
+.notices { list-style: none; padding: 0; margin: 0 0 10px; display: flex; flex-direction: column; gap: 8px; }
+.notice { border: 1px solid #dde5e0; border-left: 5px solid #1f6fb2; border-radius: 8px; padding: 10px 12px; background: #fff; }
+.notice.bad { border-left-color: #b3261e; background: #fdf3f2; } .notice.warn { border-left-color: #d4a72c; background: #fdf9ee; }
+.notice.pinned { box-shadow: inset 0 0 0 1px #0b5a3433; }
+.notice-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; }
+.notice-body { margin: 6px 0; white-space: pre-wrap; }
+.house-dash .exec-tile .small { font-weight: 400; }

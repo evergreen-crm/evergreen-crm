@@ -1,5 +1,7 @@
 // Dashboard: everything that needs attention today, across the houses you can see.
 import Link from 'next/link';
+import HousesOverview from './HousesOverview';
+import NoticeBoard from '@/app/components/NoticeBoard';
 import { requireUser } from '@/lib/auth';
 import { programsFor, itemState } from '@/lib/requirements';
 import { writtenDue, reviewDue } from '@/lib/incidents';
@@ -9,8 +11,9 @@ import { todayISO, nowTime, addDaysISO, fmtDate, fmtTime } from '@/lib/options';
 
 const mins = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
 
-export default async function Dashboard() {
-  const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
+export default async function Dashboard({ searchParams }) {
+  const sp = (await searchParams) ?? {};
+  const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const isMgr = ['admin', 'manager'].includes(profile.role);
   const today = todayISO();
   const now = mins(nowTime());
@@ -20,7 +23,7 @@ export default async function Dashboard() {
     { data: meds }, { data: given }, { data: drills }, { data: unread }, { data: pendingTime },
     { data: commbook }, { data: shifts }, { data: appts },
   ] = await Promise.all([
-    supabase.from('homes').select('id, name').order('name'),
+    supabase.from('homes').select('id, name, capacity').order('name'),
     supabase.from('residents').select('*').neq('status', 'discharged'),
     supabase.from('resident_requirements').select('*'),
     supabase.from('incidents').select('*, residents(first_name, last_name, funder, care_type)').eq('status', 'Open'),
@@ -125,7 +128,10 @@ export default async function Dashboard() {
 
   return (
     <main>
-      <h1>Today — {fmtDate(today)}</h1>
+      <h1>Dashboard — {fmtDate(today)}</h1>
+      <HousesOverview supabase={supabase} homes={homes ?? []} />
+      <NoticeBoard supabase={supabase} profile={profile} userId={user.id} homes={homes ?? []} back="/dashboard" sp={sp} />
+      <h2 style={{ marginTop: 24 }}>Today</h2>
       <div className="stats">
         <div className={`stat ${bad ? 'bad' : ''}`}><strong>{bad}</strong><span>urgent</span></div>
         <div className={`stat ${alerts.length - bad ? 'warn' : ''}`}><strong>{alerts.length - bad}</strong><span>to do soon</span></div>
