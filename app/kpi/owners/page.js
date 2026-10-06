@@ -2,10 +2,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
-import { levelOf, levelName } from '@/lib/levels';
+import { levelOf, levelName, groupOf, groupName, personLabel } from '@/lib/levels';
 import { fmtDate } from '@/lib/options';
-import { AREAS, STATUS, loadKpiData, computeKpis } from '@/lib/kpis';
-import { saveKpiOwners } from '../actions';
+import { AREAS, STATUS, loadKpiData, computeKpis, DEFAULT_KPI_ROLE } from '@/lib/kpis';
+import { saveKpiOwners, fillKpiOwnersByRole } from '../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +18,8 @@ export default async function KpiOwners({ searchParams }) {
   const data = await loadKpiData(supabase);
   const kpis = computeKpis(data);
   const staff = (data.profiles ?? []).filter((p) => p.active && p.role !== 'family')
-    .sort((a, b) => levelOf(b) - levelOf(a) || (a.full_name ?? '').localeCompare(b.full_name ?? ''));
+    .sort((a, b) => (groupOf(a) ? 1 : 0) - (groupOf(b) ? 1 : 0) || levelOf(b) - levelOf(a) || (a.full_name ?? '').localeCompare(b.full_name ?? ''));
+  const roleLabel = (r) => (r === undefined ? '—' : typeof r === 'string' ? groupName(r) : `${r} · ${levelName(r)}`);
   const pName = Object.fromEntries((data.profiles ?? []).map((p) => [p.id, p.full_name]));
   const rows = Object.fromEntries((data.kpiOwnerRows ?? []).map((r) => [r.kpi_key, r]));
   const assigned = kpis.filter((k) => rows[k.key]?.owner_id).length;
@@ -32,6 +33,15 @@ export default async function KpiOwners({ searchParams }) {
       {sp.error && <p className="message">{sp.error}</p>}
       {!canEdit && <p className="card small">Only the Director of Operations, Executive Director, CSO, CEO or an Administrator can change KPI owners.</p>}
       <p className="small"><strong>{assigned}</strong> of {kpis.length} KPIs have an owner.</p>
+      {canEdit && (
+        <div className="card no-print">
+          <p className="small" style={{ marginTop: 0 }}><strong>Fill in by role.</strong> Each KPI has a usual role: Program Coordinator, Program Manager, Director of Operations (4), Executive Director (5), CSO (6), CEO (7), HR or Payroll. This picks the person in that role (or the next level up if nobody holds it yet). Executives are accountable for their KPIs; house-level fixes still go to the house’s Program Coordinator.</p>
+          <form action={fillKpiOwnersByRole} className="row">
+            <button name="mode" value="empty" className="secondary">Fill in empty ones by role</button>
+            <button name="mode" value="all" className="secondary">Reset all to the usual role</button>
+          </form>
+        </div>
+      )}
 
       <form action={saveKpiOwners}>
         {AREAS.map((a) => {
@@ -41,7 +51,7 @@ export default async function KpiOwners({ searchParams }) {
             <section key={a.key} className="card">
               <h2>{a.icon} {a.num}. {a.title}</h2>
               <table>
-                <thead><tr><th>KPI</th><th>Now</th><th>Owner</th><th className="small">Assigned</th></tr></thead>
+                <thead><tr><th>KPI</th><th>Now</th><th className="small">Usual role</th><th>Owner</th><th className="small">Assigned</th></tr></thead>
                 <tbody>
                   {ks.map((k) => {
                     const r = rows[k.key];
@@ -49,11 +59,12 @@ export default async function KpiOwners({ searchParams }) {
                       <tr key={k.key}>
                         <td>{k.label}</td>
                         <td>{STATUS[k.status].dot} {k.value}</td>
+                        <td className="small muted">{roleLabel(DEFAULT_KPI_ROLE[k.key])}</td>
                         <td>
                           {canEdit ? (
                             <select name={`owner_${k.key}`} defaultValue={r?.owner_id ?? ''}>
                               <option value="">— Not assigned (automatic) —</option>
-                              {staff.map((p) => <option key={p.id} value={p.id}>{p.full_name} · {levelName(levelOf(p))}</option>)}
+                              {staff.map((p) => <option key={p.id} value={p.id}>{p.full_name} · {groupOf(p) ? groupName(groupOf(p)) : levelName(levelOf(p))}</option>)}
                             </select>
                           ) : (r?.owner_id ? pName[r.owner_id] ?? '—' : <span className="muted">Not assigned</span>)}
                         </td>

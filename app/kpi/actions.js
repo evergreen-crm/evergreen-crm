@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { levelOf } from '@/lib/levels';
-import { kpiKeyFor } from '@/lib/kpis';
+import { kpiKeyFor, loadKpiData, computeKpis, DEFAULT_KPI_ROLE, personForRole, pickOwner } from '@/lib/kpis';
 
 const back = (msg, bad) => redirect(`/kpi/owners?${bad ? 'error' : 'ok'}=${encodeURIComponent(msg)}`);
 
@@ -24,6 +24,29 @@ export async function saveKpiOwners(formData) {
     const owner = typeof value === 'string' && value ? value : null;
     if ((was[key] ?? null) !== owner) changes.push({ key, owner });
   }
+  await applyOwnerChanges(supabase, user, changes);
+}
+
+// "Fill in by role": mode 'empty' fills KPIs with no owner; 'all' resets every KPI to its usual role.
+export async function fillKpiOwnersByRole(formData) {
+  const { supabase, user, profile } = await requireUser(['admin', 'manager']);
+  if (levelOf(profile) < 4) back('Only the Director of Operations, Executive Director, CSO, CEO or an Administrator can assign KPI owners.', true);
+  const mode = formData.get('mode') === 'all' ? 'all' : 'empty';
+  const { data: current, error } = await supabase.from('kpi_owners').select('kpi_key, owner_id');
+  if (error) back('Run supabase/kpi-phase2.sql in Supabase first. (' + error.message + ')', true);
+  const was = Object.fromEntries((current ?? []).map((r) => [r.kpi_key, r.owner_id]));
+  const data = await loadKpiData(supabase);
+  const changes = [];
+  for (const k of computeKpis(data)) {
+    const role = DEFAULT_KPI_ROLE[k.key];
+    if (role === undefined || (mode === 'empty' && was[k.key])) continue;
+    const owner = personForRole(role, data.profiles);
+    if (owner && owner !== was[k.key]) changes.push({ key: k.key, owner });
+  }
+  await applyOwnerChanges(supabase, user, changes);
+}
+
+async function applyOwnerChanges(supabase, user, changes) {
   if (!changes.length) back('No changes.');
 
   const now = new Date().toISOString();
@@ -38,9 +61,16 @@ export async function saveKpiOwners(formData) {
   let moved = 0;
   const assignedNow = Object.fromEntries(changes.filter((c) => c.owner).map((c) => [c.key, c.owner]));
   if (Object.keys(assignedNow).length) {
-    const { data: items } = await supabase.from('action_items').select('id, source_key, category, owner_id, status').eq('auto', true).in('status', ['Open', 'In progress']);
+    const [{ data: items }, { data: rows }, data] = await Promise.all([
+      supabase.from('action_items').select('id, source_key, category, owner_id, status, home_id, subject_profile_id').eq('auto', true).in('status', ['Open', 'In progress']),
+      supabase.from('kpi_owners').select('kpi_key, owner_id'),
+      loadKpiData(supabase),
+    ]);
+    const owners = Object.fromEntries((rows ?? []).filter((r) => r.owner_id).map((r) => [r.kpi_key, r.owner_id]));
     for (const i of items ?? []) {
-      const to = assignedNow[kpiKeyFor(i)];
+      if (!assignedNow[kpiKeyFor(i)]) continue;
+      // Same rule as the automatic check (executive owners: house fixes go to the house coordinator).
+      const to = pickOwner({ ...i, kind: i.subject_profile_id ? 'staff' : undefined }, data.profiles, owners);
       if (!to || i.owner_id === to) continue;
       const { error: e } = await supabase.from('action_items').update({ owner_id: to }).eq('id', i.id);
       if (!e) {

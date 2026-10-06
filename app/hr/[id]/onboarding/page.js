@@ -1,14 +1,14 @@
 // Manager view of one staff member's onboarding: send the request, review, verify.
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { requireUser } from '@/lib/auth';
+import { requireUser, requireHR } from '@/lib/auth';
 import { todayISO } from '@/lib/options';
 import { startOnboarding } from '@/app/onboarding/actions';
 import OnboardingView from '@/app/onboarding/OnboardingView';
 
 export default async function StaffOnboarding({ params }) {
   const { id } = await params;
-  const { supabase, profile } = await requireUser(['admin', 'manager']);
+  const { supabase, profile } = await requireHR();
   const [{ data: person }, { data: onb }, { data: details }] = await Promise.all([
     supabase.from('profiles').select('id, full_name, email, role').eq('id', id).maybeSingle(),
     supabase.from('onboardings').select('*').eq('profile_id', id).maybeSingle(),

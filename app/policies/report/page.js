@@ -1,7 +1,7 @@
 // Printable sign-off report: every policy, current version, and each person's signature (name, date, time).
 // ?person=<id> prints one staff member's sign-off record (personnel file item 14).
 import Link from 'next/link';
-import { requireUser } from '@/lib/auth';
+import { requireUser, requireHR } from '@/lib/auth';
 import { appliesTo } from '@/lib/onboarding';
 import { fmtDate, fmtDateTime, TZ } from '@/lib/options';
 import ProgramBadge from '@/app/components/ProgramBadge';
@@ -9,7 +9,7 @@ import PrintButton from '@/app/PrintButton';
 
 export default async function SignOffReport({ searchParams }) {
   const sp = await searchParams;
-  const { supabase, profile } = await requireUser(['admin', 'manager']);
+  const { supabase, profile } = await requireHR();
   const [{ data: policies }, { data: versions }, { data: acks }, { data: people }] = await Promise.all([
     supabase.from('policies').select('*').eq('active', true).eq('require_signature', true).order('category').order('title'),
     supabase.from('policy_versions').select('id, policy_id, version_label, effective_date'),

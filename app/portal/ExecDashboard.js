@@ -22,7 +22,7 @@ export default async function ExecDashboard({ supabase, profile, userId }) {
   const today = todayISO();
   const [{ data: mine, error }, kpis] = await Promise.all([
     supabase.from('action_items').select('id, title, due_date, status, severity').eq('owner_id', userId).not('status', 'in', '("Closed","Dismissed")').order('due_date').limit(8),
-    lvl >= 2 ? loadKpiData(supabase).then((d) => { const all = computeKpis(d); return Object.assign(visibleKpis(all, profile), { owned: all.filter((k) => d.kpiOwners[k.key] === userId) }); }) : Promise.resolve([]),
+    lvl >= 2 ? loadKpiData(supabase).then((d) => { const all = computeKpis(d); return Object.assign(visibleKpis(all, profile, d.kpiOwners), { owned: all.filter((k) => d.kpiOwners[k.key] === userId) }); }) : Promise.resolve([]),
   ]);
   const owned = kpis.owned ?? [];
   const by = Object.fromEntries(kpis.map((k) => [k.key, k]));

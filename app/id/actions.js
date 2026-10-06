@@ -3,7 +3,7 @@
 // and the manager steps (approve photo, issue / renew, replace the QR code).
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { requireUser } from '@/lib/auth';
+import { requireUser, requireHR } from '@/lib/auth';
 import { CARD_VALID_MONTHS } from '@/lib/idcard';
 import { addMonthsISO } from '@/lib/onboarding';
 import { todayISO } from '@/lib/options';
@@ -74,7 +74,7 @@ export async function recordShiftEvent({ kind, loc, homeId, note, breakMinutes }
 
 // ---------- Managers ----------
 export async function reviewIdPhoto(formData) {
-  const { supabase } = await requireUser(['admin', 'manager']);
+  const { supabase } = await requireHR();
   const pid = text(formData, 'profile_id');
   const decision = text(formData, 'decision');
   const note = text(formData, 'note');
@@ -108,7 +108,7 @@ export async function reviewIdPhoto(formData) {
 }
 
 export async function issueIdCard(formData) {
-  const { supabase } = await requireUser(['admin', 'manager']);
+  const { supabase } = await requireHR();
   const pid = text(formData, 'profile_id');
   const today = todayISO();
   const months = Number(text(formData, 'months') ?? CARD_VALID_MONTHS) || CARD_VALID_MONTHS;
@@ -123,7 +123,7 @@ export async function issueIdCard(formData) {
 
 // Lost phone / printed card: a new QR code, and the old one stops working.
 export async function replaceIdQr(formData) {
-  const { supabase } = await requireUser(['admin', 'manager']);
+  const { supabase } = await requireHR();
   const pid = text(formData, 'profile_id');
   const { error } = await supabase.from('id_cards').update({ token: crypto.randomUUID() }).eq('profile_id', pid);
   if (error) throw new Error('Could not replace: ' + error.message);

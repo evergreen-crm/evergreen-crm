@@ -1,4 +1,5 @@
 // Timesheets: clock in / out, two-week pay periods, manager approval.
+import { canPayroll } from '@/lib/levels';
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { payPeriod, addDaysISO, todayISO, fmtDate, fmtDateTime, TZ } from '@/lib/options';
@@ -10,7 +11,7 @@ const localDate = (ts) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).for
 export default async function TimesheetPage({ searchParams }) {
   const sp = await searchParams;
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
-  const isMgr = ['admin', 'manager'].includes(profile.role);
+  const isMgr = canPayroll(profile);
   const today = todayISO();
   const period = payPeriod(sp.p ?? today);
   const who = isMgr ? (sp.staff ?? '') : user.id;

@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
-import { levelOf } from '@/lib/levels';
+import { levelOf, groupOf } from '@/lib/levels';
 import { fmtDate } from '@/lib/options';
 import KpiCard from './KpiCard';
 import { AREAS, STATUS, SCORECARD, loadKpiData, computeKpis, visibleKpis, scorecard, overallCompliance } from '@/lib/kpis';
@@ -20,7 +20,8 @@ export default async function KpiPage() {
   const months = (snaps ?? []).slice().reverse();
   const mLabel = (m) => new Date(m + 'T12:00:00').toLocaleDateString('en-CA', { month: 'short', year: 'numeric' });
   const cell = (v, target) => v === null || v === undefined ? <span className="muted">—</span> : <>{v >= target ? '🟢' : v >= target - 5 ? '🟡' : '🔴'} {v}%</>;
-  const kpis = visibleKpis(computeKpis(data), profile);
+  const kpis = visibleKpis(computeKpis(data), profile, data.kpiOwners);
+  const group = groupOf(profile);
   const card = scorecard(kpis);
   const overall = overallCompliance(kpis);
   const pName = Object.fromEntries((data.profiles ?? []).map((p) => [p.id, p.full_name]));
@@ -30,7 +31,7 @@ export default async function KpiPage() {
   return (
     <main>
       <h1>KPIs</h1>
-      <p className="muted">Live from the records in the system · {fmtDate(data.today)} · {lvl >= 3 ? 'all houses' : 'your house'}. 🟢 on target · 🟡 attention required · 🔴 immediate action.</p>
+      <p className="muted">Live from the records in the system · {fmtDate(data.today)} · {lvl >= 3 || group ? 'all houses' : 'your house'}. 🟢 on target · 🟡 attention required · 🔴 immediate action.</p>
 
       <div className="stats">
         <div className={`stat ${overall === null ? '' : overall >= 98 ? '' : overall >= 90 ? 'warn' : 'bad'}`}><strong>{overall === null ? '—' : `${overall}%`}</strong><span>Overall compliance</span></div>
@@ -72,7 +73,7 @@ export default async function KpiPage() {
         </section>
       )}
 
-      {AREAS.filter((a) => lvl >= a.minLevel).map((a) => {
+      {AREAS.filter((a) => (group ? kpis.some((k) => k.area === a.key) : lvl >= a.minLevel || kpis.some((k) => k.area === a.key))).map((a) => {
         const ks = kpis.filter((k) => k.area === a.key);
         return (
           <section key={a.key}>

@@ -1,4 +1,5 @@
 // My digital ID card (phone-first) and shift check-ins. Managers can open anyone's card with ?person=.
+import { canHR } from '@/lib/levels';
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { cardStatus, siteOrigin, qrSvg, emergencyFor, fmtDistance, CHECKIN_EVERY_HOURS } from '@/lib/idcard';
@@ -14,7 +15,7 @@ export const metadata = { title: 'My ID card · Evergreen' };
 export default async function IdPage({ searchParams }) {
   const sp = await searchParams;
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
-  const isMgr = ['admin', 'manager'].includes(profile.role);
+  const isMgr = canHR(profile);
   const pid = isMgr && sp.person ? sp.person : user.id;
   const isSelf = pid === user.id;
   const today = todayISO();

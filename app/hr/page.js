@@ -1,5 +1,6 @@
 // HR portal: list of all staff with certificate warnings.
 // Managers and admins only; staff are sent to their own HR page.
+import { canHR } from '@/lib/levels';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
@@ -10,7 +11,7 @@ export default async function HrPage({ searchParams }) {
   const sp = await searchParams;
   const former = sp.show === 'former';
   const { supabase, profile } = await requireUser();
-  if (profile.role === 'staff') redirect(`/hr/${profile.id}`);
+  if (profile.role === 'staff' && !canHR(profile)) redirect(`/hr/${profile.id}`);
   if (profile.role === 'family') redirect('/');
 
   const [{ data: people }, { data: details }, { data: certs }, { data: psRole }] = await Promise.all([

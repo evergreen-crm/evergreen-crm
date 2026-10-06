@@ -5,7 +5,7 @@ import PrintButton from '@/app/PrintButton';
 import NavMenu from '@/app/components/NavMenu';
 import MobileTabs from '@/app/components/MobileTabs';
 import PwaRegister from '@/app/components/PwaRegister';
-import { levelOf, personLabel } from '@/lib/levels';
+import { levelOf, personLabel, canHR, canPayroll } from '@/lib/levels';
 
 export const metadata = {
   title: 'Evergreen Community Care',
@@ -55,17 +55,16 @@ export default async function RootLayout({ children }) {
                   { title: 'Me', items: [
                     { href: '/id', label: 'My ID card', icon: '🪪', color: '#0b5a34' },
                     ...(onb && onb.status !== 'Complete' ? [{ href: '/onboarding', label: 'My onboarding', icon: '✅', color: '#d4a72c', alert: true }] : []),
-                    ...(profile.role === 'staff' ? [{ href: `/hr/${profile.id}`, label: 'My HR', icon: '📁', color: '#5a3d8a' }] : []),
+                    ...(profile.role === 'staff' && !canHR(profile) ? [{ href: `/hr/${profile.id}`, label: 'My HR', icon: '📁', color: '#5a3d8a' }] : []),
                     { href: '/academy', label: 'Evergreen Academy', icon: '🎓', color: '#1f6fb2' },
                     { href: '/policies', label: 'Policies', icon: '📘', color: '#0f3059' },
                     { href: '/notifications', label: 'Notifications', icon: '🔔', color: '#b3261e', badge: unread || null },
                     { href: '/install', label: 'Install app', icon: '📲', color: '#0b5a34' },
                   ] },
-                  ...(isMgr || psRole ? [{ title: 'Manage', items: [
-                    ...(isMgr ? [
-                      { href: '/intake', label: 'Intake', icon: '📨', color: '#1f6fb2' },
-                      { href: '/hr', label: 'HR & staff', icon: '👥', color: '#5a3d8a' },
-                    ] : []),
+                  ...(isMgr || psRole || canHR(profile) || canPayroll(profile) ? [{ title: 'Manage', items: [
+                    ...(isMgr ? [{ href: '/intake', label: 'Intake', icon: '📨', color: '#1f6fb2' }] : []),
+                    ...(canHR(profile) ? [{ href: '/hr', label: 'HR & staff', icon: '👥', color: '#5a3d8a' }] : []),
+                    ...(canPayroll(profile) && !isMgr ? [{ href: '/timesheet', label: 'Payroll – timesheets', icon: '💵', color: '#8a5a00' }] : []),
                     ...(psRole ? [{ href: '/hr/prescreen', label: 'Prescreening', icon: '🧾', color: '#0b5a34' }] : []),
                     ...(isMgr ? [{ href: '/checkins', label: 'Check-ins', icon: '📍', color: '#b3261e' }] : []),
                     ...(profile.role === 'admin' ? [{ href: '/admin', label: 'Admin', icon: '⚙️', color: '#3d4a44' }] : []),

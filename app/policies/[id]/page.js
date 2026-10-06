@@ -8,7 +8,7 @@ import { fmtDate, fmtDateTime } from '@/lib/options';
 import { signPolicy, updatePolicy, restoreVersion } from '@/app/policies/actions';
 import PolicyUpload from '@/app/policies/PolicyUpload';
 import PrintButton from '@/app/PrintButton';
-import { personLabel } from '@/lib/levels';
+import { personLabel, canHR } from '@/lib/levels';
 
 function nextVersion(label) {
   const [maj, min = '0'] = String(label ?? '1.0').split('.');
@@ -20,7 +20,7 @@ export default async function PolicyPage({ params, searchParams }) {
   const sp = await searchParams;
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const isAdmin = profile.role === 'admin';
-  const isBoss = ['admin', 'manager'].includes(profile.role);
+  const isBoss = canHR(profile);
   const { data: p } = await supabase.from('policies').select('*').eq('id', id).maybeSingle();
   if (!p) notFound();
 

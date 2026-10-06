@@ -1,6 +1,6 @@
 // One staff member's HR record: details, certifications, training.
 import Link from 'next/link';
-import { personLabel } from '@/lib/levels';
+import { personLabel, canHR } from '@/lib/levels';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { CERT_TYPES, certStatus } from '@/lib/hr';
@@ -17,7 +17,7 @@ export default async function StaffHrPage({ params, searchParams }) {
   const { id } = await params;
   const sp = (await searchParams) ?? {};
   const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
-  const canEdit = ['admin', 'manager'].includes(profile.role);
+  const canEdit = canHR(profile);
 
   const [{ data: person }, { data: details }, { data: certs }, { data: trainings }] = await Promise.all([
     supabase.from('profiles').select('id, full_name, email, phone, role, level, active, homes(name)').eq('id', id).maybeSingle(),

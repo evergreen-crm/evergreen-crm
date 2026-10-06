@@ -1,7 +1,8 @@
 'use server';
 // Timesheets: clock in / out, fix, approve.
+import { canPayroll } from '@/lib/levels';
 import { revalidatePath } from 'next/cache';
-import { requireUser } from '@/lib/auth';
+import { requireUser, requirePayroll } from '@/lib/auth';
 
 const text = (formData, key) => {
   const v = formData.get(key);
@@ -32,7 +33,7 @@ export async function clockOut(formData) {
 // Add a missed punch by hand (Vancouver time). Managers can add for anyone.
 export async function addTime(formData) {
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
-  const isMgr = ['admin', 'manager'].includes(profile.role);
+  const isMgr = canPayroll(profile);
   const who = isMgr ? (text(formData, 'profile_id') ?? user.id) : user.id;
   const date = text(formData, 'date');
   const toTs = (d, t) => {
@@ -55,7 +56,7 @@ export async function addTime(formData) {
 }
 
 export async function approveTime(formData) {
-  const { supabase, user } = await requireUser(['admin', 'manager']);
+  const { supabase, user } = await requirePayroll();
   const ids = formData.getAll('id');
   const { error } = await supabase.from('time_entries')
     .update({ approved_by: user.id, approved_at: new Date().toISOString() })
@@ -65,7 +66,7 @@ export async function approveTime(formData) {
 }
 
 export async function deleteTime(formData) {
-  const { supabase } = await requireUser(['admin', 'manager']);
+  const { supabase } = await requirePayroll();
   const { error } = await supabase.from('time_entries').delete().eq('id', text(formData, 'delete_id'));
   if (error) throw new Error('Could not remove: ' + error.message);
   revalidatePath('/timesheet');

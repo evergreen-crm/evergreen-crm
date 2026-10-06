@@ -1,7 +1,7 @@
 // Admin: give each person access, turn access off, add homes and residents.
 import { requireUser } from '@/lib/auth';
 import { inviteUser, setUserActive, addHome, addResident, setUserLevel, setDivisionLevels } from '@/app/actions';
-import { LEVELS, levelOf, personLabel } from '@/lib/levels';
+import { LEVELS, GROUPS, levelOf, groupOf, accessValue, personLabel } from '@/lib/levels';
 import { DIVISIONS } from '@/lib/divisions';
 import { getDivisionLevels } from '@/lib/portal';
 import Link from 'next/link';
@@ -12,16 +12,23 @@ export default async function AdminPage({ searchParams }) {
   const { ok, error } = await searchParams;
 
   const [{ data: peopleL, error: peopleErr }, { data: homes }, { data: residents }, divLevels] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, email, phone, role, level, home_id, active, homes(name)').order('full_name'),
+    supabase.from('profiles').select('id, full_name, email, phone, role, level, staff_group, home_id, active, homes(name)').order('full_name'),
     supabase.from('homes').select('id, name').order('name'),
     supabase.from('residents').select('id, first_name, last_name, homes(name)').order('last_name'),
     getDivisionLevels(supabase),
   ]);
   // Before supabase/access-levels.sql is run there is no `level` column.
-  const levelsReady = !peopleErr;
-  const people = levelsReady ? peopleL
+  // Before supabase/staff-groups.sql is run there is no `staff_group` column.
+  const peopleNoGroup = peopleErr ? await supabase.from('profiles').select('id, full_name, email, phone, role, level, home_id, active, homes(name)').order('full_name') : null;
+  const levelsReady = !peopleErr || !peopleNoGroup?.error;
+  const people = !peopleErr ? peopleL : levelsReady ? peopleNoGroup.data
     : (await supabase.from('profiles').select('id, full_name, email, phone, role, home_id, active, homes(name)').order('full_name')).data;
-  const LevelOptions = () => LEVELS.map((l) => <option key={l.level} value={l.level}>{l.level} · {l.name}</option>);
+  const LevelOptions = () => (<>
+    {LEVELS.map((l) => <option key={l.level} value={l.level}>{l.level} · {l.name}</option>)}
+    <optgroup label="Departments (all homes, no resident records)">
+      {GROUPS.map((g) => <option key={g.key} value={g.key}>{g.name}</option>)}
+    </optgroup>
+  </>);
 
   return (
     <main>
@@ -52,7 +59,7 @@ export default async function AdminPage({ searchParams }) {
             </select>
           </label>
           <label>
-            Home (levels 1–2)
+            Home (levels 1–2; not HR / Payroll)
             <select name="home_id" defaultValue="">
               <option value="">—</option>
               {homes?.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -89,7 +96,7 @@ export default async function AdminPage({ searchParams }) {
                 {p.role === 'family' || !levelsReady ? personLabel(p) : (
                   <form action={setUserLevel} className="row" style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                     <input type="hidden" name="user_id" value={p.id} />
-                    <select name="level" defaultValue={levelOf(p)} aria-label={`Level for ${p.full_name}`}><LevelOptions /></select>
+                    <select name="level" defaultValue={accessValue(p)} aria-label={`Level for ${p.full_name}`}><LevelOptions /></select>
                     <select name="home_id" defaultValue={p.home_id ?? ''} aria-label={`Home for ${p.full_name}`}>
                       <option value="">All homes / none</option>
                       {homes?.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -127,7 +134,11 @@ export default async function AdminPage({ searchParams }) {
           <tbody>
             {LEVELS.map((l) => (
               <tr key={l.level}><td>{l.level}</td><td><strong>{l.name}</strong></td><td className="small">{l.hint}</td>
-                <td>{people?.filter((p) => p.active && p.role !== 'family' && levelOf(p) === l.level).length ?? 0}</td></tr>
+                <td>{people?.filter((p) => p.active && p.role !== 'family' && !groupOf(p) && levelOf(p) === l.level).length ?? 0}</td></tr>
+            ))}
+            {GROUPS.map((g) => (
+              <tr key={g.key}><td>—</td><td><strong>{g.name}</strong></td><td className="small">{g.hint}</td>
+                <td>{people?.filter((p) => p.active && groupOf(p) === g.key).length ?? 0}</td></tr>
             ))}
           </tbody>
         </table>

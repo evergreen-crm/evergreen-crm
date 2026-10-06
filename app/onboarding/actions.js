@@ -2,7 +2,7 @@
 // Staff onboarding: sending the request, filling in, signing, reviewing, certificates.
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { requireUser } from '@/lib/auth';
+import { requireUser, requireHR } from '@/lib/auth';
 import { SECTIONS, templateFor, appliesTo } from '@/lib/onboarding';
 import { addDaysISO, todayISO } from '@/lib/options';
 
@@ -19,7 +19,7 @@ function addMonths(iso, n) {
 
 // ---------- Manager: send the onboarding request ----------
 export async function startOnboarding(formData) {
-  const { supabase, user } = await requireUser(BOSS);
+  const { supabase, user } = await requireHR();
   const profileId = text(formData, 'profile_id');
   const hire = text(formData, 'hire_date') ?? todayISO();
   const program = ['MCFD', 'CLBC', 'Both'].includes(text(formData, 'program')) ? text(formData, 'program') : 'Both';
@@ -137,7 +137,7 @@ export async function submitOnboarding() {
 
 // ---------- Manager: review ----------
 export async function reviewItem(formData) {
-  const { supabase, user } = await requireUser(BOSS);
+  const { supabase, user } = await requireHR();
   const id = text(formData, 'id');
   const decision = text(formData, 'decision');
   const { data: item } = await supabase.from('onboarding_items').select('*').eq('id', id).maybeSingle();
@@ -194,7 +194,7 @@ export async function reviewItem(formData) {
 }
 
 export async function completeOnboarding(formData) {
-  const { supabase, user } = await requireUser(BOSS);
+  const { supabase, user } = await requireHR();
   const profileId = text(formData, 'profile_id');
   const { error } = await supabase.from('onboardings')
     .update({ status: 'Complete', completed_by: user.id, completed_at: new Date().toISOString() }).eq('profile_id', profileId);

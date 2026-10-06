@@ -139,3 +139,8 @@ Every person has one **access level** (their security level), set on **Admin**:
 - `vercel.json` runs `/api/cron/daily` every day at 14:00 UTC (about 7 a.m. in Vancouver). It scans for issues, saves the month's scorecard (`kpi_snapshots`), emails owners about overdue / due-soon / new items (once per day), and on Mondays emails the weekly summary to level 4+.
 - Each run is logged in `automation_runs` and shown on the Action required page. Level 4+ can press "Run the daily job now". Everyone can turn their own reminder emails on or off there.
 - **KPI owners** (`/kpi/owners`): level 4+ assigns one accountable person per KPI (`kpi_owners` table). Action items for that KPI go to its owner; owners see "KPIs you own" on the portal and get them in their reminder email; the weekly summary names each red/yellow KPI's owner.
+
+## HR and Payroll access groups
+- Run `supabase/staff-groups.sql` once. Admin page → Access level now also lists **HR** and **Payroll** (stored as level 2 + `profiles.staff_group`, no home).
+- HR: all staff files, certificates, training, onboarding, ID cards, policy sign-off report, prescreening, HR portal division, HR/training KPIs. Payroll: timesheets (fix/approve), schedules, employment details, Finance division, payroll/staffing KPIs. Neither sees residents or care records.
+- KPI owners page: "Fill in by role" uses `DEFAULT_KPI_ROLE` in `lib/kpis.js` (levels 2–7, HR, Payroll). Executive owners (4–7) are accountable; house-level fixes still go to the house's Program Coordinator. Staff-file items go to HR when there is an HR person.

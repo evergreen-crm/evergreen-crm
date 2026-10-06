@@ -1,7 +1,7 @@
 'use server';
 // Evergreen Academy: staff add their training dates; managers verify them (certificate issued).
 import { revalidatePath } from 'next/cache';
-import { requireUser } from '@/lib/auth';
+import { requireUser, requireHR } from '@/lib/auth';
 import { renewMonthsFor, addMonthsISO } from '@/lib/onboarding';
 import { todayISO } from '@/lib/options';
 
@@ -28,7 +28,7 @@ export async function addMyTraining(info) {
 }
 
 export async function verifyTraining(formData) {
-  const { supabase, user } = await requireUser(['admin', 'manager']);
+  const { supabase, user } = await requireHR();
   const id = text(formData, 'id');
   const { data: t } = await supabase.from('trainings').select('*').eq('id', id).maybeSingle();
   if (!t) throw new Error('Training not found.');
@@ -48,7 +48,7 @@ export async function verifyTraining(formData) {
 }
 
 export async function rejectTraining(formData) {
-  const { supabase } = await requireUser(['admin', 'manager']);
+  const { supabase } = await requireHR();
   const { error } = await supabase.from('trainings').delete().eq('id', text(formData, 'id')).is('verified_by', null);
   if (error) throw new Error('Could not remove: ' + error.message);
   revalidatePath('/academy');

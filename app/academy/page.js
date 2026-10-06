@@ -1,4 +1,5 @@
 // Evergreen Academy: mandatory training matrix, renewals and certificates.
+import { canHR } from '@/lib/levels';
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { TRAINING_MATRIX, trainingStatus, trainingsFor, appliesTo } from '@/lib/onboarding';
@@ -13,7 +14,7 @@ const ICON = { ok: '✓', soon: '!', expired: '✗', missing: '○', pending: '�
 export default async function Academy({ searchParams }) {
   const sp = await searchParams;
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
-  const isBoss = ['admin', 'manager'].includes(profile.role);
+  const isBoss = canHR(profile);
   const today = todayISO();
   const view = isBoss ? (sp.view ?? 'team') : 'me';
 

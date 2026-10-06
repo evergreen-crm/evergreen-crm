@@ -1,7 +1,7 @@
 'use server';
 // HR portal: everything that saves data.
 import { revalidatePath } from 'next/cache';
-import { requireUser } from '@/lib/auth';
+import { requireUser, requireHR } from '@/lib/auth';
 import { renewMonthsFor, addMonthsISO } from '@/lib/onboarding';
 
 const text = (formData, key) => {
@@ -10,7 +10,7 @@ const text = (formData, key) => {
 };
 
 export async function saveStaffDetails(formData) {
-  const { supabase } = await requireUser(['admin', 'manager']);
+  const { supabase } = await requireHR();
   const profileId = text(formData, 'profile_id');
   const { error } = await supabase.from('staff_details').upsert({
     profile_id: profileId,
@@ -29,7 +29,7 @@ export async function saveStaffDetails(formData) {
 }
 
 export async function addCertification(formData) {
-  const { supabase } = await requireUser(['admin', 'manager']);
+  const { supabase } = await requireHR();
   const profileId = text(formData, 'profile_id');
   const certType = text(formData, 'cert_type') === 'Other'
     ? text(formData, 'cert_other') || 'Other'
@@ -47,7 +47,7 @@ export async function addCertification(formData) {
 }
 
 export async function deleteCertification(formData) {
-  const { supabase } = await requireUser(['admin', 'manager']);
+  const { supabase } = await requireHR();
   const profileId = text(formData, 'profile_id');
   const { error } = await supabase.from('certifications').delete().eq('id', text(formData, 'id'));
   if (error) throw new Error(error.message);
@@ -56,7 +56,7 @@ export async function deleteCertification(formData) {
 }
 
 export async function addTraining(formData) {
-  const { supabase, user } = await requireUser(['admin', 'manager']);
+  const { supabase, user } = await requireHR();
   const profileId = text(formData, 'profile_id');
   const title = text(formData, 'title');
   const completed = text(formData, 'completed_on');
@@ -73,7 +73,7 @@ export async function addTraining(formData) {
 }
 
 export async function deleteTraining(formData) {
-  const { supabase } = await requireUser(['admin', 'manager']);
+  const { supabase } = await requireHR();
   const profileId = text(formData, 'profile_id');
   const { error } = await supabase.from('trainings').delete().eq('id', text(formData, 'id'));
   if (error) throw new Error(error.message);
@@ -82,7 +82,7 @@ export async function deleteTraining(formData) {
 
 // Employment status: active, on leave, resigned, terminated, retired.
 export async function saveEmployment(formData) {
-  const { supabase, profile } = await requireUser(['admin', 'manager']);
+  const { supabase, profile } = await requireHR();
   const profileId = text(formData, 'profile_id');
   const status = text(formData, 'employment_status') ?? 'Active';
   const { error } = await supabase.from('staff_details').upsert({

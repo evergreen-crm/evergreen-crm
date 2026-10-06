@@ -1,4 +1,5 @@
 // Policy library: every Evergreen policy, its current version and whether you've signed it.
+import { canHR } from '@/lib/levels';
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { POLICY_CATEGORIES, appliesTo, PROGRAMS } from '@/lib/onboarding';
@@ -75,7 +76,7 @@ export default async function PoliciesPage({ searchParams }) {
       ))}
       {shown.length === 0 && <p className="muted">{isAdmin ? 'No policies yet — add your first one below.' : 'No policies have been added yet.'}</p>}
 
-      {['admin', 'manager'].includes(profile.role) && (
+      {canHR(profile) && (
         <p className="no-print"><Link className="button secondary" href="/policies/report">🖨 Print all policies — read & signature report</Link></p>
       )}
       <p className="small no-print">{sp.archived ? <Link href="/policies">← Current policies</Link> : <Link href="/policies?archived=1">Archived policies</Link>}</p>
