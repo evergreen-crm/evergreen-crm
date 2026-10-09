@@ -2,14 +2,17 @@
 // Upload files straight from the browser to private Supabase Storage, then save their details.
 // Files go in a folder named after the house. You can pick several files at once, and a .zip
 // is unpacked automatically: every file inside is saved as its own document.
+// Photos are made smaller before upload (lib/compressImage.js) unless "Keep original" is ticked.
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { addDocument } from '@/app/residents/modules';
 import { unzip, isZip } from '@/lib/unzip';
+import { compressImage, fmtSize } from '@/lib/compressImage';
 
 const MAX = 25 * 1024 * 1024;
 const MAX_ZIP = 200 * 1024 * 1024;
+const MAX_PHOTO = 60 * 1024 * 1024; // a large photo is allowed in, then made smaller
 
 export default function DocUpload({ homeId, residentId, categories }) {
   const [busy, setBusy] = useState(false);
@@ -24,21 +27,35 @@ export default function DocUpload({ homeId, residentId, categories }) {
     if (!picked.length) return;
     setBusy(true); setMsg(null); setProgress('Getting files ready…');
 
-    // 1. Unpack any zips; check sizes.
-    const files = [], skipped = [];
+    // 1. Unpack any zips.
+    const found = [], skipped = [];
     for (const f of picked) {
       if (isZip(f)) {
         if (f.size > MAX_ZIP) { skipped.push({ name: f.name, reason: 'zip is over 200 MB' }); continue; }
         try {
           setProgress(`Unpacking ${f.name}…`);
-          const r = await unzip(f, { maxFileBytes: MAX });
-          files.push(...r.files); skipped.push(...r.skipped);
+          const r = await unzip(f, { maxFileBytes: MAX_PHOTO });
+          found.push(...r.files); skipped.push(...r.skipped);
         } catch (err) { skipped.push({ name: f.name, reason: err.message }); }
-      } else if (f.size > MAX) skipped.push({ name: f.name, reason: 'over 25 MB' });
-      else files.push(f);
+      } else found.push(f);
     }
 
-    // 2. Upload each file and save it as a document.
+    // 2. Make photos smaller (unless "Keep original" is ticked), then check sizes.
+    const keepOriginal = form.keep_original.checked;
+    const files = [];
+    let savedBytes = 0, shrunk = 0;
+    for (const f of found) {
+      let file = f;
+      if (!keepOriginal && f.size <= MAX_PHOTO) {
+        setProgress(`Making photos smaller: ${f.name}`);
+        const r = await compressImage(f);
+        if (r.saved > 0) { file = r.file; savedBytes += r.saved; shrunk++; }
+      }
+      if (file.size > MAX) skipped.push({ name: f.zipPath ?? f.name, reason: 'over 25 MB' });
+      else files.push(file);
+    }
+
+    // 3. Upload each file and save it as a document.
     const supabase = createClient();
     const typedTitle = form.title.value.trim();
     const useTitle = typedTitle && files.length === 1;
@@ -62,7 +79,8 @@ export default function DocUpload({ homeId, residentId, categories }) {
     if (done) form.reset();
     setMsg({
       bad: done === 0,
-      text: done === 0 ? 'Nothing was uploaded.' : `Uploaded ${done} file${done > 1 ? 's' : ''}.`,
+      text: done === 0 ? 'Nothing was uploaded.'
+        : `Uploaded ${done} file${done > 1 ? 's' : ''}.${shrunk ? ` ${shrunk} photo${shrunk > 1 ? 's' : ''} made smaller — saved ${fmtSize(savedBytes)}.` : ''}`,
       skipped,
     });
     if (done) router.refresh();
@@ -83,6 +101,7 @@ export default function DocUpload({ homeId, residentId, categories }) {
           </select>
         </label>
       </div>
+      <label className="check small"><input type="checkbox" name="keep_original" /> Keep original photo quality (photos are made smaller automatically — tick only when fine detail matters)</label>
       <button disabled={busy}>{busy ? 'Working…' : 'Upload'}</button>
       {progress && <p className="muted small">{progress}</p>}
       {msg && (
