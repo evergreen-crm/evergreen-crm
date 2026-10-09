@@ -57,12 +57,16 @@ export default async function RootLayout({ children }) {
                     ...(onb && onb.status !== 'Complete' ? [{ href: '/onboarding', label: 'My onboarding', icon: '✅', color: '#d4a72c', alert: true }] : []),
                     ...(profile.role === 'staff' && !canHR(profile) ? [{ href: `/hr/${profile.id}`, label: 'My HR', icon: '📁', color: '#5a3d8a' }] : []),
                     { href: '/academy', label: 'Evergreen Academy', icon: '🎓', color: '#1f6fb2' },
+                    { href: '/careers', label: 'Career & perks', icon: '🌱', color: '#2e8b57' },
+                    ...(levelOf(profile) < 2 && !canHR(profile) ? [{ href: '/probation', label: 'My probation', icon: '📝', color: '#8a5a00' }] : []),
                     { href: '/policies', label: 'Policies', icon: '📘', color: '#0f3059' },
                     { href: '/notifications', label: 'Notifications', icon: '🔔', color: '#b3261e', badge: unread || null },
                     { href: '/install', label: 'Install app', icon: '📲', color: '#0b5a34' },
                   ] },
-                  ...(isMgr || psRole || canHR(profile) || canPayroll(profile) ? [{ title: 'Manage', items: [
+                  ...(isMgr || psRole || canHR(profile) || canPayroll(profile) || levelOf(profile) >= 2 ? [{ title: 'Manage', items: [
                     ...(isMgr ? [{ href: '/intake', label: 'Intake', icon: '📨', color: '#1f6fb2' }] : []),
+                    ...(isMgr ? [{ href: '/launch', label: 'Launch plans', icon: '🚀', color: '#0f3059' }] : []),
+                    ...(levelOf(profile) >= 2 || canHR(profile) ? [{ href: '/probation', label: 'Probation reviews', icon: '📝', color: '#8a5a00' }] : []),
                     ...(canHR(profile) ? [{ href: '/hr', label: 'HR & staff', icon: '👥', color: '#5a3d8a' }] : []),
                     ...(canPayroll(profile) && !isMgr ? [{ href: '/timesheet', label: 'Payroll – timesheets', icon: '💵', color: '#8a5a00' }] : []),
                     ...(psRole ? [{ href: '/hr/prescreen', label: 'Prescreening', icon: '🧾', color: '#0b5a34' }] : []),
