@@ -18,6 +18,9 @@ const QUICK = [
   { href: '/academy', icon: '🎓', label: 'Evergreen Academy' },
   { href: '/policies', icon: '📘', label: 'Policies' },
   { href: '/hr', icon: '🪪', label: 'HR files', boss: true },
+  { href: '/launch', icon: '🚀', label: 'Launch plans', boss: true },
+  { href: '/probation', icon: '📝', label: 'Probation reviews', minLevel: 2 },
+  { href: '/careers', icon: '🌱', label: 'Career & perks' },
 ];
 
 export default async function PortalHome() {
