@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { addMyTraining } from '@/app/academy/actions';
+import { compressImage, fmtSize } from '@/lib/compressImage';
 
 export default function AddTraining({ profileId, trainings, today, preset }) {
   const [busy, setBusy] = useState(false);
@@ -17,8 +18,12 @@ export default function AddTraining({ profileId, trainings, today, preset }) {
     const f = e.currentTarget;
     setBusy(true); setMsg(null);
     let file_path = null;
-    const file = f.file.files[0];
+    let file = f.file.files[0];
+    let note = '';
     if (file) {
+      const small = await compressImage(file); // photos of certificates are made smaller; PDFs unchanged
+      if (small.saved) { file = small.file; note = ` Photo made smaller: ${fmtSize(small.before)} → ${fmtSize(small.after)}.`; }
+      if (file.size > 25 * 1024 * 1024) { setBusy(false); setMsg({ bad: true, text: 'That file is over 25 MB.' }); return; }
       file_path = `${profileId}/academy-${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, '_')}`;
       const { error } = await createClient().storage.from('staff-files').upload(file_path, file, { contentType: file.type || undefined });
       if (error) { setBusy(false); setMsg({ bad: true, text: 'Upload failed: ' + error.message }); return; }
@@ -30,7 +35,7 @@ export default function AddTraining({ profileId, trainings, today, preset }) {
     setBusy(false);
     if (res?.error) { setMsg({ bad: true, text: res.error }); return; }
     f.reset(); setTitle('');
-    setMsg({ bad: false, text: 'Saved. Your manager will verify it and your certificate will appear here.' });
+    setMsg({ bad: false, text: 'Saved. Your manager will verify it and your certificate will appear here.' + note });
     router.refresh();
   }
 
