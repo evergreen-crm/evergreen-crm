@@ -70,3 +70,23 @@ export async function updateDocument(fd) {
   revalidatePath(path.split('?')[0]); revalidatePath('/launch');
   back(path, 'Document updated.');
 }
+
+// Called after a file is uploaded to storage for a pre-opening document.
+export async function attachLaunchFile({ id, plan_id, path, name }) {
+  const { supabase, profile } = await requireUser(['admin', 'manager']);
+  const { data: old } = await supabase.from('launch_documents').select('file_path, status').eq('id', id).maybeSingle();
+  if (!old) {
+    await supabase.storage.from('launch-files').remove([path]);
+    return { error: 'Document not found, or Program Manager or above only.' };
+  }
+  const patch = { file_path: path, file_name: name, uploaded_by: profile.id, uploaded_at: new Date().toISOString() };
+  if (['Not started', 'Drafting'].includes(old.status)) patch.status = 'Ready for approval';
+  const { data, error } = await supabase.from('launch_documents').update(patch).eq('id', id).select('id');
+  if (error || !data?.length) {
+    await supabase.storage.from('launch-files').remove([path]);
+    return { error: error?.message ?? 'Not saved — Program Manager or above only.' };
+  }
+  if (old.file_path && old.file_path !== path) await supabase.storage.from('launch-files').remove([old.file_path]);
+  revalidatePath(`/launch/${plan_id}`); revalidatePath('/launch');
+  return { ok: true };
+}
