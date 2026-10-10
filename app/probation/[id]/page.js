@@ -5,6 +5,7 @@ import { requireUser } from '@/lib/auth';
 import { levelOf, canHR } from '@/lib/levels';
 import { fmtDate, todayISO } from '@/lib/options';
 import { saveReview, acknowledgeReview } from '../actions';
+import PrintButton from '@/app/PrintButton';
 
 const RATINGS = ['Meets expectations', 'Needs improvement', 'Does not meet'];
 const DECISIONS = [
@@ -37,6 +38,7 @@ export default async function Review({ params, searchParams }) {
       <p className="small no-print"><Link href="/probation">← Probation reviews</Link></p>
       <h1>{r.review_day}-day review · {person?.full_name ?? 'Staff member'}</h1>
       <p className="muted">{prob?.position ?? 'Position not set'} · {person?.homes?.name ?? 'No house'} · Hired {fmtDate(prob?.hire_date)} · Probation: <strong>{prob?.status}</strong></p>
+      <p className="no-print"><PrintButton label="🖨 Print review" /> <span className="muted small">Prints the review with signature lines{canEdit ? ' (save a draft first so your latest changes are included)' : ''}.</span></p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
       {sp.error && <p className="message">{sp.error}</p>}
 
@@ -81,8 +83,8 @@ export default async function Review({ params, searchParams }) {
             <button name="complete" value="1">{isFinal ? 'Complete review & record decision' : 'Complete review'}</button>
           </div>
         </form>
-      ) : (
-        <section className="card">
+      ) : null}
+      <section className={canEdit ? 'card print-only' : 'card'}>
           <h2>Review</h2>
           <dl className="facts">
             <dt>Rating</dt><dd>{r.rating ?? '—'}</dd>
@@ -99,7 +101,18 @@ export default async function Review({ params, searchParams }) {
             </form>
           )}
         </section>
-      )}
+
+      <section className="card print-only" style={{ breakInside: 'avoid' }}>
+        <h2>Signatures</h2>
+        <table>
+          <thead><tr><th>Role</th><th>Name</th><th>Signature</th><th>Date</th></tr></thead>
+          <tbody>
+            <tr style={{ height: 48 }}><td>Staff member</td><td>{person?.full_name}</td><td></td><td></td></tr>
+            <tr style={{ height: 48 }}><td>{isFinal ? 'Program Manager (final review)' : 'Program Coordinator'}</td><td>{reviewer?.full_name ?? ''}</td><td></td><td></td></tr>
+            {isFinal && <tr style={{ height: 48 }}><td>HR (file copy)</td><td></td><td></td><td></td></tr>}
+          </tbody>
+        </table>
+      </section>
     </main>
   );
 }
