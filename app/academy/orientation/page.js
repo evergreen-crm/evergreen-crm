@@ -5,8 +5,11 @@ import { canHR, levelOf } from '@/lib/levels';
 import { fmtDate } from '@/lib/options';
 import { COURSE, SLIDES, QUESTIONS } from '@/lib/courses/orientation';
 import CoursePlayer from './CoursePlayer';
+import VideoLesson from './VideoLesson';
+import VideoUpload from './VideoUpload';
 
-export default async function OrientationCourse() {
+export default async function OrientationCourse({ searchParams }) {
+  const sp = await searchParams;
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const isBoss = canHR(profile) || levelOf(profile) >= 3;
 
@@ -19,22 +22,32 @@ export default async function OrientationCourse() {
       : Promise.resolve({ data: [] }),
   ]);
   const best = (mine ?? []).find((a) => a.passed);
+  const canUpload = levelOf(profile) >= 3;
+  // The training video lives in private storage; a signed link lets the browser stream it.
+  const { data: vid } = await supabase.storage.from('academy-media').createSignedUrl('orientation/video.mp4', 6 * 3600);
+  const videoUrl = vid?.signedUrl ?? null;
+  const showVideo = videoUrl && !sp?.slides;
 
   return (
     <main>
       <p className="small no-print"><Link href="/academy">← Evergreen Academy</Link></p>
       <div className="div-banner academy">
         <span className="div-icon">🎬</span>
-        <div><h1>{COURSE.title}</h1><p>Training video ({SLIDES.length} parts, about 7 minutes) and final quiz ({QUESTIONS.length} questions, pass {COURSE.passPercent}%)</p></div>
+        <div><h1>{COURSE.title}</h1><p>Training video (about 11 minutes, with captions) and final quiz ({QUESTIONS.length} questions, pass {COURSE.passPercent}%)</p></div>
       </div>
 
       {best && (
         <p className="message ok">✅ You passed on {fmtDate(best.created_at.slice(0, 10))} with {best.score}/{best.total}. It’s in your training record — your manager verifies it and issues the certificate.</p>
       )}
 
-      <CoursePlayer slides={SLIDES} questions={QUESTIONS} passPercent={COURSE.passPercent} />
+      {showVideo
+        ? <VideoLesson src={videoUrl} questions={QUESTIONS} passPercent={COURSE.passPercent} />
+        : <CoursePlayer slides={SLIDES} questions={QUESTIONS} passPercent={COURSE.passPercent} />}
+      {videoUrl && sp?.slides && <p className="small no-print"><Link href="/academy/orientation">← Back to the video</Link></p>}
 
       <p className="muted small">Based on the {COURSE.source}. This course is an introduction — it does not replace reading the manual and your in-person orientation with your Program Coordinator.</p>
+
+      {canUpload && <VideoUpload hasVideo={!!videoUrl} />}
 
       {(mine ?? []).length > 0 && (
         <section className="card">
