@@ -50,6 +50,11 @@ export default async function Academy({ searchParams }) {
         <div><h1>Evergreen Academy</h1><p>Mandatory training (MCFD Standard G.3), renewals and certificates</p></div>
         <span className="no-print"><PrintButton label="Print" /></span>
       </div>
+      <Link href="/academy/orientation" className="card no-print" style={{ display: 'flex', gap: 14, alignItems: 'center', textDecoration: 'none' }}>
+        <span style={{ fontSize: 34 }}>🎬</span>
+        <span><strong>New Staff Orientation — training video &amp; final quiz</strong><br />
+          <span className="muted small">About 7 minutes · 15 questions · pass 80% · adds to your training record</span></span>
+      </Link>
       {isBoss && (
         <nav className="tabs-bar no-print">
           <Link href="/academy?view=team" className={view === 'team' ? 'on' : ''}>Team compliance</Link>
