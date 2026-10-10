@@ -5,6 +5,7 @@ import PrintButton from '@/app/PrintButton';
 import NavMenu from '@/app/components/NavMenu';
 import MobileTabs from '@/app/components/MobileTabs';
 import PwaRegister from '@/app/components/PwaRegister';
+import DatePickerOpener from '@/app/components/DatePickerOpener';
 import { levelOf, personLabel, canHR, canPayroll } from '@/lib/levels';
 
 export const metadata = {
@@ -94,6 +95,7 @@ export default async function RootLayout({ children }) {
         <div className={`page${profile && profile.role !== 'family' ? ' has-tabs' : ''}`}>{children}</div>
         {profile && profile.role !== 'family' && <MobileTabs unread={unread} />}
         <PwaRegister />
+        <DatePickerOpener />
       </body>
     </html>
   );
