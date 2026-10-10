@@ -5,6 +5,7 @@ import { requireUser } from '@/lib/auth';
 import { levelOf } from '@/lib/levels';
 import { fmtDate, todayISO, daysUntil, addDaysISO } from '@/lib/options';
 import { updatePlan, setTask, setMilestone, updateDocument } from '../actions';
+import DocFile from '../DocFile';
 
 const TABS = [
   { key: 'milestones', label: '🏁 Milestones' },
@@ -38,6 +39,13 @@ export default async function LaunchPlan({ params, searchParams }) {
   ]);
   const { data: tasks } = await supabase.from('launch_tasks').select('*')
     .in('milestone_id', (milestones ?? []).map((m) => m.id)).order('sort');
+  // Links (valid 1 hour) for uploaded document files.
+  const filePaths = (docs ?? []).map((x) => x.file_path).filter(Boolean);
+  let fileUrls = {};
+  if (filePaths.length) {
+    const { data: signed } = await supabase.storage.from('launch-files').createSignedUrls(filePaths, 3600);
+    fileUrls = Object.fromEntries((signed ?? []).map((u) => [u.path, u.signedUrl]));
+  }
   const today = todayISO();
   const byMs = {};
   for (const t of tasks ?? []) (byMs[t.milestone_id] ??= []).push(t);
@@ -51,6 +59,7 @@ export default async function LaunchPlan({ params, searchParams }) {
       <p className="small no-print"><Link href="/launch">← Launch plans</Link></p>
       <h1>{plan.care_setting_name ?? 'Care setting TBD'}</h1>
       <p className="muted">{plan.service_type} · Status: <strong>{plan.status}</strong> · Agency: Evergreen Community Care</p>
+      <p className="no-print"><Link className="button secondary" href={`/launch/${id}/print`}>🖨 Print options</Link></p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
       {sp.error && <p className="message">{sp.error}</p>}
 
@@ -139,7 +148,8 @@ export default async function LaunchPlan({ params, searchParams }) {
     let cat = null;
     return (
       <>
-        <p className="muted small">Best-practice checklist for opening. <strong>MCFD required</strong> items come from the SHSS Service Provider Guidebook; <strong>Legal</strong> items from WorkSafeBC, municipal and insurance requirements. Due dates count back from the opening date. Paste the SharePoint / OneDrive link for each document.</p>
+        <p className="muted small">Best-practice checklist for opening. <strong>MCFD required</strong> items come from the SHSS Service Provider Guidebook; <strong>Legal</strong> items from WorkSafeBC, municipal and insurance requirements. Due dates count back from the opening date. Upload each document (PDF, Word, Excel or a photo — max 25 MB), or paste a SharePoint / OneDrive link.</p>
+        {!plan.opening_date && <p className="message">Due dates appear once the <Link href={`/launch/${id}?tab=details`}>opening date</Link> is set in Plan details.</p>}
         <nav className="tabs-bar">
           {DOC_FILTERS.map((x) => <Link key={x.key} href={`/launch/${id}?tab=documents&f=${x.key}`} className={f === x.key ? 'on' : ''}>{x.label}</Link>)}
         </nav>
@@ -161,6 +171,7 @@ export default async function LaunchPlan({ params, searchParams }) {
                       <div className="muted">{x.due_status}</div>
                     </td>
                     <td>
+                      <DocFile planId={id} docId={x.document_id} fileName={x.file_name} fileUrl={x.file_path ? fileUrls[x.file_path] : null} />
                       <form action={updateDocument} className="no-print" style={{ minWidth: 220 }}>
                         <Hidden planId={id} tab={`documents&f=${f}`} />
                         <input type="hidden" name="id" value={x.document_id} />
@@ -189,7 +200,7 @@ export default async function LaunchPlan({ params, searchParams }) {
     return (
       <form action={updatePlan} className="card">
         <Hidden planId={id} tab="details" />
-        {!can && <p className="muted small">Only a Director of Operations or above can change plan details.</p>}
+        {!can && <p className="message">🔒 Read only: plan details (care setting name, dates, contract, payment) can be changed by a Director of Operations or above. Ask them to update it, or to raise your access level.</p>}
         <h2>Information</h2>
         <div className="row"><F name="care_setting_name" label="Name of the care setting" /><F name="care_setting_address" label="Address of the care setting" /></div>
         <div className="row"><F name="cfr_number" label="CFR number" /><F name="contract_number" label="Contract number (after signing)" /><F name="contract_effective_date" label="Contract effective date" type="date" /></div>
