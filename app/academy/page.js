@@ -1,5 +1,6 @@
 // Evergreen Academy: mandatory training matrix, renewals and certificates.
-import { canHR } from '@/lib/levels';
+import { canHR, levelOf } from '@/lib/levels';
+import { COURSES } from '@/lib/courses/catalog';
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { TRAINING_MATRIX, trainingStatus, trainingsFor, appliesTo } from '@/lib/onboarding';
@@ -50,11 +51,25 @@ export default async function Academy({ searchParams }) {
         <div><h1>Evergreen Academy</h1><p>Mandatory training (MCFD Standard G.3), renewals and certificates</p></div>
         <span className="no-print"><PrintButton label="Print" /></span>
       </div>
-      <Link href="/academy/orientation" className="card no-print" style={{ display: 'flex', gap: 14, alignItems: 'center', textDecoration: 'none' }}>
-        <span style={{ fontSize: 34 }}>🎬</span>
-        <span><strong>New Staff Orientation — training video &amp; final quiz</strong><br />
-          <span className="muted small">About 7 minutes · 15 questions · pass 80% · adds to your training record</span></span>
-      </Link>
+      <section className="card no-print">
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ margin: 0 }}>🎬 Evergreen Academy courses</h2>
+          {levelOf(profile) >= 3 && <Link href="/academy/videos" className="small">Upload course videos →</Link>}
+        </div>
+        <p className="muted small" style={{ marginTop: 4 }}>Short video lessons with Dr. Sarah and a final quiz (pass 80%). Passing adds the course to your training record.</p>
+        <div className="course-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+          {[{ key: 'orientation', title: 'New Staff Orientation', trainingTitle: 'New Staff Orientation (Evergreen Academy course)', blurb: 'Your role, rights, reporting, safety and documentation — start here.', href: '/academy/orientation' },
+            ...COURSES.map((c) => ({ ...c, href: `/academy/course/${c.key}` }))].map((c) => {
+            const done = (mine ?? []).some((t) => t.title === c.trainingTitle);
+            return (
+              <Link key={c.key} href={c.href} style={{ display: 'block', border: '1px solid var(--line)', borderRadius: 10, padding: 12, textDecoration: 'none', background: done ? '#f1f8f3' : '#fff' }}>
+                <strong>{c.title}</strong>{done && <span className="badge" style={{ marginLeft: 6 }}>Done</span>}
+                <div className="muted small" style={{ marginTop: 4 }}>{c.blurb}</div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
       {isBoss && (
         <nav className="tabs-bar no-print">
           <Link href="/academy?view=team" className={view === 'team' ? 'on' : ''}>Team compliance</Link>
