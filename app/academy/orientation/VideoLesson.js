@@ -5,9 +5,8 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Quiz from './Quiz';
 
-const STORE = 'ecc-orientation-video-done';
-
-export default function VideoLesson({ src, questions, passPercent }) {
+export default function VideoLesson({ src, questions, passPercent, grade, storeKey = 'ecc-orientation-video-done', slidesHref = '/academy/orientation?slides=1' }) {
+  const STORE = storeKey;
   const ref = useRef(null);
   const reached = useRef(0);   // furthest point watched normally
   const [pct, setPct] = useState(0);
@@ -30,7 +29,7 @@ export default function VideoLesson({ src, questions, passPercent }) {
     <>
       <section className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {failed ? (
-          <p className="message" style={{ margin: 16 }}>The video couldn’t load. Refresh the page, or <Link href="/academy/orientation?slides=1">use the slide version</Link>.</p>
+          <p className="message" style={{ margin: 16 }}>The video couldn’t load. Refresh the page, or <Link href={slidesHref}>use the slide version</Link>.</p>
         ) : (
           <video ref={ref} src={src} controls playsInline preload="metadata" onTimeUpdate={onTime} onError={() => setFailed(true)}
             style={{ display: 'block', width: '100%', aspectRatio: '16 / 9', background: '#0d1a14' }} />
@@ -40,7 +39,7 @@ export default function VideoLesson({ src, questions, passPercent }) {
             <span style={{ display: 'block', height: '100%', width: `${done ? 100 : pct}%`, background: '#3c8a64' }} />
           </div>
           <p className="muted" style={{ margin: '6px 0 0' }}>
-            {done ? '✓ Video watched.' : `Watched ${pct}%.`} Captions are shown in the video. · <Link href="/academy/orientation?slides=1">Prefer the slide version?</Link>
+            {done ? '✓ Video watched.' : `Watched ${pct}%.`} Captions are shown in the video. · <Link href={slidesHref}>Prefer the slide version?</Link>
           </p>
         </div>
       </section>
@@ -53,7 +52,7 @@ export default function VideoLesson({ src, questions, passPercent }) {
           {!done && <p className="muted small">Watch the whole video first — the quiz unlocks at the end.</p>}
         </section>
       ) : (
-        <Quiz questions={questions} passPercent={passPercent} onReview={() => { setQuizOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+        <Quiz questions={questions} passPercent={passPercent} grade={grade} onReview={() => { setQuizOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
       )}
     </>
   );

@@ -4,9 +4,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Quiz from './Quiz';
 
-const STORE = 'ecc-orientation-seen';
-const readSeen = () => { try { return JSON.parse(localStorage.getItem(STORE) || '[]'); } catch { return []; } };
-const saveSeen = (v) => { try { localStorage.setItem(STORE, JSON.stringify(v)); } catch {} };
+const readSeen = (STORE) => { try { return JSON.parse(localStorage.getItem(STORE) || '[]'); } catch { return []; } };
+const saveSeen = (STORE, v) => { try { localStorage.setItem(STORE, JSON.stringify(v)); } catch {} };
 
 function pickVoice() {
   if (typeof window === 'undefined' || !window.speechSynthesis) return null;
@@ -44,7 +43,10 @@ const CSS = `
 @media (max-width: 600px) { .course-screen { padding: 20px 16px; min-height: 280px; } .course-title { font-size: 1.3em; } }
 `;
 
-export default function CoursePlayer({ slides, questions, passPercent }) {
+// Narration for a slide: its own script, or (for generated courses) its title and points read aloud.
+const sayOf = (sl) => sl.say ?? [sl.title, ...(sl.points ?? [])].filter(Boolean).join('. ') + '.';
+
+export default function CoursePlayer({ slides, questions, passPercent, grade, storeKey = 'ecc-orientation-seen' }) {
   const [i, setI] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -58,11 +60,11 @@ export default function CoursePlayer({ slides, questions, passPercent }) {
 
   useEffect(() => {
     setCanSpeak(typeof window !== 'undefined' && 'speechSynthesis' in window);
-    setSeen((s) => Array.from(new Set([...s, ...readSeen()])));
+    setSeen((s) => Array.from(new Set([...s, ...readSeen(storeKey)])));
     return () => { clearTimeout(timer.current); try { window.speechSynthesis?.cancel(); } catch {} };
   }, []);
 
-  useEffect(() => { setSeen((s) => { if (s.includes(i)) return s; const n = [...s, i]; saveSeen(n); return n; }); }, [i]);
+  useEffect(() => { setSeen((s) => { if (s.includes(i)) return s; const n = [...s, i]; saveSeen(storeKey, n); return n; }); }, [i]);
 
   const stop = useCallback(() => {
     run.current += 1; clearTimeout(timer.current);
@@ -79,10 +81,10 @@ export default function CoursePlayer({ slides, questions, passPercent }) {
     if (!playing) { stop(); return; }
     stop();
     const me = run.current;
-    const words = slides[i].say.split(/\s+/).length;
+    const words = sayOf(slides[i]).split(/\s+/).length;
     const fallback = () => { timer.current = setTimeout(() => { if (run.current === me) next(); }, Math.max(6000, words * 400)); };
     if (muted || !canSpeak) { fallback(); return; }
-    const u = new SpeechSynthesisUtterance(slides[i].say);
+    const u = new SpeechSynthesisUtterance(sayOf(slides[i]));
     const v = pickVoice(); if (v) u.voice = v;
     u.lang = v?.lang ?? 'en-CA'; u.rate = 0.98;
     u.onend = () => { if (run.current === me) timer.current = setTimeout(() => { if (run.current === me) next(); }, 900); };
@@ -110,7 +112,7 @@ export default function CoursePlayer({ slides, questions, passPercent }) {
           <h2 className="course-title">{s.title}</h2>
           <ul className="course-points">{s.points.map((p) => <li key={p}>{p}</li>)}</ul>
         </div>
-        {captions && <p className="course-captions" aria-live="polite">{s.say}</p>}
+        {captions && <p className="course-captions" aria-live="polite">{sayOf(s)}</p>}
         <div className="course-progress" aria-hidden><span style={{ width: `${((i + 1) / slides.length) * 100}%` }} /></div>
         <div className="course-controls">
           <button type="button" className="secondary" onClick={() => go(i - 1)} disabled={i === 0} aria-label="Previous">⏮</button>
@@ -137,7 +139,7 @@ export default function CoursePlayer({ slides, questions, passPercent }) {
           {!allSeen && <p className="muted small">Watch every part of the video first — {slides.length - seen.length} part{slides.length - seen.length === 1 ? '' : 's'} left.</p>}
         </section>
       ) : (
-        <Quiz questions={questions} passPercent={passPercent} onReview={() => { setQuizOpen(false); setI(0); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+        <Quiz questions={questions} passPercent={passPercent} grade={grade} onReview={() => { setQuizOpen(false); setI(0); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
       )}
     </>
   );

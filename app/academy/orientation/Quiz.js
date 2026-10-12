@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { gradeOrientation } from './actions';
 
-export default function Quiz({ questions, passPercent, onReview }) {
+export default function Quiz({ questions, passPercent, onReview, grade }) {
   const [answers, setAnswers] = useState({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
@@ -17,7 +17,7 @@ export default function Quiz({ questions, passPercent, onReview }) {
     e.preventDefault();
     if (left) { setErr(`Please answer all questions — ${left} left.`); return; }
     setBusy(true); setErr(null);
-    const r = await gradeOrientation(answers);
+    const r = await (grade ?? gradeOrientation)(answers);
     setBusy(false);
     if (r?.error) { setErr(r.error); return; }
     setRes(r); router.refresh();
