@@ -4,6 +4,8 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 export async function proxy(request) {
+  // Signing out: don't refresh the session here, or a fresh login cookie could be sent back with the sign-out.
+  if (request.nextUrl.pathname.startsWith('/auth/signout')) return NextResponse.next({ request });
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
