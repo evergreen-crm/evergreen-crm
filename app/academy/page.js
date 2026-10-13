@@ -55,7 +55,10 @@ export default async function Academy({ searchParams }) {
       <section className="card no-print">
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ margin: 0 }}>🎬 Evergreen Academy courses</h2>
-          {levelOf(profile) >= 6 && <Link href="/academy/videos" className="small">Upload course videos →</Link>}
+          <span className="row" style={{ gap: 12 }}>
+            <Link href="/academy/plan" className="button">📅 My 90-day training plan</Link>
+            {levelOf(profile) >= 6 && <Link href="/academy/videos" className="small">Upload course videos →</Link>}
+          </span>
         </div>
         <p className="muted small" style={{ marginTop: 4 }}>Short video lessons with Dr. Sarah and a final quiz (pass 80%). Passing adds the course to your training record.</p>
         <div className="course-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
