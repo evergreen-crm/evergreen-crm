@@ -9,6 +9,7 @@ import { CONTENT } from '@/lib/courses/content';
 import CoursePlayer from '@/app/academy/orientation/CoursePlayer';
 import VideoLesson from '@/app/academy/orientation/VideoLesson';
 import { gradeCourse } from './actions';
+import { renewMonthsFor } from '@/lib/onboarding';
 
 export default async function CoursePage({ params, searchParams }) {
   const { key } = await params;
@@ -36,6 +37,13 @@ export default async function CoursePage({ params, searchParams }) {
   const showVideo = videoUrl && !sp?.slides;
   const best = (mine ?? []).find((a) => a.passed);
   const { data: ready } = await supabase.rpc('lesson_ready', { p_key: key });
+  // Latest record of this course in the training file — its renewal date is set automatically on a pass.
+  const { data: rec } = await supabase.from('trainings').select('completed_on, expires_on, verified_by')
+    .eq('profile_id', user.id).eq('title', course.trainingTitle).order('completed_on', { ascending: false }).limit(1).maybeSingle();
+  const renew = renewMonthsFor(course.trainingTitle);
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Vancouver' });
+  const due = rec?.expires_on && rec.expires_on < today;
+  const soon = rec?.expires_on && !due && (new Date(rec.expires_on) - new Date(today)) / 86400000 <= 30;
   const grade = gradeCourse.bind(null, key);
 
   return (
@@ -43,10 +51,13 @@ export default async function CoursePage({ params, searchParams }) {
       <p className="small no-print"><Link href="/academy">← Evergreen Academy</Link></p>
       <div className="div-banner academy">
         <span className="div-icon">🎬</span>
-        <div><h1>{course.title}</h1><p>{course.blurb} · Video and final quiz ({content.QUESTIONS.length} questions, pass {course.passPercent}%)</p></div>
+        <div><h1>{course.title}</h1><p>{course.blurb} · Video and final quiz ({content.QUESTIONS.length} questions, pass {course.passPercent}%) · {renew ? `Renew every ${renew === 12 ? 'year' : `${renew / 12} years`}` : 'No renewal'}</p></div>
       </div>
 
-      {best && (
+      {rec && (due
+        ? <p className="message">⚠️ Your {course.title} training expired on {fmtDate(rec.expires_on)}. Please take the course again to renew it.</p>
+        : <p className={`message ${soon ? '' : 'ok'}`}>{soon ? '⏰' : '✅'} Completed {fmtDate(rec.completed_on)}{rec.expires_on ? <> · <strong>renew by {fmtDate(rec.expires_on)}</strong></> : ' · no renewal needed'}{rec.verified_by ? ' · verified' : ' · waiting for your manager to verify'}.{soon ? ' Renewal is due soon — take the course again.' : ''}</p>)}
+      {!rec && best && (
         <p className="message ok">✅ You passed on {fmtDate(best.created_at.slice(0, 10))} with {best.score}/{best.total}. It’s in your training record — your manager verifies it and issues the certificate.</p>
       )}
 
