@@ -10,6 +10,7 @@ import { fmtDate, todayISO } from '@/lib/options';
 import { cardStatus } from '@/lib/idcard';
 import { reviewIdPhoto, issueIdCard, replaceIdQr, markCardPrinted } from '@/app/id/actions';
 import { describeStaffId } from '@/lib/staffId';
+import OfferPanel from '@/app/offer/OfferPanel';
 import {
   saveStaffDetails, addCertification, deleteCertification, addTraining, deleteTraining, saveEmployment,
 } from '@/app/hr/actions';
@@ -81,6 +82,8 @@ export default async function StaffHrPage({ params, searchParams }) {
 
 
       {/* ---------- Digital ID card ---------- */}
+      <OfferPanel supabase={supabase} person={person} details={details} canEdit={canEdit} isSelf={person.id === profile.id} />
+
       <div className="card" id="id-card">
         <div className="title-row">
           <h2>Digital ID card</h2>
