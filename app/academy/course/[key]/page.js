@@ -35,6 +35,7 @@ export default async function CoursePage({ params, searchParams }) {
   const videoUrl = vid?.signedUrl ?? null;
   const showVideo = videoUrl && !sp?.slides;
   const best = (mine ?? []).find((a) => a.passed);
+  const { data: ready } = await supabase.rpc('lesson_ready', { p_key: key });
   const grade = gradeCourse.bind(null, key);
 
   return (
@@ -51,10 +52,10 @@ export default async function CoursePage({ params, searchParams }) {
 
       {showVideo
         ? <VideoLesson src={videoUrl} questions={content.QUESTIONS} passPercent={course.passPercent} grade={grade}
-            storeKey={`ecc-course-${key}-video`} slidesHref={`/academy/course/${key}?slides=1`} />
-        : <CoursePlayer slides={content.SLIDES} questions={content.QUESTIONS} passPercent={course.passPercent} grade={grade} storeKey={`ecc-course-${key}-seen`} />}
+            courseKey={key} ready={!!ready} slidesHref={`/academy/course/${key}?slides=1`} />
+        : <CoursePlayer slides={content.SLIDES} questions={content.QUESTIONS} passPercent={course.passPercent} grade={grade} storeKey={`ecc-course-${key}-seen`} courseKey={key} ready={!!ready} />}
       {videoUrl && sp?.slides && <p className="small no-print"><Link href={`/academy/course/${key}`}>← Back to the video</Link></p>}
-      {!videoUrl && isBoss && <p className="muted small no-print">No video uploaded yet — staff see the narrated slides. Upload videos in <Link href="/academy/videos">Academy → Course videos</Link>.</p>}
+      {!videoUrl && levelOf(profile) >= 6 && <p className="muted small no-print">No video uploaded yet — staff see the narrated slides. Upload videos in <Link href="/academy/videos">Academy → Course videos</Link>.</p>}
 
       <p className="muted small">Based on {course.source}.</p>
 
