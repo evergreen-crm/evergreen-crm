@@ -5,6 +5,7 @@ import { visibleDivisions, getGrants, isBoss } from '@/lib/portal';
 import { isDone } from '@/lib/divisions';
 import { todayISO, fmtDate } from '@/lib/options';
 import ExecDashboard from './ExecDashboard';
+import MyBadge from '@/app/components/MyBadge';
 import { levelOf } from '@/lib/levels';
 
 const QUICK = [
@@ -21,6 +22,7 @@ const QUICK = [
   { href: '/launch', icon: '🚀', label: 'Launch plans', boss: true },
   { href: '/probation', icon: '📝', label: 'Probation reviews', minLevel: 2 },
   { href: '/careers', icon: '🌱', label: 'Career & perks' },
+  { href: '/badges', icon: '🏅', label: 'Performance badges' },
 ];
 
 export default async function PortalHome() {
@@ -50,6 +52,8 @@ export default async function PortalHome() {
           <p className="muted">Operations portal · {fmtDate(today)} · Organized by the seven divisions (ECC-DIV-2026-001)</p>
         </div>
       </div>
+
+      <MyBadge supabase={supabase} userId={user.id} />
 
       <ExecDashboard supabase={supabase} profile={profile} userId={user.id} />
 
