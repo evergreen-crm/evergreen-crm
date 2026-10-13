@@ -121,6 +121,17 @@ export async function issueIdCard(formData) {
   redirect(`/hr/${pid}?idok=1&idmsg=${encodeURIComponent('ID card issued.')}#id-card`);
 }
 
+// HR prints the plastic card: record which staff ID number is on it. A later change to the number shows "Reprint needed".
+export async function markCardPrinted(formData) {
+  const { supabase } = await requireHR();
+  const pid = text(formData, 'profile_id');
+  const { data: d } = await supabase.from('staff_details').select('employee_no').eq('profile_id', pid).maybeSingle();
+  const { error } = await supabase.from('id_cards').update({ printed_no: d?.employee_no ?? null, printed_on: todayISO() }).eq('profile_id', pid);
+  if (error) redirect(`/hr/${pid}?idmsg=${encodeURIComponent('Could not save: ' + error.message)}#id-card`);
+  refresh(pid);
+  redirect(`/hr/${pid}?idok=1&idmsg=${encodeURIComponent('Marked as printed with ' + (d?.employee_no ?? 'no number') + '.')}#id-card`);
+}
+
 // Lost phone / printed card: a new QR code, and the old one stops working.
 export async function replaceIdQr(formData) {
   const { supabase } = await requireHR();
