@@ -3,8 +3,8 @@
 // with captions, auto-advance, and a timer when the sound is off.
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Quiz from './Quiz';
+import { startLesson, finishLesson } from '../lessonActions';
 
-const readSeen = (STORE) => { try { return JSON.parse(localStorage.getItem(STORE) || '[]'); } catch { return []; } };
 const saveSeen = (STORE, v) => { try { localStorage.setItem(STORE, JSON.stringify(v)); } catch {} };
 
 function pickVoice() {
@@ -46,7 +46,10 @@ const CSS = `
 // Narration for a slide: its own script, or (for generated courses) its title and points read aloud.
 const sayOf = (sl) => sl.say ?? [sl.title, ...(sl.points ?? [])].filter(Boolean).join('. ') + '.';
 
-export default function CoursePlayer({ slides, questions, passPercent, grade, storeKey = 'ecc-orientation-seen' }) {
+export default function CoursePlayer({ slides, questions, passPercent, grade, storeKey = 'ecc-orientation-seen', courseKey = 'orientation', ready = false }) {
+  const [done, setDone] = useState(ready);   // set by the database once the lesson has run its full length
+  const [note, setNote] = useState(null);
+  const session = useRef(null);
   const [i, setI] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -60,7 +63,6 @@ export default function CoursePlayer({ slides, questions, passPercent, grade, st
 
   useEffect(() => {
     setCanSpeak(typeof window !== 'undefined' && 'speechSynthesis' in window);
-    setSeen((s) => Array.from(new Set([...s, ...readSeen(storeKey)])));
     return () => { clearTimeout(timer.current); try { window.speechSynthesis?.cancel(); } catch {} };
   }, []);
 
@@ -92,8 +94,33 @@ export default function CoursePlayer({ slides, questions, passPercent, grade, st
     try { window.speechSynthesis.speak(u); } catch { fallback(); }
   }, [i, playing, muted, canSpeak, slides, next, stop]);
 
+  // Start a timed viewing on the first Play or slide change.
+  const begin = useCallback(async () => {
+    if (done || session.current) return;
+    session.current = 'starting';
+    const r = await startLesson(courseKey);
+    session.current = r?.id ?? null;
+    if (r?.error) setNote(r.error);
+  }, [done, courseKey]);
+  useEffect(() => { if (playing || i > 0) begin(); }, [playing, i, begin]);
+
   const go = (n) => { setI(Math.max(0, Math.min(slides.length - 1, n))); };
   const allSeen = seen.length >= slides.length;
+
+  // Every part seen: ask the database whether the lesson has run long enough. If not, check again when it has.
+  useEffect(() => {
+    if (done || !allSeen || !session.current || session.current === 'starting') return;
+    let t; let stop = false;
+    const check = async () => {
+      const r = await finishLesson(session.current);
+      if (stop) return;
+      if (r?.left === 0) { setDone(true); setNote(null); }
+      else if (r?.left > 0) { setNote(`Take your time with the lesson — the quiz opens in about ${Math.ceil(r.left / 60)} minute${r.left > 60 ? 's' : ''}.`); t = setTimeout(check, r.left * 1000 + 1500); }
+      else if (r?.error) setNote(r.error);
+    };
+    check();
+    return () => { stop = true; clearTimeout(t); };
+  }, [allSeen, done, i]);
   const s = slides[i];
 
   function fullscreen() {
@@ -135,11 +162,12 @@ export default function CoursePlayer({ slides, questions, passPercent, grade, st
         <section className="card">
           <h2>Final quiz</h2>
           <p>{questions.length} questions · pass mark {passPercent}% ({Math.ceil((passPercent / 100) * questions.length)} of {questions.length}).</p>
-          <button type="button" disabled={!allSeen} onClick={() => { setPlaying(false); setQuizOpen(true); }}>Start the final quiz</button>
-          {!allSeen && <p className="muted small">Watch every part of the video first — {slides.length - seen.length} part{slides.length - seen.length === 1 ? '' : 's'} left.</p>}
+          <button type="button" disabled={!done} onClick={() => { setPlaying(false); setQuizOpen(true); }}>Start the final quiz</button>
+          {!done && !allSeen && <p className="muted small">Watch every part of the lesson first — {slides.length - seen.length} part{slides.length - seen.length === 1 ? '' : 's'} left. Each try needs a full viewing.</p>}
+          {!done && note && <p className="message small">{note}</p>}
         </section>
       ) : (
-        <Quiz questions={questions} passPercent={passPercent} grade={grade} onReview={() => { setQuizOpen(false); setI(0); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+        <Quiz questions={questions} passPercent={passPercent} grade={grade} />
       )}
     </>
   );

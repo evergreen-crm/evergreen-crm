@@ -1,10 +1,11 @@
 'use client';
-// Final quiz. Answers are checked on the server; the right answers are only shown after you submit.
+// Final quiz. Graded inside the database. A pass shows the right answers; a fail only shows which ones were wrong,
+// and another try needs a fresh, full viewing of the lesson.
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { gradeOrientation } from './actions';
 
-export default function Quiz({ questions, passPercent, onReview, grade }) {
+export default function Quiz({ questions, passPercent, grade }) {
   const [answers, setAnswers] = useState({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
@@ -19,21 +20,21 @@ export default function Quiz({ questions, passPercent, onReview, grade }) {
     setBusy(true); setErr(null);
     const r = await (grade ?? gradeOrientation)(answers);
     setBusy(false);
-    if (r?.error) { setErr(r.error); return; }
+    if (r?.error) { setErr(r.error); if (r.needWatch) setRes({ needWatch: true }); return; }
     setRes(r); router.refresh();
     window.scrollTo({ top: document.getElementById('quiz-top')?.offsetTop ?? 0, behavior: 'smooth' });
   }
 
-  function retry() { setAnswers({}); setRes(null); setErr(null); }
+  const rewatch = () => { window.scrollTo({ top: 0 }); window.location.reload(); };
 
   return (
     <section className="card" id="quiz-top">
       <h2>Final quiz</h2>
-      {res && (
+      {res && !res.needWatch && (
         <div className={`message ${res.passed ? 'ok' : ''}`}>
           <strong>{res.passed ? '🎉 Passed!' : 'Not passed yet'}</strong> — you scored {res.score}/{res.total} ({res.percent}%). Pass mark is {passPercent}%.
           {res.passed && (res.recorded ? ' The course has been added to your training record for your manager to verify.' : ' (Your training record could not be updated — please tell your manager.)')}
-          {!res.passed && ' Review the answers below, watch the lesson again, and try once more.'}
+          {!res.passed && ' The questions you got wrong are marked ✗. Watch the whole lesson again, then try once more.'}
         </div>
       )}
       <form onSubmit={submit}>
@@ -43,7 +44,7 @@ export default function Quiz({ questions, passPercent, onReview, grade }) {
             <fieldset key={q.id} className="quiz-q" disabled={!!res}>
               <legend><strong>{n + 1}.</strong> {q.q}</legend>
               {q.options.map((o, k) => {
-                const mark = r ? (k === r.correct ? 'right' : k === r.chose ? 'wrong' : '') : '';
+                const mark = !r ? '' : r.correct !== undefined && k === r.correct ? 'right' : k === r.chose ? (r.ok ? 'right' : 'wrong') : '';
                 return (
                   <label key={k} className={`quiz-opt ${mark}`}>
                     <input type="radio" name={q.id} checked={answers[q.id] === k} onChange={() => setAnswers((a) => ({ ...a, [q.id]: k }))} />
@@ -51,18 +52,15 @@ export default function Quiz({ questions, passPercent, onReview, grade }) {
                   </label>
                 );
               })}
-              {r && <p className={`small ${r.ok ? 'muted' : ''}`} style={{ margin: '6px 0 0' }}>{r.ok ? '✓ Correct. ' : '✗ '}{r.why}</p>}
+              {r?.why && <p className={`small ${r.ok ? 'muted' : ''}`} style={{ margin: '6px 0 0' }}>{r.ok ? '✓ Correct. ' : '✗ '}{r.why}</p>}
             </fieldset>
           );
         })}
         {err && <p className="message">{err}</p>}
         {!res ? (
           <button disabled={busy}>{busy ? 'Checking…' : `Submit answers${left ? ` (${left} left)` : ''}`}</button>
-        ) : (
-          <div className="row" style={{ gap: 8 }}>
-            {!res.passed && <button type="button" onClick={retry}>Try the quiz again</button>}
-            <button type="button" className="secondary" onClick={onReview}>Watch the lesson again</button>
-          </div>
+        ) : !res.passed && (
+          <button type="button" onClick={rewatch}>Watch the lesson again</button>
         )}
       </form>
     </section>

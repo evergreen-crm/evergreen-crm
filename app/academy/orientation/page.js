@@ -22,7 +22,8 @@ export default async function OrientationCourse({ searchParams }) {
       : Promise.resolve({ data: [] }),
   ]);
   const best = (mine ?? []).find((a) => a.passed);
-  const canUpload = levelOf(profile) >= 3;
+  const canUpload = levelOf(profile) >= 6;   // CSO, CEO and Administrator only
+  const { data: ready } = await supabase.rpc('lesson_ready', { p_key: COURSE.key });
   // The training video lives in private storage; a signed link lets the browser stream it.
   // Use the newest .mp4 in the orientation folder (uploaded here, or straight into Supabase Storage).
   const { data: files } = await supabase.storage.from('academy-media').list('orientation', { limit: 50, sortBy: { column: 'updated_at', order: 'desc' } });
@@ -38,7 +39,7 @@ export default async function OrientationCourse({ searchParams }) {
       <p className="small no-print"><Link href="/academy">← Evergreen Academy</Link></p>
       <div className="div-banner academy">
         <span className="div-icon">🎬</span>
-        <div><h1>{COURSE.title}</h1><p>Training video (about 11 minutes, with captions) and final quiz ({QUESTIONS.length} questions, pass {COURSE.passPercent}%)</p></div>
+        <div><h1>{COURSE.title}</h1><p>Training video (about 12 minutes, with captions) and final quiz ({QUESTIONS.length} questions, pass {COURSE.passPercent}%)</p></div>
       </div>
 
       {best && (
@@ -46,8 +47,8 @@ export default async function OrientationCourse({ searchParams }) {
       )}
 
       {showVideo
-        ? <VideoLesson src={videoUrl} questions={QUESTIONS} passPercent={COURSE.passPercent} />
-        : <CoursePlayer slides={SLIDES} questions={QUESTIONS} passPercent={COURSE.passPercent} />}
+        ? <VideoLesson src={videoUrl} questions={QUESTIONS} passPercent={COURSE.passPercent} courseKey={COURSE.key} ready={!!ready} />
+        : <CoursePlayer slides={SLIDES} questions={QUESTIONS} passPercent={COURSE.passPercent} courseKey={COURSE.key} ready={!!ready} />}
       {videoUrl && sp?.slides && <p className="small no-print"><Link href="/academy/orientation">← Back to the video</Link></p>}
 
       <p className="muted small">Based on the {COURSE.source}. This course is an introduction — it does not replace reading the manual and your in-person orientation with your Program Coordinator.</p>
