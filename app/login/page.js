@@ -1,7 +1,7 @@
 'use client';
 // Login with a 6-digit code sent to your email OR cell phone.
 // Only people an admin has added can log in (no self sign-up).
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
@@ -15,6 +15,8 @@ export default function LoginPage() {
   const [step, setStep] = useState('enter-contact'); // then 'enter-code'
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [signedOut, setSignedOut] = useState(null);
+  useEffect(() => { setSignedOut(new URLSearchParams(window.location.search).get('signedout')); }, []);
 
   // Phone numbers must look like +16045551234
   function cleanPhone(value) {
@@ -64,6 +66,8 @@ export default function LoginPage() {
   return (
     <main className="login">
       <img src="/logo.png" alt="Evergreen Community Care" className="login-logo" />
+      {signedOut === 'idle' && <p className="message">You were signed out because the portal wasn’t used for a while. This keeps youth and staff information safe on shared computers.</p>}
+      {signedOut === 'out' && <p className="message ok">You are signed out.</p>}
       <p className="muted">Sign in with a code sent to your email or cell phone.</p>
 
       {step === 'enter-contact' && (
