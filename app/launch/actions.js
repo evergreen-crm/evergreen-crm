@@ -90,3 +90,34 @@ export async function attachLaunchFile({ id, plan_id, path, name }) {
   revalidatePath(`/launch/${plan_id}`); revalidatePath('/launch');
   return { ok: true };
 }
+
+// House checklist (MCFD pre-opening): tick done, mark not applicable (with a reason), or re-open.
+// The database enforces who may sign each item and keeps the CEO go/no-go locked until all MCFD and legal items are done.
+export async function setChecklistItem(fd) {
+  const { supabase } = await requireUser(['admin', 'manager']);
+  const path = where(fd);
+  const op = text(fd, 'op');
+  const note = text(fd, 'note');
+  const patch = op === 'done' ? { done_on: text(fd, 'date') ?? todayISO(), not_applicable: false, note }
+    : op === 'na' ? { done_on: null, not_applicable: true, note }
+    : { done_on: null, not_applicable: false };
+  const { data, error } = await supabase.from('launch_checklist').update(patch).eq('id', text(fd, 'id')).select('id');
+  if (error) back(path, error.message, true);
+  if (!data?.length) back(path, 'Not saved — Program Manager or above only.', true);
+  revalidatePath(path.split('?')[0]); revalidatePath('/launch');
+  back(path, op === 'done' ? 'Ticked off.' : op === 'na' ? 'Marked not applicable.' : 'Re-opened.');
+}
+
+// Called after an evidence file is uploaded for a checklist item.
+export async function attachChecklistFile({ id, plan_id, path, name }) {
+  const { supabase } = await requireUser(['admin', 'manager']);
+  const { data: old } = await supabase.from('launch_checklist').select('file_path').eq('id', id).maybeSingle();
+  const { data, error } = await supabase.from('launch_checklist').update({ file_path: path, file_name: name }).eq('id', id).select('id');
+  if (error || !data?.length) {
+    await supabase.storage.from('launch-files').remove([path]);
+    return { error: error?.message ?? 'Not saved — Program Manager or above only.' };
+  }
+  if (old?.file_path && old.file_path !== path) await supabase.storage.from('launch-files').remove([old.file_path]);
+  revalidatePath(`/launch/${plan_id}`);
+  return { ok: true };
+}
