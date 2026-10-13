@@ -69,6 +69,11 @@ create trigger profiles_employee_no after update of level, staff_group, role on 
   for each row when (old.level is distinct from new.level or old.staff_group is distinct from new.staff_group or old.role is distinct from new.role)
   execute function profile_employee_no_refresh();
 
+-- Printed cards: remember which staff ID was printed, so a changed number shows "Reprint needed".
+-- Cards already issued before this change were printed with the old EVG-000X number, so they show as needing a reprint.
+alter table id_cards add column if not exists printed_no text;
+alter table id_cards add column if not exists printed_on date;
+
 -- Give everyone their new number now.
 update staff_details set program = program;
 
