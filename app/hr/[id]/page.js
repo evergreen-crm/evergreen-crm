@@ -8,7 +8,7 @@ import { trainingsFor } from '@/lib/onboarding';
 import ProgramBadge from '@/app/components/ProgramBadge';
 import { fmtDate, todayISO } from '@/lib/options';
 import { cardStatus } from '@/lib/idcard';
-import { reviewIdPhoto, issueIdCard, replaceIdQr } from '@/app/id/actions';
+import { reviewIdPhoto, issueIdCard, replaceIdQr, markCardPrinted } from '@/app/id/actions';
 import { describeStaffId } from '@/lib/staffId';
 import {
   saveStaffDetails, addCertification, deleteCertification, addTraining, deleteTraining, saveEmployment,
@@ -136,6 +136,15 @@ export default async function StaffHrPage({ params, searchParams }) {
                   </form>
                 )}
                 {canEdit && idCard?.issued_on && (
+                  <form action={markCardPrinted} className="row id-step">
+                    <input type="hidden" name="profile_id" value={person.id} />
+                    {idCard.printed_no === details?.employee_no
+                      ? <span className="small">🖨 Printed {idCard.printed_on ? fmtDate(idCard.printed_on) : ''} with {idCard.printed_no}</span>
+                      : <span className="badge warn">🖨 {idCard.printed_no ? `Reprint needed — card shows ${idCard.printed_no}, staff ID is now ${details?.employee_no}` : `Print the card — staff ID ${details?.employee_no ?? '—'}`}</span>}
+                    <button className="secondary small">{idCard.printed_no === details?.employee_no ? 'Printed again' : 'I printed it'}</button>
+                  </form>
+                )}
+                {canEdit && idCard?.issued_on && (
                   <form action={replaceIdQr}>
                     <input type="hidden" name="profile_id" value={person.id} />
                     <button className="link small">Lost card or phone? Replace the QR code (the old one stops working)</button>
@@ -151,7 +160,7 @@ export default async function StaffHrPage({ params, searchParams }) {
       {/* ---------- Details ---------- */}
       <h2>Details</h2>
       {canEdit ? (
-        <form action={saveStaffDetails} className="card">
+        <form action={saveStaffDetails} className="card" id="details">
           <input type="hidden" name="profile_id" value={person.id} />
           <div className="row">
             <label>Position<input name="position" defaultValue={details?.position ?? ''} placeholder="e.g., Support Worker" /></label>
