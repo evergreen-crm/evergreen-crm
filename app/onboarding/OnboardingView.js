@@ -71,6 +71,7 @@ function ProgressPanel({ overall, parts, waiting }) {
 function StaffForm({ tpl, item, profileId, fullName }) {
   const d = item.data ?? {};
   if (tpl.kind === 'manager') return <p className="muted small">Your manager completes this item.</p>;
+  if (tpl.key === 'offer') return <p className="small"><Link href="/offer">📄 Open and sign my offer letter →</Link> <span className="muted">This item is ticked automatically when you sign the letter. If HR hasn’t sent it yet, it will appear in your notifications.</span></p>;
   return (
     <form action={submitItem} className="onb-form no-print">
       <input type="hidden" name="id" value={item.id} />
