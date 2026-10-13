@@ -1,6 +1,7 @@
 // Evergreen Academy: mandatory training matrix, renewals and certificates.
 import { canHR, levelOf } from '@/lib/levels';
 import { COURSES } from '@/lib/courses/catalog';
+import { FREE_COURSES } from '@/lib/courses/freeCourses';
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { TRAINING_MATRIX, trainingStatus, trainingsFor, appliesTo } from '@/lib/onboarding';
@@ -68,6 +69,21 @@ export default async function Academy({ searchParams }) {
               </Link>
             );
           })}
+        </div>
+      </section>
+      <section className="card no-print">
+        <h2 style={{ margin: 0 }}>🆓 Free courses from government sites</h2>
+        <p className="muted small" style={{ marginTop: 4 }}>Suggested extra learning. Take the course on the provider’s site, then add your certificate under <strong>My training → Add training</strong> — your manager verifies it.</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+          {FREE_COURSES.map((c) => (
+            <a key={c.url} href={c.url} target="_blank" rel="noreferrer" style={{ display: 'block', border: '1px solid var(--line)', borderRadius: 10, padding: 12, textDecoration: 'none', background: '#fff' }}>
+              <strong>{c.title} ↗</strong>
+              <div className="small" style={{ marginTop: 4 }}>{c.by}</div>
+              <div className="muted small" style={{ marginTop: 4 }}>{c.length} · {c.who}</div>
+              <div className="small" style={{ marginTop: 4 }}>Supports: {c.supports}</div>
+              {c.note && <div className="muted small" style={{ marginTop: 4 }}>{c.note}</div>}
+            </a>
+          ))}
         </div>
       </section>
       {isBoss && (
