@@ -1,10 +1,10 @@
 // Performance badges 🟢 🟡 🔴 — my badge and history, and (for Program Manager+ / HR) the team view and monthly badge form.
-// Program Coordinators see their own house read-only. Policy: Staff Duties, Expectations, Performance Badges and Bonus v1.1.
+// Everyone has a badge, executives and administrators included; nobody sets their own. Program Coordinators see their own house read-only. Policy: Staff Duties, Expectations, Performance Badges and Bonus v1.1.
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
-import { canHR, levelOf } from '@/lib/levels';
+import { levelOf, groupOf } from '@/lib/levels';
 import { todayISO } from '@/lib/options';
-import { BADGE, REASONS, bonusCount, fmtMonth, monthStart, reasonByKey } from '@/lib/badges';
+import { BADGE, REASONS, bonusCount, fmtMonth, monthStart, reasonByKey, canSetBadge } from '@/lib/badges';
 import BadgePill from '@/app/components/BadgePill';
 import { setBadge, acknowledgeBadge } from './actions';
 
@@ -15,14 +15,14 @@ export default async function Badges({ searchParams }) {
   const sp = await searchParams;
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const lvl = levelOf(profile);
-  const boss = canHR(profile);
-  const seesTeam = boss || lvl >= 2;
+  const isHR = groupOf(profile) === 'hr';
+  const seesTeam = isHR || lvl >= 2;
   const thisMonth = monthStart(todayISO());
   const lastMonth = prevMonth(thisMonth);
 
   const [{ data: all, error }, { data: people }] = await Promise.all([
     supabase.from('staff_badges').select('id, profile_id, month, color, reasons, restart, note, set_at, acknowledged_at').order('month', { ascending: false }),
-    seesTeam ? supabase.from('profiles').select('id, full_name, level, home_id').in('role', ['staff', 'manager']).eq('active', true).order('full_name') : Promise.resolve({ data: [] }),
+    seesTeam ? supabase.from('profiles').select('id, full_name, level, role, home_id').in('role', ['staff', 'manager', 'admin']).eq('active', true).order('full_name') : Promise.resolve({ data: [] }),
   ]);
   if (error) return <main><h1>Performance badges</h1><p className="card">Badges are not switched on yet. An administrator needs to run <code>supabase/performance-badges.sql</code> in Supabase.</p></main>;
 
@@ -30,9 +30,14 @@ export default async function Badges({ searchParams }) {
   for (const b of all ?? []) (byPerson[b.profile_id] ??= []).push(b);
   const mine = byPerson[user.id] ?? [];
   const myCount = bonusCount(mine);
-  const team = (people ?? []).filter((p) => p.id !== user.id && (boss || p.home_id === profile.home_id));
+  const canSet = (p) => canSetBadge(user.id, lvl, isHR, p.id, levelOf(p));
+  const team = (people ?? []).map((p) => ({ ...p, lvl: levelOf(p), me: p.id === user.id, settable: canSet(p) }))
+    .filter((p) => p.me || p.settable || lvl >= 5 || (p.lvl < 4 && (lvl >= 3 || isHR || p.home_id === profile.home_id)))
+    .sort((a, z) => z.lvl - a.lvl || (a.full_name ?? '').localeCompare(z.full_name ?? ''));
+  const settable = team.filter((p) => p.settable);
+  const boss = settable.length > 0;
 
-  const person = boss && sp?.person ? team.find((p) => p.id === sp.person) : null;
+  const person = sp?.person ? settable.find((p) => p.id === sp.person) : null;
   const formMonth = sp?.month ? monthStart(sp.month) : thisMonth;
   const existing = person ? (byPerson[person.id] ?? []).find((b) => b.month === formMonth) : null;
   const groups = [...new Set(REASONS.map((r) => r.group))];
@@ -79,7 +84,8 @@ export default async function Badges({ searchParams }) {
 
       {seesTeam && (
         <section className="card">
-          <h2>{boss ? 'Team badges' : 'My house'}</h2>
+          <h2>{lvl >= 3 || isHR ? 'Everyone’s badges' : 'My house'}</h2>
+          <p className="muted small">Everyone has a badge — from Frontline to the CEO and Administrators. Nobody sets their own. Director of Operations and above are set by the Executive Director, CSO, CEO or an Administrator.</p>
           {team.length === 0 ? <p className="muted">No staff to show.</p> : (
             <table>
               <thead><tr><th>Staff</th><th>{fmtMonth(thisMonth)}</th><th>{fmtMonth(lastMonth)}</th><th>Bonus count</th>{boss && <th className="no-print"></th>}</tr></thead>
@@ -89,11 +95,11 @@ export default async function Badges({ searchParams }) {
                 const c = bonusCount(list);
                 return (
                   <tr key={p.id}>
-                    <td>{p.full_name}</td>
+                    <td>{p.full_name}{p.me && <strong> (you)</strong>}<div className="muted small">Level {p.lvl}</div></td>
                     <td><BadgePill color={now?.color} />{now && !now.acknowledged_at && <div className="muted small">not seen yet</div>}</td>
                     <td><BadgePill color={prev?.color} /></td>
                     <td className="small">{c.months} / 24{c.eligible ? ' 🎉' : ''} · Yellow {c.yellows}/3</td>
-                    {boss && <td className="no-print"><Link href={`/badges?person=${p.id}#set`}>{now ? 'Change' : 'Set badge'}</Link></td>}
+                    {boss && <td className="no-print">{p.settable ? <Link href={`/badges?person=${p.id}#set`}>{now ? 'Change' : 'Set badge'}</Link> : <span className="muted small">{p.me ? 'Set by your leader' : '—'}</span>}</td>}
                   </tr>);
               })}</tbody>
             </table>
@@ -109,7 +115,7 @@ export default async function Badges({ searchParams }) {
             <div className="row" style={{ gap: 8, alignItems: 'flex-end' }}>
               <label>Staff member<select name="profile_id" defaultValue={person?.id ?? ''} required>
                 <option value="" disabled>Choose…</option>
-                {team.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+                {settable.map((p) => <option key={p.id} value={p.id}>{p.full_name} (level {p.lvl})</option>)}
               </select></label>
               <label>Month<input type="month" name="month" defaultValue={formMonth.slice(0, 7)} required /></label>
             </div>

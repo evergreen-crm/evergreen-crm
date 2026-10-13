@@ -1,21 +1,23 @@
 'use server';
-// Performance badges: Program Manager+ (or HR) set one badge per person per month; staff acknowledge theirs.
+// Performance badges: everyone has one per month, executives and administrators included. Nobody sets their own.
 // The colour comes from the reasons ticked — the worst reason wins — so badges are consistent and fair.
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
-import { canHR } from '@/lib/levels';
-import { REASONS, colorFor, restartsFor, monthStart } from '@/lib/badges';
+import { levelOf, groupOf } from '@/lib/levels';
+import { REASONS, colorFor, restartsFor, monthStart, canSetBadge } from '@/lib/badges';
 
 const back = (msg, bad, q = '') => redirect(`/badges?${q}${bad ? 'error' : 'ok'}=${encodeURIComponent(msg)}`);
 
 export async function setBadge(fd) {
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
-  if (!canHR(profile)) back('Only a Program Manager or above sets badges.', true);
   const person = String(fd.get('profile_id') ?? '');
   const month = String(fd.get('month') ?? '');
   if (!person || !/^\d{4}-\d{2}/.test(month)) back('Choose a person and a month.', true);
   if (person === user.id) back('You cannot set your own badge.', true);
+  const { data: target } = await supabase.from('profiles').select('id, role, level').eq('id', person).maybeSingle();
+  if (!canSetBadge(user.id, levelOf(profile), groupOf(profile) === 'hr', person, levelOf(target)))
+    back('You can’t set this person’s badge. Executives’ badges are set by the Executive Director, CSO, CEO or an Administrator.', true);
   const valid = new Set(REASONS.map((r) => r.key));
   const reasons = fd.getAll('reasons').map(String).filter((k) => valid.has(k));
   const note = String(fd.get('note') ?? '').trim() || null;
