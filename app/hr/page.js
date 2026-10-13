@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { summarize } from '@/lib/hr';
 import ProgramBadge from '@/app/components/ProgramBadge';
+import { describeStaffId } from '@/lib/staffId';
 
 export default async function HrPage({ searchParams }) {
   const sp = await searchParams;
@@ -14,12 +15,13 @@ export default async function HrPage({ searchParams }) {
   if (profile.role === 'staff' && !canHR(profile)) redirect(`/hr/${profile.id}`);
   if (profile.role === 'family') redirect('/');
 
-  const [{ data: people }, { data: details }, { data: certs }, { data: psRole }] = await Promise.all([
+  const [{ data: people }, { data: details }, { data: certs }, { data: psRole }, { data: cards }] = await Promise.all([
     supabase.from('profiles').select('id, full_name, role, active, homes(name)')
       .in('role', ['admin', 'manager', 'staff']).order('full_name'),
-    supabase.from('staff_details').select('profile_id, position, employment_type, employee_no, employment_status, last_day, program'),
+    supabase.from('staff_details').select('profile_id, position, employment_type, employee_no, employment_status, last_day, program, hire_date'),
     supabase.from('certifications').select('profile_id, expires_on'),
     supabase.rpc('prescreen_role'),
+    supabase.from('id_cards').select('profile_id, issued_on, printed_no'),
   ]);
 
   const detailsById = Object.fromEntries((details ?? []).map((d) => [d.profile_id, d]));
@@ -27,6 +29,13 @@ export default async function HrPage({ searchParams }) {
   for (const c of certs ?? []) (certsById[c.profile_id] ??= []).push(c);
 
   const totals = summarize(certs ?? []);
+
+  // Staff ID check: the number (EVG-YYMM-POS-P-NNNN) is only right once the hire date is entered,
+  // and issued cards printed with an older number need reprinting.
+  const current = (people ?? []).filter((p) => p.active && !['Resigned', 'Terminated', 'Retired'].includes(detailsById[p.id]?.employment_status ?? 'Active'));
+  const noHire = current.filter((p) => !detailsById[p.id]?.hire_date);
+  const reprint = (cards ?? []).filter((c) => c.issued_on && c.printed_no !== detailsById[c.profile_id]?.employee_no)
+    .map((c) => current.find((p) => p.id === c.profile_id)).filter(Boolean);
 
   return (
     <main>
@@ -44,6 +53,17 @@ export default async function HrPage({ searchParams }) {
           <strong>{people?.filter((p) => p.active).length ?? 0}</strong><span>active staff</span>
         </div>
       </div>
+
+      {(noHire.length > 0 || reprint.length > 0) && (
+        <section className="card" id="staff-id-check">
+          <h2>🪪 Staff ID check</h2>
+          <p className="muted small">Staff IDs are made automatically: <strong>EVG-YYMM-POS-P-NNNN</strong> = year and month of hire · position · program (M MCFD, C CLBC, B both) · permanent staff number. They update themselves when the hire date, program or position changes.</p>
+          {noHire.length > 0 && <p><span className="badge warn">{noHire.length} without a hire date</span> Their ID uses the account start month until the real hire date is entered:{' '}
+            {noHire.map((p, i) => <span key={p.id}>{i ? ', ' : ''}<Link href={`/hr/${p.id}#details`}>{p.full_name}</Link></span>)}</p>}
+          {reprint.length > 0 && <p><span className="badge warn">🖨 {reprint.length} card{reprint.length > 1 ? 's' : ''} to reprint</span> Printed with an old staff ID:{' '}
+            {reprint.map((p, i) => <span key={p.id}>{i ? ', ' : ''}<Link href={`/hr/${p.id}#id-card`}>{p.full_name}</Link></span>)}</p>}
+        </section>
+      )}
 
       <nav className="tabs-bar">
         <Link href="/hr" className={!former ? 'on' : ''}>Current staff</Link>
@@ -66,7 +86,7 @@ export default async function HrPage({ searchParams }) {
             const s = summarize(certsById[p.id]);
             return (
               <tr key={p.id} className={p.active ? '' : 'inactive'}>
-                <td className="small">{d?.employee_no ?? '—'}</td>
+                <td className="small" title={describeStaffId(d?.employee_no) ?? undefined}>{d?.employee_no ?? '—'}{d && !d.hire_date && <div className="muted">no hire date</div>}</td>
                 <td><Link href={`/hr/${p.id}`}>{p.full_name}</Link>{d?.employment_status === 'On leave' && <span className="badge warn"> On leave</span>}</td>
                 <td><ProgramBadge program={d?.program} /></td>
                 <td>{d?.position ?? <span className="muted">—</span>}
