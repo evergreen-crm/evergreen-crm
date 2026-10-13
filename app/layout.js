@@ -6,6 +6,7 @@ import NavMenu from '@/app/components/NavMenu';
 import MobileTabs from '@/app/components/MobileTabs';
 import PwaRegister from '@/app/components/PwaRegister';
 import DatePickerOpener from '@/app/components/DatePickerOpener';
+import IdleLogout from '@/app/components/IdleLogout';
 import { levelOf, personLabel, canHR, canPayroll } from '@/lib/levels';
 
 export const metadata = {
@@ -94,6 +95,7 @@ export default async function RootLayout({ children }) {
         <div className="print-only print-head"><img src="/logo.png" alt="Evergreen Community Care" className="print-logo" /></div>
         <div className={`page${profile && profile.role !== 'family' ? ' has-tabs' : ''}`}>{children}</div>
         {profile && profile.role !== 'family' && <MobileTabs unread={unread} />}
+        {profile && <IdleLogout />}
         <PwaRegister />
         <DatePickerOpener />
       </body>
