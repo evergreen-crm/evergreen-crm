@@ -72,18 +72,22 @@ export default async function Academy({ searchParams }) {
         </div>
       </section>
       <section className="card no-print">
-        <h2 style={{ margin: 0 }}>🆓 Free courses from government sites</h2>
-        <p className="muted small" style={{ marginTop: 4 }}>Suggested extra learning. Take the course on the provider’s site, then add your certificate under <strong>My training → Add training</strong> — your manager verifies it.</p>
+        <h2 style={{ margin: 0 }}>🆓 Free government courses</h2>
+        <p className="muted small" style={{ marginTop: 4 }}>Take the course on the government site, then upload your certificate on the course page. It’s only complete once your certificate is uploaded and your manager verifies it.</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
-          {FREE_COURSES.map((c) => (
-            <a key={c.url} href={c.url} target="_blank" rel="noreferrer" style={{ display: 'block', border: '1px solid var(--line)', borderRadius: 10, padding: 12, textDecoration: 'none', background: '#fff' }}>
-              <strong>{c.title} ↗</strong>
-              <div className="small" style={{ marginTop: 4 }}>{c.by}</div>
-              <div className="muted small" style={{ marginTop: 4 }}>{c.length} · {c.who}</div>
-              <div className="small" style={{ marginTop: 4 }}>Supports: {c.supports}</div>
-              {c.note && <div className="muted small" style={{ marginTop: 4 }}>{c.note}</div>}
-            </a>
-          ))}
+          {FREE_COURSES.map((c) => {
+            const recs = (mine ?? []).filter((t) => t.title === c.trainingTitle).sort((a, b) => (b.completed_on ?? '').localeCompare(a.completed_on ?? ''));
+            const st = trainingStatus(recs, c.trainingTitle, today);
+            const badge = { ok: ['', '✓ Complete'], soon: ['warn', '! Renew soon'], expired: ['bad', '✗ Expired'], pending: ['warn', '… Waiting for verification'], missing: ['', ''] }[st.key];
+            return (
+              <Link key={c.key} href={`/academy/external/${c.key}`} style={{ display: 'block', border: '1px solid var(--line)', borderRadius: 10, padding: 12, textDecoration: 'none', background: st.key === 'ok' ? '#f1f8f3' : '#fff' }}>
+                <strong>{c.title}</strong>{badge[1] && <span className={`badge ${badge[0]}`} style={{ marginLeft: 6 }}>{badge[1]}</span>}
+                <div className="small" style={{ marginTop: 4 }}>{c.by}</div>
+                <div className="muted small" style={{ marginTop: 4 }}>{c.length} · {c.who}</div>
+                <div className="small" style={{ marginTop: 4 }}>Supports: {c.supports}</div>
+              </Link>
+            );
+          })}
         </div>
       </section>
       {isBoss && (
