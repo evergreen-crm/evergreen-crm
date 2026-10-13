@@ -9,6 +9,7 @@ import ProgramBadge from '@/app/components/ProgramBadge';
 import { fmtDate, todayISO } from '@/lib/options';
 import { cardStatus } from '@/lib/idcard';
 import { reviewIdPhoto, issueIdCard, replaceIdQr } from '@/app/id/actions';
+import { describeStaffId } from '@/lib/staffId';
 import {
   saveStaffDetails, addCertification, deleteCertification, addTraining, deleteTraining, saveEmployment,
 } from '@/app/hr/actions';
@@ -53,7 +54,8 @@ export default async function StaffHrPage({ params, searchParams }) {
         {!person.active && <span className="badge bad"> Access turned off</span>}
       </p>
       <p className="small">
-        <span className="emp-no">Employee no. {details?.employee_no ?? '—'}</span>{' '}
+        <span className="emp-no" title={describeStaffId(details?.employee_no) ?? undefined}>Employee no. {details?.employee_no ?? '—'}</span>{' '}
+        {describeStaffId(details?.employee_no) && <span className="muted">({describeStaffId(details.employee_no)}{details?.employee_no_previous ? ` · was ${details.employee_no_previous}` : ''}) </span>}
         <ProgramBadge program={details?.program} />{' '}
         <span className={`badge ${details?.employment_status && details.employment_status !== 'Active' ? 'warn' : ''}`}>{details?.employment_status ?? 'Active'}</span>
         {details?.last_day && <span className="muted"> · last day {fmtDate(details.last_day)}</span>}
