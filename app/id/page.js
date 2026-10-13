@@ -20,11 +20,13 @@ export default async function IdPage({ searchParams }) {
   const isSelf = pid === user.id;
   const today = todayISO();
 
-  const [{ data: person }, { data: details }, { data: card }, { data: onb }] = await Promise.all([
+  const [{ data: person }, { data: details }, { data: card }, { data: onb }, { data: perf }] = await Promise.all([
     supabase.from('profiles').select('id, full_name, active, home_id, homes(name)').eq('id', pid).maybeSingle(),
     supabase.from('staff_details').select('position, employee_no, program, employment_status, emergency_contact, emergency_phone').eq('profile_id', pid).maybeSingle(),
     supabase.from('id_cards').select('*').eq('profile_id', pid).maybeSingle(),
     supabase.from('onboardings').select('personal').eq('profile_id', pid).maybeSingle(),
+    // Latest performance badge — only returned if this viewer may see it (database rules).
+    supabase.from('staff_badges').select('color, month').eq('profile_id', pid).order('month', { ascending: false }).limit(1).maybeSingle(),
   ]);
   if (!person) return <main><h1>ID card</h1><p className="muted">Not found.</p></main>;
 
@@ -86,9 +88,10 @@ export default async function IdPage({ searchParams }) {
 
       <div className="idcards">
         <IdCardFront name={person.full_name} position={details?.position} employeeNo={details?.employee_no}
-          program={details?.program} house={person.homes?.name} photoUrl={photoUrl} qr={qr} status={status} expires={card?.expires_on} />
+          program={details?.program} house={person.homes?.name} photoUrl={photoUrl} qr={qr} status={status} expires={card?.expires_on} perf={perf} />
         <IdCardBack emergency={emergency} verifyUrl={verifyUrl ?? '—'} issued={card?.issued_on} />
       </div>
+      {perf && <p className="muted small no-print">The coloured ring and badge show {isSelf ? 'your' : 'the'} latest performance badge (<Link href="/badges">details</Link>). They appear on screen only — not on the printed card or the public verify page.</p>}
       {isSelf && !emergency.name && <p className="muted small no-print">Add your emergency contact in <Link href="/onboarding">My onboarding → Personal information</Link>.</p>}
 
       {isSelf && (
