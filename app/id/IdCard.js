@@ -2,6 +2,7 @@
 // Credit-card shape (85.6 × 54 mm) so it fits a phone screen and prints at real size.
 import { fmtDate } from '@/lib/options';
 import { BADGE, fmtMonth } from '@/lib/badges';
+import { describeStaffId } from '@/lib/staffId';
 
 const PROGRAM = { MCFD: 'MCFD', CLBC: 'CLBC', Both: 'MCFD · CLBC' };
 
@@ -22,7 +23,7 @@ export function IdCardFront({ name, position, employeeNo, program, house, photoU
           <strong className="idc-name">{name}</strong>
           <span>{position ?? 'Staff'}</span>
           {house && <span className="muted">{house}</span>}
-          <span className="idc-no">{employeeNo ?? '—'}</span>
+          <span className="idc-no" title={describeStaffId(employeeNo) ?? undefined}>{employeeNo ?? '—'}</span>
           <span className="idc-prog">{PROGRAM[program] ?? PROGRAM.Both}</span>
           {pb && (
             <span className="idc-perf no-print" title={`Performance badge · ${pb.meaning}`}
