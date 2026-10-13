@@ -2,6 +2,10 @@
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { fmtDate, daysUntil } from '@/lib/options';
+import { levelOf } from '@/lib/levels';
+import { createLaunchPlan } from './actions';
+
+const SERVICE_TYPES = ['Specialized Long-Term Care', 'Low-Barrier Short-Term Stabilization Care', 'Respite Care', 'Emergency Care'];
 
 const pct = (a, b) => (b ? Math.round((100 * a) / b) : 0);
 
@@ -19,7 +23,7 @@ function Bar({ value, label }) {
 
 export default async function LaunchPlans({ searchParams }) {
   const sp = await searchParams;
-  const { supabase } = await requireUser(['admin', 'manager']);
+  const { supabase, profile } = await requireUser(['admin', 'manager']);
   const [{ data: plans, error }, { data: ready }, { data: ms }, { data: due }] = await Promise.all([
     supabase.from('launch_plans').select('*').order('created_at'),
     supabase.from('launch_readiness').select('*'),
@@ -68,6 +72,27 @@ export default async function LaunchPlans({ searchParams }) {
         })}
       </div>
       {plans?.length === 0 && <p className="card muted">No launch plans yet.</p>}
+
+      {levelOf(profile) >= 4 && (
+        <details className="card no-print" open={sp.new === '1'} id="new">
+          <summary><strong>➕ Start a new house</strong></summary>
+          <p className="muted small">Creates a new plan with the same 87-item House checklist, the 12 MCFD milestones and tasks, and the documents-before-opening list — all reset to “not done”. Copy from the plan that is closest to the new house.</p>
+          <form action={createLaunchPlan}>
+            <div className="row">
+              <label>House name<input name="name" required placeholder="e.g. Maple House" /></label>
+              <label>Address<input name="address" placeholder="Can be added later" /></label>
+            </div>
+            <div className="row">
+              <label>Service type<select name="service_type" defaultValue={SERVICE_TYPES[0]}>{SERVICE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></label>
+              <label>Copy milestones and documents from<select name="copy_from" defaultValue="">
+                <option value="">Newest plan of the same service type</option>
+                {(plans ?? []).map((p) => <option key={p.id} value={p.id}>{p.care_setting_name ?? 'Care setting TBD'} · {p.service_type}</option>)}
+              </select></label>
+            </div>
+            <button>Create the new house plan</button>
+          </form>
+        </details>
+      )}
     </main>
   );
 }

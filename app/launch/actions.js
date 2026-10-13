@@ -121,3 +121,16 @@ export async function attachChecklistFile({ id, plan_id, path, name }) {
   revalidatePath(`/launch/${plan_id}`);
   return { ok: true };
 }
+
+// Start a new house: a fresh launch plan copied from an existing one (milestones, tasks, documents),
+// plus the 87-item House checklist. Director of Operations+ only (checked again in the database).
+export async function createLaunchPlan(fd) {
+  const { supabase, profile } = await requireUser(['admin', 'manager']);
+  if (levelOf(profile) < 4) back('/launch', 'Only a Director of Operations or above can start a new house plan.', true);
+  const { data: id, error } = await supabase.rpc('create_launch_plan', {
+    p_service_type: text(fd, 'service_type'), p_name: text(fd, 'name'), p_address: text(fd, 'address'), p_copy_from: text(fd, 'copy_from'),
+  });
+  if (error) back('/launch', error.message, true);
+  revalidatePath('/launch');
+  back(`/launch/${id}?tab=checklist`, 'New house plan created with the full checklist, 12 milestones and the documents list. Enter the contract effective date in Plan details to set the due dates.');
+}
