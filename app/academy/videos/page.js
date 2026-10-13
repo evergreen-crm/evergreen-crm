@@ -1,4 +1,4 @@
-// Evergreen Academy — managers upload all course videos in one go.
+// Evergreen Academy — level 6-8 (CSO, CEO, Administrator) upload all course videos in one go.
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
@@ -8,7 +8,7 @@ import BulkUpload from './BulkUpload';
 
 export default async function CourseVideos() {
   const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
-  if (levelOf(profile) < 3) redirect('/academy');
+  if (levelOf(profile) < 6) redirect('/academy');   // CSO, CEO and Administrator only
   const lists = await Promise.all([
     supabase.storage.from('academy-media').list('orientation', { limit: 20 }),
     ...COURSES.map((c) => supabase.storage.from('academy-media').list(`courses/${c.key}`, { limit: 20 })),
@@ -24,7 +24,7 @@ export default async function CourseVideos() {
         <span className="div-icon">🎞️</span>
         <div><h1>Course videos</h1><p>Upload or replace the training videos for every Academy course</p></div>
       </div>
-      <p>Select all the videos at once. Each file is matched to its course by its name — for example <code>privacy.mp4</code> goes to “Privacy and FOIPPA”. Uploading again replaces the old video.</p>
+      <p>Select all the videos at once. Each file is matched to its course by its name — for example <code>privacy.mp4</code> goes to “Privacy and FOIPPA”. Uploading again replaces the old video. Staff must watch the whole video before the quiz opens — the required viewing time is set from each video’s length automatically.</p>
       <BulkUpload courses={COURSES} />
       <section className="card">
         <h2>Status</h2>

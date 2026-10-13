@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { setLessonLength } from '../lessonActions';
+import { videoSeconds } from '../videoSeconds';
 
 export default function BulkUpload({ courses }) {
   const [rows, setRows] = useState([]);
@@ -29,7 +31,13 @@ export default function BulkUpload({ courses }) {
       if (f.size > 50 * 1024 * 1024) { setRows((r) => r.map((x, j) => (j === i ? { ...x, status: 'Too big (over 50 MB)' } : x))); continue; }
       setRows((r) => r.map((x, j) => (j === i ? { ...x, status: `Uploading ${(f.size / 1048576).toFixed(1)} MB…` } : x)));
       const { error } = await supabase.storage.from('academy-media').upload(m.path, f, { upsert: true, contentType: 'video/mp4', cacheControl: '60' });
-      setRows((r) => r.map((x, j) => (j === i ? { ...x, status: error ? 'Failed: ' + error.message : '✓ Uploaded' } : x)));
+      let status = error ? 'Failed: ' + error.message : '✓ Uploaded';
+      if (!error) {
+        const secs = await videoSeconds(f);
+        const r2 = secs ? await setLessonLength(m.key, secs * 0.95) : { error: 'length unknown' };
+        status = r2?.error ? `✓ Uploaded (viewing time not set: ${r2.error})` : `✓ Uploaded · ${Math.round(secs / 60)} min — must be watched in full`;
+      }
+      setRows((r) => r.map((x, j) => (j === i ? { ...x, status } : x)));
     }
     setBusy(false);
     router.refresh();
