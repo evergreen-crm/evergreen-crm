@@ -1,14 +1,16 @@
-// One launch plan: milestones and tasks, documents needed before opening, and plan details.
+// One launch plan: milestones and tasks, the MCFD pre-opening house checklist, documents needed before opening, and plan details.
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { levelOf } from '@/lib/levels';
 import { fmtDate, todayISO, daysUntil, addDaysISO } from '@/lib/options';
-import { updatePlan, setTask, setMilestone, updateDocument } from '../actions';
+import { updatePlan, setTask, setMilestone, updateDocument, setChecklistItem } from '../actions';
 import DocFile from '../DocFile';
+import ChecklistFile from '../ChecklistFile';
 
 const TABS = [
   { key: 'milestones', label: '🏁 Milestones' },
+  { key: 'checklist', label: '✅ House checklist' },
   { key: 'documents', label: '📑 Documents before opening' },
   { key: 'details', label: '📋 Plan details' },
 ];
@@ -19,6 +21,11 @@ const DOC_FILTERS = [
   { key: 'required', label: 'MCFD & legal' }, { key: 'all', label: 'All' },
 ];
 const DONE = ['Approved', 'Submitted to MCFD', 'Not applicable'];
+const CK_FILTERS = [
+  { key: 'todo', label: 'To do' }, { key: 'late', label: 'Overdue / this week' },
+  { key: 'required', label: 'MCFD & legal' }, { key: 'all', label: 'All' },
+];
+const TAG = { MCFD: <span className="badge bad">MCFD</span>, LAW: <span className="badge warn">Legal</span>, BP: <span className="badge">Best practice</span> };
 
 function Hidden({ planId, tab }) {
   return <><input type="hidden" name="plan_id" value={planId} /><input type="hidden" name="tab" value={tab} /></>;
@@ -32,15 +39,16 @@ export default async function LaunchPlan({ params, searchParams }) {
   const lvl = levelOf(profile);
   const { data: plan } = await supabase.from('launch_plans').select('*').eq('id', id).maybeSingle();
   if (!plan) notFound();
-  const [{ data: milestones }, { data: docs }, { data: ready }] = await Promise.all([
+  const [{ data: milestones }, { data: docs }, { data: ready }, { data: checklist }] = await Promise.all([
     supabase.from('launch_milestones').select('*').eq('plan_id', id).order('number'),
     supabase.from('launch_documents_due').select('*').eq('plan_id', id).order('sort'),
     supabase.from('launch_readiness').select('*').eq('plan_id', id).maybeSingle(),
+    supabase.from('launch_checklist_due').select('*').eq('plan_id', id).order('sort'),
   ]);
   const { data: tasks } = await supabase.from('launch_tasks').select('*')
     .in('milestone_id', (milestones ?? []).map((m) => m.id)).order('sort');
   // Links (valid 1 hour) for uploaded document files.
-  const filePaths = (docs ?? []).map((x) => x.file_path).filter(Boolean);
+  const filePaths = [...(docs ?? []), ...(checklist ?? [])].map((x) => x.file_path).filter(Boolean);
   let fileUrls = {};
   if (filePaths.length) {
     const { data: signed } = await supabase.storage.from('launch-files').createSignedUrls(filePaths, 3600);
@@ -53,6 +61,10 @@ export default async function LaunchPlan({ params, searchParams }) {
   const d = daysUntil(plan.opening_date);
   const late = (docs ?? []).filter((x) => x.due_status === 'Overdue').length;
   const week = (docs ?? []).filter((x) => x.due_status === 'Due this week').length;
+  const ck = checklist ?? [];
+  const ckReq = ck.filter((x) => x.tag !== 'BP' && !x.after_gate && x.code !== 'go_no_go');
+  const ckReqOpen = ckReq.filter((x) => !x.done_on && !x.not_applicable).length;
+  const ckDone = ck.filter((x) => x.done_on || x.not_applicable).length;
 
   return (
     <main>
@@ -73,6 +85,7 @@ export default async function LaunchPlan({ params, searchParams }) {
         </div>
         <div className="stat"><strong>{ready?.pct_ready ?? 0}%</strong><span>all pre-opening documents</span></div>
         <div className="stat"><strong>{msDone}/{milestones?.length ?? 0}</strong><span>milestones complete</span></div>
+        {ck.length > 0 && <div className={`stat ${ckReqOpen ? 'warn' : ''}`}><strong>{ckDone}/{ck.length}</strong><span>house checklist · {ckReq.length - ckReqOpen}/{ckReq.length} MCFD & legal</span></div>}
         <div className={`stat ${late ? 'bad' : week ? 'warn' : ''}`}><strong>{late}</strong><span>documents overdue{week ? ` · ${week} due this week` : ''}</span></div>
       </div>
 
@@ -81,6 +94,7 @@ export default async function LaunchPlan({ params, searchParams }) {
       </nav>
 
       {tab === 'milestones' && <Milestones />}
+      {tab === 'checklist' && <Checklist />}
       {tab === 'documents' && <Documents />}
       {tab === 'details' && <Details />}
     </main>
@@ -136,6 +150,80 @@ export default async function LaunchPlan({ params, searchParams }) {
             </section>
           );
         })}
+      </>
+    );
+  }
+
+  function Checklist() {
+    if (!ck.length) return <p className="card">The house checklist isn’t switched on yet. An administrator needs to run <code>supabase/launch-checklist.sql</code> in Supabase.</p>;
+    const f = CK_FILTERS.some((x) => x.key === sp.f) ? sp.f : 'todo';
+    const open = (x) => !x.done_on && !x.not_applicable;
+    const rows = ck.filter((x) => f === 'all' ? true : f === 'required' ? x.tag !== 'BP'
+      : f === 'late' ? ['Overdue', 'Due this week'].includes(x.due_status) : open(x));
+    const gate = ck.find((x) => x.code === 'go_no_go');
+    const late = ck.filter((x) => x.due_status === 'Overdue').length;
+    let part = null;
+    return (
+      <>
+        <p className="muted small">Everything that must be in place before the first youth arrives, from the MCFD SHSS Transition-In Plan (Appendix E) and the SHSS Guidebook. <strong>Day</strong> = day of the 90-day transition-in period; due dates count from the contract effective date. Physical house items must also be checked against MCFD’s Appendix D Environment of Care checklist before the MCFD site visit.</p>
+        {!plan.contract_effective_date && <p className="message">Due dates appear once the <Link href={`/launch/${id}?tab=details`}>contract effective date</Link> is entered. Until then items show their Day number.</p>}
+        {gate && (gate.done_on
+          ? <p className="message ok">✅ CEO go/no-go signed {fmtDate(gate.done_on)}{gate.done_by_name ? ` by ${gate.done_by_name}` : ''}. Opening approved.</p>
+          : ckReqOpen > 0
+            ? <p className="message">🔒 <strong>CEO go/no-go is locked</strong> — {ckReqOpen} MCFD/legal item{ckReqOpen > 1 ? 's are' : ' is'} still open. It unlocks when every MCFD and legal item is done (or marked N/A with a reason).</p>
+            : <p className="message ok">🔓 Every MCFD and legal item is done — <strong>ready for the CEO go/no-go</strong>.</p>)}
+        {late > 0 && <p className="small"><span className="badge bad">{late} overdue</span></p>}
+        <nav className="tabs-bar">
+          {CK_FILTERS.map((x) => <Link key={x.key} href={`/launch/${id}?tab=checklist&f=${x.key}`} className={f === x.key ? 'on' : ''}>{x.label}</Link>)}
+        </nav>
+        {rows.length === 0 ? <p className="card muted">Nothing here. 🎉</p> : (
+          <table>
+            <thead><tr><th>Item</th><th>Type</th><th>Who</th><th>Due</th><th>Done / evidence</th></tr></thead>
+            <tbody>
+              {rows.map((x) => {
+                const head = x.part !== part ? (part = x.part) : null;
+                const locked = x.code === 'go_no_go' && ckReqOpen > 0 && open(x);
+                const canSign = lvl >= (x.min_level ?? 3);
+                return [
+                  head && <tr key={`h-${head}`}><td colSpan={5} style={{ background: '#f4f7f5' }}><strong>{head}</strong></td></tr>,
+                  <tr key={x.id} className={x.due_status === 'Overdue' ? 'late' : ''}>
+                    <td>{x.done_on ? '✅ ' : x.not_applicable ? '➖ ' : locked ? '🔒 ' : '☐ '}{x.item}
+                      {x.due_note && <div className="muted small">{x.due_note}</div>}
+                      {x.min_level >= 5 && <div className="muted small">Signed by level {x.min_level}+ only</div>}</td>
+                    <td className="small">{TAG[x.tag]}</td>
+                    <td className="small">{x.owner_role}</td>
+                    <td className={`small ${x.due_status === 'Overdue' ? 'bad-text' : ''}`}>
+                      {x.due_date ? fmtDate(x.due_date) : x.day != null ? `Day ${x.day}` : '—'}
+                      <div className="muted">{x.due_status}</div>
+                    </td>
+                    <td style={{ minWidth: 200 }}>
+                      {x.done_on && <div className="small">Done {fmtDate(x.done_on)}{x.done_by_name ? ` · ${x.done_by_name}` : ''}</div>}
+                      {x.not_applicable && <div className="small">Not applicable{x.done_by_name ? ` · ${x.done_by_name}` : ''}</div>}
+                      {x.note && <div className="muted small">{x.note}</div>}
+                      <ChecklistFile planId={id} itemId={x.id} fileName={x.file_name} fileUrl={x.file_path ? fileUrls[x.file_path] : null} />
+                      {canSign && !locked && (open(x) ? (
+                        <form action={setChecklistItem} className="no-print">
+                          <Hidden planId={id} tab={`checklist&f=${f}`} />
+                          <input type="hidden" name="id" value={x.id} />
+                          <input name="note" placeholder={x.tag === 'BP' ? 'Note (optional)' : 'Note / reason if N/A'} />
+                          <button name="op" value="done" style={{ marginTop: 4 }}>✓ Done</button>{' '}
+                          <button name="op" value="na" className="secondary">N/A</button>
+                        </form>
+                      ) : (
+                        <form action={setChecklistItem} className="no-print">
+                          <Hidden planId={id} tab={`checklist&f=${f}`} />
+                          <input type="hidden" name="id" value={x.id} />
+                          <button name="op" value="reopen" className="link small">Re-open</button>
+                        </form>
+                      ))}
+                      {!canSign && open(x) && <div className="muted small">Waiting for {x.owner_role}</div>}
+                    </td>
+                  </tr>,
+                ];
+              })}
+            </tbody>
+          </table>
+        )}
       </>
     );
   }
