@@ -68,7 +68,7 @@ export default async function ExecDashboard({ supabase, profile, userId }) {
       {lvl === 2 && kpis.length > 0 && <p className="small"><Link href="/kpi">📊 KPIs for your house →</Link></p>}
       {!error && (
         <div className="card action-box">
-          <div className="exec-head"><h2>⚠️ Action required{mine?.length ? ` (${mine.length})` : ''}</h2><Link href="/action-items" className="small">All action items →</Link></div>
+          <div className="exec-head"><h2>⚠️ Problems to fix{mine?.length ? ` (${mine.length})` : ''}</h2><Link href="/action-items" className="small">All problems to fix →</Link></div>
           {mine?.length ? (
             <ul className="action-list">
               {mine.map((i) => {

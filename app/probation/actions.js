@@ -47,5 +47,5 @@ export async function acknowledgeReview(fd) {
   const { error } = await supabase.rpc('acknowledge_probation_review', { review: id });
   if (error) back(`/probation/${id}`, error.message, true);
   revalidatePath(`/probation/${id}`);
-  back(`/probation/${id}`, 'Thank you — you have acknowledged this review.');
+  back(`/probation/${id}`, 'Thank you — we’ve noted that you’ve read this review.');
 }

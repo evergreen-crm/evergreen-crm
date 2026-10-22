@@ -3,10 +3,11 @@
 // Program Manager+ and HR also get "My team": who is behind, with a one-tap reminder.
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
-import { levelOf, groupOf } from '@/lib/levels';
+import { levelOf, groupOf, personLabel } from '@/lib/levels';
 import { fmtDate, todayISO } from '@/lib/options';
 import { getMyTodos, getTeamTodos, BUCKETS, todoCount } from '@/lib/todos';
 import { remindStaff } from './actions';
+import { plainError } from '@/lib/plain';
 
 function Item({ t, today }) {
   return (
@@ -39,7 +40,7 @@ export default async function Todo({ searchParams }) {
         <div><h1>My to-do</h1><p>Everything you need to do, in one place. Tap a task to go straight to it — it disappears by itself when it is done.</p></div>
       </div>
       {sp?.ok && <p className="message ok">{sp.ok}</p>}
-      {sp?.error && <p className="message error">{sp.error}</p>}
+      {sp?.error && <p className="message error">{plainError(sp.error)}</p>}
 
       {canTeam && (
         <nav className="tabs-bar no-print">
@@ -74,7 +75,7 @@ export default async function Todo({ searchParams }) {
                   <details>
                     <summary>
                       <strong>{p.full_name}</strong>
-                      <span className="muted small"> · Level {levelOf(p)}</span>
+                      <span className="muted small"> · {personLabel(p)}</span>
                       {p.overdue > 0 && <span className="badge bad">{p.overdue} overdue</span>}
                       <span className="badge warn">{p.total} to do</span>
                     </summary>

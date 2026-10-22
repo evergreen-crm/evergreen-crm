@@ -1,6 +1,7 @@
 // The signed-in staff member's own onboarding checklist.
 import { requireUser } from '@/lib/auth';
 import OnboardingView from './OnboardingView';
+import { plainError } from '@/lib/plain';
 
 export default async function MyOnboarding({ searchParams }) {
   const sp = await searchParams;
@@ -15,5 +16,5 @@ export default async function MyOnboarding({ searchParams }) {
     );
   }
   return <OnboardingView supabase={supabase} onb={onb} person={profile}
-    viewer={{ isSelf: true, isBoss: false }} notice={sp.error ? { bad: true, text: sp.error } : sp.saved ? { bad: false, text: 'Saved.' } : null} />;
+    viewer={{ isSelf: true, isBoss: false }} notice={sp.error ? { bad: true, text: plainError(sp.error) } : sp.saved ? { bad: false, text: 'Saved.' } : null} />;
 }

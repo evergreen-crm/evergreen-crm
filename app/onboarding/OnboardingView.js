@@ -7,6 +7,7 @@ import { savePersonal, submitItem, submitOnboarding, reviewItem, completeOnboard
 import SignaturePad from './SignaturePad';
 import StaffFileUpload from './StaffFileUpload';
 import PrintButton from '@/app/PrintButton';
+import { plainStatus } from '@/lib/plain';
 
 const DONE = ['Verified', 'N/A'];
 const badge = (s) => ({ Verified: '', 'N/A': '', Submitted: 'warn', Returned: 'bad', 'To do': 'bad' }[s] ?? '');
@@ -31,7 +32,7 @@ function Summary({ tpl, item, fileUrl, signature }) {
         </div>
       )}
       {item.review_note && <p className={item.status === 'Returned' ? 'message' : 'muted'}>Manager note: {item.review_note}</p>}
-      {item.reviewed_at && DONE.includes(item.status) && <p className="muted">{item.status} by {item.reviewer?.full_name ?? 'manager'} on {fmtDateTime(item.reviewed_at)}</p>}
+      {item.reviewed_at && DONE.includes(item.status) && <p className="muted">{plainStatus(item.status)} by {item.reviewer?.full_name ?? 'manager'} on {fmtDateTime(item.reviewed_at)}</p>}
     </div>
   );
 }
@@ -95,7 +96,7 @@ function StaffForm({ tpl, item, profileId, fullName }) {
             <label>Phone<input name="r2_phone" required defaultValue={d.r2_phone ?? ''} /></label>
             <label>How you know them<input name="r2_relationship" defaultValue={d.r2_relationship ?? ''} /></label>
           </div>
-          <button>Submit</button>
+          <button>Send to HR</button>
         </>
       )}
       {tpl.kind === 'declare' && (
@@ -104,7 +105,7 @@ function StaffForm({ tpl, item, profileId, fullName }) {
             <select name="fit" required defaultValue={d.fit ?? ''}><option value="">Choose…</option><option>Yes</option><option>Yes, with accommodation</option><option>No</option></select>
           </label>
           <label>Accommodations needed (optional — no diagnosis needed)<input name="accommodations" defaultValue={d.accommodations ?? ''} /></label>
-          <button>Submit</button>
+          <button>Send to HR</button>
         </>
       )}
       {tpl.kind === 'upload' && (
@@ -114,7 +115,7 @@ function StaffForm({ tpl, item, profileId, fullName }) {
             <label>{item.item_key === 'crc' ? 'Date cleared' : 'Date (optional)'}<input type="date" name="date" defaultValue={d.date ?? ''} required={item.item_key === 'crc'} /></label>
             <label>Notes<input name="notes" defaultValue={d.notes ?? ''} /></label>
           </div>
-          <button disabled={!item.file_path}>Submit</button>
+          <button disabled={!item.file_path}>Send to HR</button>
         </>
       )}
       {tpl.kind === 'training' && (
@@ -127,7 +128,7 @@ function StaffForm({ tpl, item, profileId, fullName }) {
           </div>
           <label>Notes<input name="notes" defaultValue={d.notes ?? ''} /></label>
           <StaffFileUpload itemId={item.id} profileId={profileId} hasFile={!!item.file_path} />
-          <button>Submit</button>
+          <button>Send to HR</button>
         </>
       )}
     </form>
@@ -208,7 +209,7 @@ export default async function OnboardingView({ supabase, onb, person, viewer, no
         waiting={viewer.isBoss ? waiting : 0}
       />
       {isSelf && onb.status !== 'Complete' && (
-        <p className="muted small">Work through each section. Items marked <span className="badge bad">To do</span> need you. Your manager verifies each item. You can come back any time — your work is saved.</p>
+        <p className="muted small">Work through each section. Items marked <span className="badge bad">To do</span> need you. Your manager checks each item. You can come back any time — your work is saved.</p>
       )}
 
       <section className="card">
@@ -311,7 +312,7 @@ export default async function OnboardingView({ supabase, onb, person, viewer, no
                     <span className="onb-title">{tpl.program && <><ProgramBadge program={tpl.program} /> </>}{tpl.no ? `${tpl.no}. ` : ''}{item.title}{tpl.ifApplicable && <span className="muted small"> (if applicable)</span>}</span>
                     <span className="small">
                       {item.due_date && <span className={overdue ? 'badge bad' : 'muted'}>{overdue ? 'Overdue · ' : 'Due '}{fmtDate(item.due_date)}</span>}{' '}
-                      <span className={`badge ${badge(item.status)}`}>{item.status}</span>
+                      <span className={`badge ${badge(item.status)}`}>{plainStatus(item.status)}</span>
                     </span>
                   </summary>
                   {(tpl.help || tpl.when) && <p className="muted small">{tpl.help ?? `${tpl.when} · ${tpl.provider}`}</p>}

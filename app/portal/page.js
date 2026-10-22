@@ -11,19 +11,20 @@ import { levelOf, groupOf } from '@/lib/levels';
 
 const QUICK = [
   { href: '/dashboard', icon: '🔔', label: 'Today’s alerts' },
-  { href: '/action-items', icon: '⚠️', label: 'Action required' },
-  { href: '/kpi', icon: '📈', label: 'KPIs & scorecard', minLevel: 2 },
+  { href: '/action-items', icon: '⚠️', label: 'Problems to fix' },
+  { href: '/kpi', icon: '📈', label: 'How we’re doing (KPIs)', minLevel: 2 },
   { href: '/homes', icon: '🏡', label: 'Houses & residents' },
   { href: '/calendar', icon: '📅', label: 'Calendar' },
   { href: '/schedule', icon: '🗓', label: 'Shift schedule' },
-  { href: '/timesheet', icon: '⏱', label: 'Timesheet' },
+  { href: '/timesheet', icon: '⏱', label: 'My hours' },
   { href: '/academy', icon: '🎓', label: 'Evergreen Academy' },
   { href: '/policies', icon: '📘', label: 'Policies' },
   { href: '/hr', icon: '🪪', label: 'HR files', boss: true },
-  { href: '/launch', icon: '🚀', label: 'Launch plans', boss: true },
-  { href: '/probation', icon: '📝', label: 'Probation reviews', minLevel: 2 },
+  { href: '/launch', icon: '🚀', label: 'Opening a new house', boss: true },
+  { href: '/probation', icon: '📝', label: 'First-90-days reviews', minLevel: 2 },
   { href: '/careers', icon: '🌱', label: 'Career & perks' },
   { href: '/badges', icon: '🏅', label: 'Performance badges' },
+  { href: '/words', icon: '📖', label: 'What does this mean?' },
 ];
 
 export default async function PortalHome() {
@@ -50,7 +51,7 @@ export default async function PortalHome() {
         <img src="/logo-mark.png" alt="" />
         <div>
           <h1>Evergreen Community Care</h1>
-          <p className="muted">Operations portal · {fmtDate(today)} · Organized by the seven divisions (ECC-DIV-2026-001)</p>
+          <p className="muted">Your home page · {fmtDate(today)}</p>
         </div>
       </div>
 
@@ -69,10 +70,10 @@ export default async function PortalHome() {
       </div>
 
       {divisions.length === 0 && (
-        <p className="card muted">No divisions are open at your access level yet. Your administrator can change your level or give you access.</p>
+        <p className="card muted">No areas are open for your job yet. Ask the office to give you access.</p>
       )}
       {profile.role === 'admin' && divisions.length > 0 && (
-        <p className="muted small no-print">Divisions open for staff by access level (Admin → Portal divisions by level). Add one-off people on a division’s “Who has access”.</p>
+        <p className="muted small no-print">You see the areas that match your job. Need another area? Ask your manager or the office.</p>
       )}
       <div className="div-grid">
         {divisions.map((d) => {

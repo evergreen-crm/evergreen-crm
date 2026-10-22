@@ -5,6 +5,8 @@ import { requireUser } from '@/lib/auth';
 import { levelOf, canHR } from '@/lib/levels';
 import { fmtDate, todayISO } from '@/lib/options';
 import { startProbation } from './actions';
+import NotReady from '@/app/components/NotReady';
+import { plainError } from '@/lib/plain';
 
 const VIEWS = [
   { key: 'due', label: 'Reviews to do' },
@@ -50,8 +52,8 @@ export default async function Probation({ searchParams }) {
       <h1>📝 Probation reviews</h1>
       <p className="muted">Every new hire has a <strong>30-day</strong> and <strong>90-day</strong> review (Program Coordinator) and a final <strong>120-day</strong> review (Program Manager or above) that decides: <em>confirm full-time</em>, <em>extend 30 days</em>, or <em>end employment</em>.</p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
-      {sp.error && <p className="message">{sp.error}</p>}
-      {error && <p className="message">Probation isn’t set up yet. Run <code>supabase/launch-people.sql</code> in Supabase → SQL Editor.</p>}
+      {sp.error && <p className="message">{plainError(sp.error)}</p>}
+      {error && <NotReady what="First-90-days reviews" file="launch-people.sql" card={false} />}
 
       {manager && (
         <div className="stats">

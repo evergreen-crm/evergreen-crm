@@ -6,6 +6,7 @@ import { levelOf, canHR } from '@/lib/levels';
 import { fmtDate, todayISO } from '@/lib/options';
 import { saveReview, acknowledgeReview } from '../actions';
 import PrintButton from '@/app/PrintButton';
+import { plainError } from '@/lib/plain';
 
 const RATINGS = ['Meets expectations', 'Needs improvement', 'Does not meet'];
 const DECISIONS = [
@@ -40,7 +41,7 @@ export default async function Review({ params, searchParams }) {
       <p className="muted">{prob?.position ?? 'Position not set'} · {person?.homes?.name ?? 'No house'} · Hired {fmtDate(prob?.hire_date)} · Probation: <strong>{prob?.status}</strong></p>
       <p className="no-print"><PrintButton label="🖨 Print review" /> <span className="muted small">Prints the review with signature lines{canEdit ? ' (save a draft first so your latest changes are included)' : ''}.</span></p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
-      {sp.error && <p className="message">{sp.error}</p>}
+      {sp.error && <p className="message">{plainError(sp.error)}</p>}
 
       <ol className="chain">
         {(history ?? []).map((h) => (
@@ -56,7 +57,7 @@ export default async function Review({ params, searchParams }) {
           <dt>Due</dt><dd>{fmtDate(r.due_date)}{!r.completed_on && r.due_date < today && <span className="badge bad"> Overdue</span>}</dd>
           <dt>Completed by</dt><dd>{isFinal ? 'Program Manager or above (final review)' : 'Program Coordinator'}</dd>
           {r.completed_on && <><dt>Completed</dt><dd>{fmtDate(r.completed_on)}{reviewer?.full_name ? ` by ${reviewer.full_name}` : ''}</dd></>}
-          {r.completed_on && <><dt>Staff acknowledged</dt><dd>{r.staff_acknowledged ? '✅ Yes' : 'Not yet'}</dd></>}
+          {r.completed_on && <><dt>Staff member has read it</dt><dd>{r.staff_acknowledged ? '✅ Yes' : 'Not yet'}</dd></>}
         </dl>
       </section>
 

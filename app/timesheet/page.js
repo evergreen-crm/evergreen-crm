@@ -37,7 +37,7 @@ export default async function TimesheetPage({ searchParams }) {
   return (
     <main>
       <div className="title-row">
-        <h1>Timesheet</h1>
+        <h1>Hours</h1>
         <span className="small no-print">
           <Link href={qs({ p: addDaysISO(period.start, -14) })}>← Previous period</Link>{' · '}
           <Link href={qs({ p: today })}>Current</Link>{' · '}

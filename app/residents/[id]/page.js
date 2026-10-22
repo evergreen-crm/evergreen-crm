@@ -19,11 +19,12 @@ import Money from './Money';
 import Documents from './Documents';
 import Messages from './Messages';
 import EntryList from '@/app/components/EntryList';
+import Abbr from '@/app/components/Abbr';
 
 const TABS = [
   { key: 'overview', label: 'Overview', family: true },
   { key: 'notes', label: 'Daily notes', family: true },
-  { key: 'mar', label: 'Medications (MAR)' },
+  { key: 'mar', label: 'Medications' },
   { key: 'goals', label: 'Goals', family: true },
   { key: 'logs', label: 'Logs' },
   { key: 'money', label: 'Money' },
@@ -210,7 +211,7 @@ export default async function ResidentPage({ params, searchParams }) {
 
       {isStaff && (tab === 'mar' || tab === 'all') && (
         <>
-          {tab === 'all' && <h2 className="page-break">Medications (MAR)</h2>}
+          {tab === 'all' && <h2 className="page-break">Medications (<Abbr t="MAR" />)</h2>}
           <Mar supabase={supabase} resident={resident} canEdit={canEdit} date={sp.mdate} />
         </>
       )}

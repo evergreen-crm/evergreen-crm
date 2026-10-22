@@ -9,6 +9,7 @@ import { signPolicy, updatePolicy, restoreVersion } from '@/app/policies/actions
 import PolicyUpload from '@/app/policies/PolicyUpload';
 import PrintButton from '@/app/PrintButton';
 import { personLabel, canHR } from '@/lib/levels';
+import { plainError } from '@/lib/plain';
 
 function nextVersion(label) {
   const [maj, min = '0'] = String(label ?? '1.0').split('.');
@@ -74,7 +75,7 @@ export default async function PolicyPage({ params, searchParams }) {
       {current && p.require_signature && forMe && (
         <section className="card sign-box" id="sign">
           <h2>Digital signature</h2>
-          {sp.error && <p className="message">{sp.error}</p>}
+          {sp.error && <p className="message">{plainError(sp.error)}</p>}
           {sp.signed && myAck && <p className="message ok">✓ Signed. Thank you — your signature, date and time are saved.</p>}
           {myAck ? (
             <div className="signed">
