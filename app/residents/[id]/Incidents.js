@@ -5,7 +5,7 @@ import { addIncident, updateIncident } from '@/app/residents/actions';
 import { writtenDue, reviewDue, INCIDENT_CLASSES } from '@/lib/incidents';
 import Link from 'next/link';
 
-export default async function Incidents({ supabase, resident, program, cls }) {
+export default async function Incidents({ supabase, resident, program, cls, openNew }) {
   let q = supabase.from('incidents').select('*, profiles:reported_by(full_name)').eq('resident_id', resident.id);
   if (cls) q = q.eq('incident_class', cls);
   const { data: incidents } = await q.order('occurred_on', { ascending: false });
@@ -19,14 +19,14 @@ export default async function Incidents({ supabase, resident, program, cls }) {
         <Link href={base} className={!cls ? 'on' : ''}>All</Link>
         {INCIDENT_CLASSES.map((c) => <Link key={c.key} href={`${base}&class=${c.key}`} className={cls === c.key ? 'on' : ''}>{c.key}</Link>)}
       </div>
-      <details className="card no-print" open={incidents?.length === 0 && !cls}>
+      <details className="card no-print" open={openNew || (incidents?.length === 0 && !cls)} id="new-incident">
         <summary><strong>+ Report an incident</strong></summary>
         <form action={addIncident} className="stack">
           <input type="hidden" name="resident_id" value={resident.id} />
           <input type="hidden" name="home_id" value={resident.home_id} />
           <div className="row">
             <label>Date<input type="date" name="occurred_on" required defaultValue={today} /></label>
-            <label>Time<input type="time" name="occurred_time" /></label>
+            <label>Time<input type="time" name="occurred_time" defaultValue={openNew ? new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: TZ }) : undefined} /></label>
             <label>
               Type
               <select name="incident_type" required defaultValue="">

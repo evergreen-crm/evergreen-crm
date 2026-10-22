@@ -6,6 +6,9 @@ import { requireUser } from '@/lib/auth';
 import { addShiftNote, signShiftNote } from '@/app/actions';
 import { age, fmtDate, fmtTime, todayISO, TZ } from '@/lib/options';
 import { programsFor } from '@/lib/requirements';
+import NoteCard from '@/app/notes/NoteCard';
+import { saveNote } from '@/app/notes/actions';
+import { shiftNow } from '@/lib/checklist';
 import Requirements from './Requirements';
 import Incidents from './Incidents';
 import PrintButton from '@/app/PrintButton';
@@ -161,58 +164,17 @@ export default async function ResidentPage({ params, searchParams }) {
       {(tab === 'notes' || tab === 'all') && (
         <section>
           {tab === 'all' && <h2>Daily notes</h2>}
-      {isStaff && (
-        <form action={addShiftNote} className="card">
-          <h2>New shift note</h2>
-          <input type="hidden" name="resident_id" value={resident.id} />
-          <div className="row">
-            <label>
-              Shift
-              <select name="shift" required defaultValue="Day">
-                <option>Day</option>
-                <option>Evening</option>
-                <option>Night</option>
-              </select>
-            </label>
-            <label>
-              Mood
-              <select name="mood" defaultValue="">
-                <option value="">—</option>
-                <option>Happy</option>
-                <option>Calm</option>
-                <option>Anxious</option>
-                <option>Upset</option>
-                <option>Withdrawn</option>
-              </select>
-            </label>
-            <label>
-              Meals
-              <select name="meals" defaultValue="">
-                <option value="">—</option>
-                <option>Ate all</option>
-                <option>Ate some</option>
-                <option>Refused</option>
-              </select>
-            </label>
-          </div>
-          <label>
-            Activities
-            <input name="activities" placeholder="e.g., walk, outing, program" />
-          </label>
-          <label>
-            Note
-            <textarea name="note" rows={4} required placeholder="What happened this shift?" />
-          </label>
-          <label className="check">
-            <input type="checkbox" name="share_with_family" /> Share with family (after signing)
-          </label>
-          <div className="row">
-            <button name="sign" value="yes">Save and sign</button>
-            <button name="sign" value="no" className="secondary">Save as draft</button>
-          </div>
-          <p className="muted small">Signed notes are locked and can't be edited.</p>
-        </form>
-      )}
+      {isStaff && (() => {
+        const myDraft = (notes ?? []).find((n) => !n.signed_at && n.author_id === user.id);
+        return (
+          <section className="card">
+            <h2 style={{ marginTop: 0 }}>{myDraft ? 'Finish your draft note' : 'New daily note'}</h2>
+            <NoteCard resident={resident} draft={myDraft} shift={shiftNow(null).shift} day={todayISO()} homeId={resident.home_id}
+              action={saveNote} returnTo="resident" justSaved={sp.saved === resident.id} />
+            <p className="muted small">Signed notes are locked and can’t be edited. Drafts can be changed until you sign. <Link href={`/notes?home=${resident.home_id}`}>Everyone at the house on one screen →</Link></p>
+          </section>
+        );
+      })()}
 
       <h2>Notes</h2>
       {notes?.length === 0 && <p className="muted">No notes yet.</p>}
@@ -288,7 +250,7 @@ export default async function ResidentPage({ params, searchParams }) {
       {isStaff && (tab === 'incidents' || tab === 'all') && (
         <>
           {tab === 'all' && <h2 className="page-break">Incidents</h2>}
-          <Incidents supabase={supabase} resident={resident} program={programsFor(resident)[0]?.key ?? 'mcfd'} cls={sp.class} />
+          <Incidents supabase={supabase} resident={resident} program={programsFor(resident)[0]?.key ?? 'mcfd'} cls={sp.class} openNew={sp.new === '1'} />
         </>
       )}
 
