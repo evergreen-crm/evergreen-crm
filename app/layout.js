@@ -50,6 +50,8 @@ export default async function RootLayout({ children }) {
                   { title: 'Daily work', items: [
                     { href: '/portal', label: 'Portal', icon: '🏛', color: '#0f3059' },
                     { href: '/dashboard', label: 'Dashboard', icon: '📊', color: '#0b5a34' },
+                    { href: '/checklist', label: 'Shift checklist', icon: '✅', color: '#2e8b57' },
+                    { href: '/notes', label: 'Daily notes', icon: '📝', color: '#1f6fb2' },
                     { href: '/action-items', label: 'Action required', icon: '⚠️', color: '#b3261e' },
                     ...(levelOf(profile) >= 2 ? [{ href: '/kpi', label: 'KPIs', icon: '📈', color: '#1f6fb2' }] : []),
                     { href: '/homes', label: 'Houses', icon: '🏡', color: '#2e8b57' },

@@ -556,7 +556,7 @@ table.matrix .prog-row th span.prog-dot { writing-mode: horizontal-tb; transform
 .rh { display: grid; gap: 14px; margin-bottom: 14px; }
 .rh-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .rh-clock { font-size: 1.05rem; padding: 12px 18px; }
-.rh-bigs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+.rh-bigs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 14px 0; }
 .rh-big { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; padding: 14px 8px; border-radius: 14px; background: #eef6f1; border: 1px solid #cfe3d7; color: inherit; text-decoration: none; min-height: 96px; }
 .rh-big:hover { background: #e2f0e8; }
 .rh-big-icon { font-size: 1.9rem; line-height: 1.1; }
@@ -593,4 +593,44 @@ table.matrix .prog-row th span.prog-dot { writing-mode: horizontal-tb; transform
   .todo-item { grid-template-columns: 28px 1fr; }
   .todo-when { grid-column: 2; }
   .todo-go { grid-column: 1 / -1; text-align: center; padding: 10px; }
+}
+
+/* ---------- Shift checklist ---------- */
+.cl-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.cl-item { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; padding: 10px 12px; border: 1px solid #e1e8e4; border-left: 5px solid #cfd8d3; border-radius: 10px; background: #fff; }
+.cl-item.crit { border-left-color: #d4a72c; }
+.cl-item.is-done { border-left-color: #2e8b57; background: #f3faf5; }
+.cl-item.is-na { border-left-color: #9aa59f; background: #f6f7f6; }
+.cl-item.is-problem { border-left-color: #d64545; background: #fff5f4; }
+.cl-text { display: flex; gap: 8px; align-items: flex-start; }
+.cl-area { font-size: 1.15rem; line-height: 1.3; }
+.cl-btns { display: flex; gap: 6px; }
+.cl-btn { padding: 10px 14px; border-radius: 10px; border: 1px solid #cfd8d3; background: #fff; color: var(--text); font-weight: 600; min-width: 64px; }
+.cl-btn.ok.on { background: var(--green); color: #fff; border-color: var(--green); }
+.cl-btn.na.on { background: #6a736d; color: #fff; border-color: #6a736d; }
+.cl-btn.bad.on { background: var(--red); color: #fff; border-color: var(--red); }
+.cl-ask { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.cl-ask input { flex: 1 1 220px; }
+.cl-sub { margin: 14px 0 6px; font-size: 1rem; }
+.cl-bed { margin-top: 10px; padding: 10px 12px; border: 1px dashed #b9c7bf; border-radius: 10px; display: grid; gap: 6px; }
+.cl-progress { display: flex; align-items: center; gap: 8px; }
+.cl-progress progress, .notes-bar progress { width: 160px; height: 10px; }
+/* ---------- Quick daily notes ---------- */
+.notes-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.note-person.is-done { border-left: 6px solid #2e8b57; }
+.note-card { display: grid; gap: 8px; margin-top: 10px; }
+.nc-row { display: grid; grid-template-columns: 90px 1fr; gap: 8px; align-items: start; }
+.nc-label { font-weight: 600; font-size: .9rem; padding-top: 6px; }
+.nc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.nc-chip { padding: 8px 12px; border-radius: 999px; border: 1px solid #cfd8d3; background: #fff; color: var(--text); font-weight: 500; }
+.nc-chip.on { background: var(--green); border-color: var(--green); color: #fff; }
+.nc-note { display: grid; gap: 4px; }
+.nc-foot { display: flex; gap: 6px 16px; flex-wrap: wrap; }
+@media (max-width: 700px) {
+  .cl-item { grid-template-columns: 1fr; }
+  .cl-btns { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .cl-btn { padding: 12px 6px; }
+  .nc-row { grid-template-columns: 1fr; }
+  .nc-label { padding-top: 0; }
+  .cl-progress progress, .notes-bar progress { width: 100%; }
 }
