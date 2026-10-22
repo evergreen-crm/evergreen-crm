@@ -720,3 +720,11 @@ table.wide td:first-child, table.wide th:first-child { position: sticky; left: 0
 .sos-row, .req-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
 @media (max-width: 720px) { .sos-fab { bottom: calc(84px + env(safe-area-inset-bottom)); right: 12px; width: 54px; height: 54px; } .sticky-actions { padding-right: 76px !important; } }
 @media print { .sos-fab, .sos-sheet { display: none !important; } }
+
+/* ---------- Missing details (/records) ---------- */
+.gap-chips { list-style: none; padding: 0; margin: 8px 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.gap-chips li { background: #f1f4f8; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: .9rem; }
+.gap-chips li.late { background: #fff3e0; border-color: #f0c27a; }
+.gap-card details > summary { display: inline-block; list-style: none; cursor: pointer; margin: 4px 0; }
+.gap-card details > summary::-webkit-details-marker { display: none; }
+.fill-form { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }

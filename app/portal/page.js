@@ -29,7 +29,10 @@ const QUICK = [
 
 export default async function PortalHome() {
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
+  // Missing-details check (record-gaps.sql): runs at most every 6 hours when a leader opens the portal.
+  const gapCheck = levelOf(profile) >= 2 || groupOf(profile) === 'hr' ? supabase.rpc('scan_record_gaps', { p_trigger: 'auto' }) : null;
   const grants = await getGrants(supabase, profile);
+  if (gapCheck) await gapCheck;
   const divisions = visibleDivisions(profile, grants);
   const today = todayISO();
 

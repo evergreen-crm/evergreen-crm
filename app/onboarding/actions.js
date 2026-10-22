@@ -37,6 +37,7 @@ export async function startOnboarding(formData) {
   const { error: e2 } = await supabase.from('onboarding_items').insert(rows);
   if (e2) throw new Error('Could not create checklist: ' + e2.message);
   await supabase.from('staff_details').upsert({ profile_id: profileId, hire_date: hire, program, updated_at: new Date().toISOString() });
+  await supabase.from('staff_details').update({ program_confirmed: true }).eq('profile_id', profileId); // record-gaps.sql
   refreshFor(profileId);
   redirect(`/hr/${profileId}/onboarding`);
 }

@@ -24,8 +24,12 @@ export async function saveStaffDetails(formData) {
     updated_at: new Date().toISOString(),
   });
   if (error) throw new Error('Could not save details: ' + error.message);
+  // The program was chosen on purpose (record-gaps.sql); ignore if that setup hasn't run yet.
+  await supabase.from('staff_details').update({ program_confirmed: true }).eq('profile_id', profileId);
+  await supabase.rpc('scan_record_gaps', { p_trigger: 'now' });
   revalidatePath(`/hr/${profileId}`);
   revalidatePath('/hr');
+  revalidatePath('/records');
 }
 
 export async function addCertification(formData) {
