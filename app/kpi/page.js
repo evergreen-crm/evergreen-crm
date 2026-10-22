@@ -44,7 +44,7 @@ export default async function KpiPage() {
 
       <section className="card">
         <h2>Monthly scorecard — {new Date(data.today + 'T12:00:00').toLocaleDateString('en-CA', { month: 'long', year: 'numeric' })}</h2>
-        <table>
+        <table className="wide">
           <thead><tr><th>Category</th><th>Target</th><th>Actual</th><th>Status</th></tr></thead>
           <tbody>
             {card.map((r) => (
@@ -60,7 +60,7 @@ export default async function KpiPage() {
         <section className="card">
           <h2>📈 Trend by month</h2>
           <div style={{ overflowX: 'auto' }}>
-            <table>
+            <table className="wide">
               <thead><tr><th>Category</th>{months.map((m) => <th key={m.month}>{mLabel(m.month)}</th>)}</tr></thead>
               <tbody>
                 <tr><td><strong>Overall compliance</strong></td>{months.map((m) => <td key={m.month}><strong>{cell(m.overall === null ? null : Number(m.overall), 98)}</strong></td>)}</tr>

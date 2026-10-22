@@ -94,7 +94,7 @@ export default async function AreaPage({ params, searchParams }) {
       <h2>Records ({records?.length ?? 0})</h2>
       {records?.length === 0 && <p className="muted">No records yet.</p>}
       {records?.length > 0 && (
-        <table className="register">
+        <table className="register wide">
           <thead><tr><th>Date</th><th>Record</th><th>House / resident</th><th>Due</th><th>Status</th><th>By</th></tr></thead>
           <tbody>
             {records.map((r) => {

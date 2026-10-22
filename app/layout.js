@@ -7,8 +7,10 @@ import MobileTabs from '@/app/components/MobileTabs';
 import PwaRegister from '@/app/components/PwaRegister';
 import DatePickerOpener from '@/app/components/DatePickerOpener';
 import IdleLogout from '@/app/components/IdleLogout';
+import PhoneHelpers from '@/app/components/PhoneHelpers';
+import { Suspense } from 'react';
 import { getMyTodos, todoCount } from '@/lib/todos';
-import { levelOf, personLabel, canHR, canPayroll } from '@/lib/levels';
+import { levelOf, groupOf, personLabel, canHR, canPayroll } from '@/lib/levels';
 
 export const metadata = {
   title: 'Evergreen Community Care',
@@ -50,7 +52,7 @@ export default async function RootLayout({ children }) {
                   { title: 'Daily work', items: [
                     { href: '/portal', label: 'Portal', icon: '🏛', color: '#0f3059' },
                     { href: '/dashboard', label: 'Overview', icon: '📊', color: '#0b5a34' },
-                    { href: '/checklist', label: 'Shift checklist', icon: '✅', color: '#2e8b57' },
+                    { href: '/checklist', label: 'Shift checklist', icon: '📋', color: '#2e8b57' },
                     { href: '/notes', label: 'Daily notes', icon: '📝', color: '#1f6fb2' },
                     { href: '/action-items', label: 'Problems to fix', icon: '⚠️', color: '#b3261e' },
                     ...(levelOf(profile) >= 2 ? [{ href: '/kpi', label: 'How we’re doing (KPIs)', icon: '📈', color: '#1f6fb2' }] : []),
@@ -102,8 +104,9 @@ export default async function RootLayout({ children }) {
         )}
         <div className="print-only print-head"><img src="/logo.png" alt="Evergreen Community Care" className="print-logo" /></div>
         <div className={`page${profile && profile.role !== 'family' ? ' has-tabs' : ''}`}>{children}</div>
-        {profile && profile.role !== 'family' && <MobileTabs unread={unread} todo={todo} />}
+        {profile && profile.role !== 'family' && <MobileTabs unread={unread} todo={todo} frontline={levelOf(profile) <= 2 && !!profile.home_id && !groupOf(profile)} />}
         {profile && <IdleLogout />}
+        <Suspense fallback={null}><PhoneHelpers /></Suspense>
         <PwaRegister />
         <DatePickerOpener />
       </body>

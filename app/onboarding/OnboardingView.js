@@ -233,15 +233,15 @@ export default async function OnboardingView({ supabase, onb, person, viewer, no
               <label>Pronouns<input name="pronouns" defaultValue={p.pronouns ?? ''} placeholder="e.g., she/her, they/them" /></label>
             </div>
             <div className="row">
-              <label>Phone<input name="phone" required defaultValue={p.phone ?? ''} /></label>
+              <label>Phone<input name="phone" type="tel" inputMode="tel" autoComplete="tel" required defaultValue={p.phone ?? ''} /></label>
               <label>Address<input name="address" defaultValue={p.address ?? ''} /></label>
               <label>City<input name="city" defaultValue={p.city ?? ''} /></label>
-              <label>Postal code<input name="postal_code" defaultValue={p.postal_code ?? ''} /></label>
+              <label>Postal code<input name="postal_code" autoCapitalize="characters" autoComplete="postal-code" defaultValue={p.postal_code ?? ''} /></label>
             </div>
             <div className="row">
               <label>Emergency contact<input name="emergency_name" required defaultValue={p.emergency_name ?? ''} /></label>
               <label>Relationship<input name="emergency_relationship" defaultValue={p.emergency_relationship ?? ''} /></label>
-              <label>Their phone<input name="emergency_phone" required defaultValue={p.emergency_phone ?? ''} /></label>
+              <label>Their phone<input name="emergency_phone" type="tel" inputMode="tel" required defaultValue={p.emergency_phone ?? ''} /></label>
             </div>
             <label>Languages spoken<input name="languages" defaultValue={p.languages ?? ''} /></label>
             <p className="muted small">Payroll details (SIN and banking) are collected separately by payroll — please don’t enter them here.</p>

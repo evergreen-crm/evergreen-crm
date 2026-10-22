@@ -60,7 +60,7 @@ export default async function SignOffReport({ searchParams }) {
       </div>
 
       {person ? (
-        <table>
+        <table className="wide">
           <thead><tr><th>Policy</th><th>Program</th><th>Version</th><th>Signed as</th><th>Date and time</th></tr></thead>
           <tbody>
             {(policies ?? []).filter((p) => appliesTo(p.applies_to, sd(person).program)).map((p) => {
@@ -86,7 +86,7 @@ export default async function SignOffReport({ searchParams }) {
             <section key={p.id} className={i > 0 ? 'page-break' : ''}>
               <h2>{p.title} <ProgramBadge program={p.applies_to} /></h2>
               <p className="small muted">{[p.code, p.category, v && `Version ${v.version_label}`, v?.effective_date && `effective ${fmtDate(v.effective_date)}`].filter(Boolean).join(' · ')} · {n} of {team.length} signed</p>
-              <table>
+              <table className="wide">
                 <thead><tr><th>Emp. no.</th><th>Name</th><th>Program</th><th>Signed as</th><th>Date and time</th></tr></thead>
                 <tbody>
                   {team.map((x) => {

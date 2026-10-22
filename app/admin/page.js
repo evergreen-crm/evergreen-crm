@@ -84,7 +84,7 @@ export default async function AdminPage({ searchParams }) {
       {!levelsReady && (
         <p className="message">Run <code>supabase/access-levels.sql</code> in Supabase → SQL Editor to switch on access levels 1–8.</p>
       )}
-      <table>
+      <table className="wide">
         <thead>
           <tr><th>Name</th><th>Level</th><th>Home</th><th>Email / cell</th><th>Access</th></tr>
         </thead>
@@ -129,7 +129,7 @@ export default async function AdminPage({ searchParams }) {
       <section className="card" id="levels">
         <h2>Access levels</h2>
         <p className="muted small">Each person has one level — their security level. Levels 1–2 see their own home, 3–7 see all homes, 8 can do everything including giving access. Move anyone with the Level menu above.</p>
-        <table>
+        <table className="wide">
           <thead><tr><th>Level</th><th>Group</th><th>What it’s for</th><th>People</th></tr></thead>
           <tbody>
             {LEVELS.map((l) => (
@@ -147,7 +147,7 @@ export default async function AdminPage({ searchParams }) {
       <form action={setDivisionLevels} className="card" id="divisions">
         <h2>Portal divisions by level</h2>
         <p className="muted small">A division opens automatically for everyone at or above its level. “Edit everyone’s records” is the level that can also change other people’s records. You can still add one-off people on a division’s “Who has access”.</p>
-        <table>
+        <table className="wide">
           <thead><tr><th>Division</th><th>Can see and add</th><th>Can edit everyone’s records</th></tr></thead>
           <tbody>
             {DIVISIONS.map((d) => {

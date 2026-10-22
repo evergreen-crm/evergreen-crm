@@ -187,7 +187,7 @@ export default async function StaffHrPage({ params, searchParams }) {
           </div>
           <div className="row">
             <label>Emergency contact<input name="emergency_contact" defaultValue={details?.emergency_contact ?? ''} /></label>
-            <label>Emergency phone<input name="emergency_phone" defaultValue={details?.emergency_phone ?? ''} /></label>
+            <label>Emergency phone<input name="emergency_phone" type="tel" inputMode="tel" defaultValue={details?.emergency_phone ?? ''} /></label>
           </div>
           <label>Notes<textarea name="notes" rows={2} defaultValue={details?.notes ?? ''} /></label>
           <button>Save details</button>

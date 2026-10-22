@@ -111,11 +111,11 @@ export default async function RoleHome({ supabase, profile, userId }) {
           </div>
 
           <div className="rh-bigs">
-            <Big href="/checklist" icon="✅" label="Shift checklist" hint="Tick & sign every shift" />
+            <Big href="/checklist" icon="📋" label="Shift checklist" hint="Tick & sign every shift" />
             <Big href="/notes" icon="📝" label="Daily notes" hint="Everyone, one screen" />
             <Big href="#my-youth" icon="💊" label="Medication" hint="Record each dose" />
             <Big href="#my-youth" icon="⚠️" label="Report an incident" hint="Tell on-call first" />
-            <Big href={shift.home ? `/homes/${shift.home.id}?tab=commbook` : '/homes'} icon="📋" label="Shift log" hint="Handover & comm book" />
+            <Big href={shift.home ? `/homes/${shift.home.id}?tab=commbook` : '/homes'} icon="📒" label="Shift log" hint="Handover & comm book" />
           </div>
 
           <h3 id="my-youth">My youth today</h3>

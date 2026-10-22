@@ -64,7 +64,7 @@ export default async function HomePage({ params, searchParams }) {
           <label>House name<input name="name" required defaultValue={home.name} /></label>
           <label>Address<input name="address" defaultValue={home.address ?? ''} /></label>
           <div className="row">
-            <label>Phone<input name="phone" defaultValue={home.phone ?? ''} /></label>
+            <label>Phone<input name="phone" type="tel" inputMode="tel" defaultValue={home.phone ?? ''} /></label>
             <label>
               Who lives here
               <select name="house_type" defaultValue={home.house_type ?? 'Adults'}>

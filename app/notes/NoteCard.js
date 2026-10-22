@@ -84,7 +84,7 @@ export default function NoteCard({ resident, draft, shift, day, homeId, nextId, 
         <label className="check small"><input type="checkbox" name="share_with_family" checked={v.share} onChange={(e) => set({ share: e.target.checked })} /> Share with family (after signing)</label>
         <label className="check small"><input type="checkbox" name="serious" /> ⚠️ Something serious happened — open an incident report next</label>
       </div>
-      <div className="row">
+      <div className="row sticky-actions">
         <button name="sign" value="yes">Save &amp; sign{nextId ? ' → next' : ''}</button>
         <button name="sign" value="no" className="secondary">Save draft</button>
       </div>

@@ -107,7 +107,7 @@ export default async function PrintPlan({ params, searchParams }) {
       {chosen.has('payment') && (
         <section className="card">
           <h2>Transition payment</h2>
-          <table>
+          <table className="wide">
             <tbody>
               <tr><td>Maximum for staffing costs</td><td>${(Number(plan.max_staffing) || 0).toLocaleString('en-CA')}</td></tr>
               <tr><td>Maximum for facility costs</td><td>${(Number(plan.max_facility) || 0).toLocaleString('en-CA')}</td></tr>
@@ -178,7 +178,7 @@ export default async function PrintPlan({ params, searchParams }) {
       {chosen.has('signoff') && (
         <section className="card" style={{ breakInside: 'avoid' }}>
           <h2>Sign-off</h2>
-          <table>
+          <table className="wide">
             <thead><tr><th>Role</th><th>Name</th><th>Signature</th><th>Date</th></tr></thead>
             <tbody>
               {['Prepared by', 'Program Manager', 'Director of Operations', 'Executive Director', 'CEO'].map((r) => (

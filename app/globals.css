@@ -642,3 +642,55 @@ table.matrix .prog-row th span.prog-dot { writing-mode: horizontal-tb; transform
 .notready { border-left: 5px solid #d4a72c; }
 .words { display: grid; gap: 12px; margin: 0; }
 .words dd { margin: 2px 0 0; }
+
+/* ---------- Step 5: easy on a phone ---------- */
+.list.compact li { align-items: center; gap: 10px; }
+.list.compact li > .badge { flex: 0 0 auto; white-space: nowrap; align-self: center; }
+.list.compact li > a { flex: 1 1 auto; display: block; padding: 6px 0; background: none; border: 0; margin: 0; border-radius: 0; color: var(--green-dark); }
+/* "Saving…" on the button that was tapped (PhoneHelpers). */
+button[data-saving] { position: relative; color: transparent !important; }
+button[data-saving]::after { content: 'Saving…'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; }
+button.secondary[data-saving]::after, button.link[data-saving]::after { color: var(--green-dark); }
+button:disabled { opacity: .65; cursor: not-allowed; }
+.offline-bar { position: fixed; left: 0; right: 0; top: 0; z-index: 60; background: #8a5a00; color: #fff; text-align: center; font-size: .9rem; padding: 8px 12px; }
+/* Wide tables keep scrolling sideways with the first column pinned. */
+table.wide td:first-child, table.wide th:first-child { position: sticky; left: 0; background: var(--card); z-index: 1; box-shadow: 1px 0 0 var(--line); }
+
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .page { padding-left: 12px; padding-right: 12px; }
+  h1 { font-size: 1.35rem; } h2 { font-size: 1.1rem; }
+  .small { font-size: .9rem; } .badge { font-size: .8rem; padding: 3px 9px; }
+  /* No zoom-in on iPhone when tapping a box, and bigger tap areas everywhere. */
+  input, select, textarea { font-size: 16px; min-height: 44px; }
+  input[type=checkbox], input[type=radio] { min-height: 0; width: 22px; height: 22px; }
+  button, a.button, .button { min-height: 44px; }
+  button.link { min-height: 40px; padding: 8px 6px; }
+  label.check { min-height: 40px; }
+  .tabs-bar { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tabs-bar a { white-space: nowrap; padding: 12px 14px; }
+  .pills a { padding: 9px 12px; }
+  .row > * { min-width: 0; flex: 1 1 100%; }
+  .row > button, .row > a.button, .row > form { flex: 0 1 auto; }
+  /* Shorter page tops so the work shows first. */
+  .div-banner { padding: 12px 14px; gap: 10px; }
+  .div-banner .div-icon { font-size: 1.6rem; }
+  .div-banner p { font-size: .9rem; margin: 2px 0 0; }
+  .title-row { flex-wrap: wrap; gap: 6px; }
+  .rh-bigs > :last-child:nth-child(odd) { grid-column: 1 / -1; min-height: 72px; flex-direction: row; gap: 10px; }
+  /* Tables become cards: one card per row, each value with its column name. */
+  table.cardify { display: block; border: 0; background: transparent; overflow: visible; }
+  table.cardify thead { display: none; }
+  table.cardify tbody { display: grid; gap: 10px; }
+  table.cardify tr { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; }
+  table.cardify td { display: block; border: 0; padding: 6px 0; text-align: left; overflow-wrap: anywhere; }
+  table.cardify td + td { border-top: 1px solid #eef1ee; }
+  table.cardify td::before { content: attr(data-label); display: block; font-weight: 600; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 2px; }
+  table.cardify td:not([data-label])::before, table.cardify td[data-label=""]::before { display: none; }
+  table.cardify td:empty { display: none; }
+  table.cardify td:first-child { font-weight: 600; font-size: 1.02rem; }
+  table.cardify td:first-child::before { display: none; }
+  /* Main button stays reachable above the tab bar on long forms. */
+  .sticky-actions { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 20; background: rgba(247,245,240,.96); padding: 10px 0; margin: 0 -12px; padding-left: 12px; padding-right: 12px; box-shadow: 0 -6px 12px rgba(15,48,89,.06); }
+  .sticky-actions button { flex: 1 1 auto; }
+}

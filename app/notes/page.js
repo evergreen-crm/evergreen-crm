@@ -56,7 +56,7 @@ export default async function Notes({ searchParams }) {
         <progress max={list.length || 1} value={done} />
         <div className="row" style={{ gap: 8 }}>
           {drafts > 0 && <form action={signAllMine}><input type="hidden" name="home_id" value={home.id} /><button>✍️ Sign all my drafts ({drafts})</button></form>}
-          <Link href="/checklist" className="button secondary">✅ Shift checklist</Link>
+          <Link href="/checklist" className="button secondary">📋 Shift checklist</Link>
         </div>
         {choices.length > 1 && (
           <form className="row no-print" style={{ gap: 8, alignItems: 'flex-end' }}>

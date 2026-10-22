@@ -31,7 +31,7 @@ export default async function Checklist({ searchParams }) {
   const header = (
     <>
       <div className="div-banner">
-        <span className="div-icon">✅</span>
+        <span className="div-icon">📋</span>
         <div><h1>Shift checklist</h1><p>Every staff member, every shift. Tap each duty as you do it, then initial and sign before you leave.</p></div>
       </div>
       {sp?.ok && <p className="message ok">{sp.ok}</p>}
@@ -191,9 +191,9 @@ export default async function Checklist({ searchParams }) {
             {cl.signature_image && <img src={cl.signature_image} alt="Signature" style={{ maxHeight: 60, background: '#fff' }} />}
           </div>
         ) : !mine ? <p className="muted">Not signed yet.</p> : (
-          <form action={signChecklist} className="row" style={{ alignItems: 'flex-end', gap: 8 }}>
+          <form action={signChecklist} className="row sticky-actions" style={{ alignItems: 'flex-end', gap: 8 }}>
             <input type="hidden" name="id" value={cl.id} />
-            <label>Your initials<input name="initials" required maxLength={6} placeholder="e.g. SW" style={{ width: 110, textTransform: 'uppercase' }} /></label>
+            <label>Your initials<input name="initials" required maxLength={6} placeholder="e.g. SW" autoCapitalize="characters" autoComplete="off" autoCorrect="off" spellCheck={false} style={{ width: 110, textTransform: 'uppercase' }} /></label>
             <button disabled={left > 0}>{left > 0 ? `${left} item${left > 1 ? 's' : ''} left` : 'I completed these duties — sign'}</button>
             <p className="muted small" style={{ flexBasis: '100%', margin: 0 }}>Your saved onboarding signature, name, date and time are added. After signing, the checklist is locked.</p>
           </form>

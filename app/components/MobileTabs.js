@@ -6,16 +6,18 @@ import { usePathname } from 'next/navigation';
 const TABS = [
   { href: '/todo', label: 'To-do', icon: '✅' },
   { href: '/id#checkin', label: 'Check in', icon: '🪪', match: (p) => p === '/id' },
-  { href: '/schedule', label: 'Schedule', icon: '🗓' },
+  { href: '/schedule', label: 'Schedule', icon: '🗓', office: true },
+  { href: '/checklist', label: 'Checklist', icon: '📋', frontline: true },
   { href: '/timesheet', label: 'Hours', icon: '⏱' },
   { href: '/notifications', label: 'Alerts', icon: '🔔' },
 ];
 
-export default function MobileTabs({ unread = 0, todo = { total: 0, overdue: 0 } }) {
+// Frontline staff on a house get Checklist in place of Schedule (Schedule stays in the ☰ menu).
+export default function MobileTabs({ unread = 0, todo = { total: 0, overdue: 0 }, frontline = false }) {
   const path = usePathname();
   return (
     <nav className="mtabs no-print" aria-label="App">
-      {TABS.map((t) => {
+      {TABS.filter((t) => (frontline ? !t.office : !t.frontline)).map((t) => {
         const on = t.match ? t.match(path) : path === t.href || path.startsWith(t.href + '/');
         return (
           <Link key={t.href} href={t.href} className={on ? 'on' : ''}>
