@@ -6,11 +6,23 @@ import { levelOf } from '@/lib/levels';
 import { fmtDateTime } from '@/lib/options';
 import { plainError } from '@/lib/plain';
 import { FAQ, HELP_TOPICS, PAGE_HELP, HELP_GUIDES } from '@/lib/help';
-import { RULES, RULE_FOR, RULES_CHECKED } from '@/lib/rules';
+import { RULES, RULE_FOR, RULES_CHECKED, EVERGREEN_RULES } from '@/lib/rules';
 import { emailReady } from '@/lib/email';
 import { adminKey, createAdminClient } from '@/lib/supabase/admin';
 import NotReady from '@/app/components/NotReady';
 import { askHelpForm, answerHelp, testEmail } from './actions';
+
+function Rule({ r }) {
+  return (
+    <details id={`rule-${r.id}`} className="faq rule">
+      <summary><strong>{r.icon} {r.title}</strong> <span className={`badge rule-${r.for}`}>{RULE_FOR[r.for]}</span></summary>
+      <ul>{r.points.map((t) => <li key={t}>{t}</li>)}</ul>
+      <p className="small muted" style={{ margin: '4px 0 0' }}>Source: {r.sources.map((x, i) => (
+        <span key={x.label}>{i > 0 && ' · '}{x.url ? <a href={x.url} target="_blank" rel="noopener noreferrer">{x.label}</a> : x.label}</span>
+      ))}</p>
+    </details>
+  );
+}
 
 const badge = (st) => (st === 'Open' ? 'warn' : st === 'Answered' ? '' : 'muted');
 
@@ -54,7 +66,7 @@ export default async function Help({ searchParams }) {
       {sp?.ok && <p className="message ok">{sp.ok}</p>}
       {sp?.error && <p className="message error">{plainError(sp.error)}</p>}
       <p className="small">🆘 <strong>Emergency?</strong> Call 911 if anyone is in danger, then use the 🆘 button. Don’t use this page for emergencies.</p>
-      <p className="small help-jump">Jump to: <a href="#faq">Common questions</a> · <a href="#topics">Help topics</a> · <a href="#rules">⚖️ Rules and laws we follow</a> · <a href="#mine">Ask for help</a></p>
+      <p className="small help-jump">Jump to: <a href="#faq">Common questions</a> · <a href="#topics">Help topics</a> · <a href="#rules">⚖️ Rules and laws</a> · <a href="#rule-bullying">Bullying</a> · <a href="#rule-human-rights">Human rights</a> · <a href="#mine">Ask for help</a></p>
 
       {lead && !notReady && (
         <section className={`card${toAnswer.length ? ' rh-urgent' : ''}`} id="answer">
@@ -134,15 +146,13 @@ export default async function Help({ searchParams }) {
 
       <section className="card" id="rules">
         <h2 style={{ marginTop: 0 }}>⚖️ Rules and laws we follow</h2>
-        <p className="small">The BC laws, ministry standards and funder rules behind our work, in plain words. Our Evergreen policies follow these. If a rule here and a policy seem to disagree, or you’re not sure what to do, ask your Program Coordinator or on-call. In an emergency, keep people safe first.</p>
+        <p className="small">Evergreen’s own rules, and the BC laws, ministry standards and funder rules behind our work, in plain words. If a rule here and a policy seem to disagree, or you’re not sure what to do, ask your Program Coordinator or on-call. In an emergency, keep people safe first.</p>
         <p className="small"><span className="badge rule-youth">Youth (MCFD)</span> applies in youth homes, <span className="badge rule-adults">Adults (CLBC)</span> in adult homes, <span className="badge rule-all">Everyone</span> everywhere.</p>
-        {RULES.map((r) => (
-          <details key={r.id} id={`rule-${r.id}`} className="faq rule">
-            <summary><strong>{r.icon} {r.title}</strong> <span className={`badge rule-${r.for}`}>{RULE_FOR[r.for]}</span></summary>
-            <ul>{r.points.map((t) => <li key={t}>{t}</li>)}</ul>
-            <p className="small muted" style={{ margin: '4px 0 0' }}>Source: {r.sources.map((x, i) => <span key={x.url}>{i > 0 && ' · '}<a href={x.url} target="_blank" rel="noopener noreferrer">{x.label}</a></span>)}</p>
-          </details>
-        ))}
+        <h3 className="rules-group">🌲 Evergreen rules</h3>
+        <p className="small muted" style={{ marginTop: 0 }}>Our own rules, from the Staff Rules and Regulations Handbook you sign. Where they are stricter than the law, they apply.</p>
+        {EVERGREEN_RULES.map((r) => <Rule key={r.id} r={{ ...r, for: 'all' }} />)}
+        <h3 className="rules-group">🏛 BC laws and standards</h3>
+        {RULES.map((r) => <Rule key={r.id} r={r} />)}
         <p className="muted small">Summaries last checked {RULES_CHECKED}. Laws and standards change. The linked source is always the final word.</p>
       </section>
 
