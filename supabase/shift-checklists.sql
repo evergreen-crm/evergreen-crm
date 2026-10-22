@@ -105,6 +105,10 @@ insert into shift_checklist_template (code, program, shift, area, sort, item, cr
 on conflict (code) do update set program = excluded.program, shift = excluded.shift, area = excluded.area, sort = excluded.sort,
   item = excluded.item, critical = excluded.critical, weekday = excluded.weekday, only_if = excluded.only_if;
 
+alter table shift_checklist_template enable row level security;
+drop policy if exists sctpl_read on shift_checklist_template;
+create policy sctpl_read on shift_checklist_template for select using (auth.uid() is not null);
+
 -- ---------- Each house's own list (copied from the template; editable per house) ----------
 create table if not exists house_checklist_items (
   id         uuid primary key default gen_random_uuid(),
