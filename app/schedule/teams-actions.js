@@ -27,9 +27,13 @@ export async function saveStaffing(fd) {
 export async function assignLine(fd) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);
   const home = s(fd, 'home_id');
-  const { error } = await supabase.rpc('assign_line', { p_line: s(fd, 'line_id'), p_profile: s(fd, 'profile_id') });
+  const pid = s(fd, 'profile_id');
+  const { error } = await supabase.rpc('assign_line', { p_line: s(fd, 'line_id'), p_profile: pid });
   if (error) back('teams', msg(error), true, `&home=${home}`);
-  back('teams', s(fd, 'profile_id') ? 'Assigned. Their shifts for the next 6 months are posted and they’ve been told.' : 'Removed from the line. Their future shifts are now open.', false, `&home=${home}`);
+  const { data: why } = pid ? await supabase.rpc('cleared_on', { p_profile: pid }) : { data: null };
+  back('teams', !pid ? 'Removed from the line. Their future shifts are now open.'
+    : why ? `Assigned, but they aren’t cleared to work yet: ${why} Their shifts stay open until it’s fixed in HR.`
+    : 'Assigned. Their shifts for the next 6 months are posted and they’ve been told.', false, `&home=${home}`);
 }
 
 export async function pickUp(fd) {

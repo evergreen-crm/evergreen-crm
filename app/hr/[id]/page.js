@@ -45,6 +45,8 @@ export default async function StaffHrPage({ params, searchParams }) {
 
   // Staff can only open their own record (the database also enforces this).
   if (!person) notFound();
+  const { data: notCleared, error: clrErr } = await supabase.rpc('cleared_on', { p_profile: id });
+  const clearanceKnown = !clrErr;
 
   return (
     <main>
@@ -54,6 +56,11 @@ export default async function StaffHrPage({ params, searchParams }) {
         {personLabel(person)} · {person.homes?.name ?? 'No home'} · {[person.email, person.phone].filter(Boolean).join(' · ')}
         {!person.active && <span className="badge bad"> Access turned off</span>}
       </p>
+      {clearanceKnown && [1, 2, 3].includes(person.level ?? 1) && person.role !== 'admin' && (
+        notCleared
+          ? <p className="message error">⛔ <strong>Not cleared to work:</strong> {notCleared} They can’t be given shifts until it’s fixed.</p>
+          : <p className="message ok">✅ Cleared to work: criminal record check, First Aid and NVCI are current (or not due yet).</p>
+      )}
       <p className="small">
         <span className="emp-no" title={describeStaffId(details?.employee_no) ?? undefined}>Employee no. {details?.employee_no ?? '—'}</span>{' '}
         {describeStaffId(details?.employee_no) && <span className="muted">({describeStaffId(details.employee_no)}{details?.employee_no_previous ? ` · was ${details.employee_no_previous}` : ''}) </span>}

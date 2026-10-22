@@ -29,6 +29,8 @@ export default async function IdPage({ searchParams }) {
     supabase.from('staff_badges').select('color, month').eq('profile_id', pid).order('month', { ascending: false }).limit(1).maybeSingle(),
   ]);
   if (!person) return <main><h1>ID card</h1><p className="muted">Not found.</p></main>;
+  // 🪪 Cleared to work? (supabase/cert-expiry.sql) — expired or missing criminal record check, First Aid or NVCI.
+  const { data: notCleared } = await supabase.rpc('cleared_on', { p_profile: pid });
 
   let photoUrl = null;
   if (card?.photo_path) {
@@ -82,6 +84,7 @@ export default async function IdPage({ searchParams }) {
         {card?.photo_status === 'Approved' && !card.issued_on && <p><span className="badge">Photo approved</span> Your manager will issue your card soon.</p>}
         {card?.new_photo_status === 'Pending' && <p><span className="badge warn">New photo waiting for approval</span> Your current card keeps working until it’s approved.</p>}
         {card?.new_photo_status === 'Returned' && <p className="message">Your new photo wasn’t approved{card.new_photo_note && `: ${card.new_photo_note}`}. Your current card still works.</p>}
+        {notCleared && <p className="message error">⛔ <strong>Not cleared to work with youth or adults:</strong> {notCleared} Upload the renewed certificate in <Link href={`/hr/${pid}`}>HR</Link> and tell your Program Coordinator. Until then you can’t be scheduled.</p>}
         {status === 'Expired' && <p className="message">This card has expired. Ask your manager to renew it.</p>}
         {status === 'Not active' && <p className="message">This card is not active.</p>}
         {isSelf && status !== 'Not active' && (
