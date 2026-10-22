@@ -72,6 +72,10 @@ export default async function ResidentPage({ params, searchParams }) {
     .eq('resident_id', id).gte('appt_date', todayISO()).neq('status', 'Cancelled')
     .order('appt_date').order('start_time').limit(5);
 
+  // 🔎 Missing: an open missing log shows as a red banner; otherwise staff get the Report missing button.
+  const { data: missingNow } = isStaff ? await supabase.from('missing_episodes').select('id, status, started_at')
+    .eq('resident_id', id).neq('status', 'Closed').order('started_at', { ascending: false }).limit(1).maybeSingle() : { data: null };
+
   const { data: notes } = await supabase
     .from('shift_notes')
     .select('id, note_date, shift, mood, meals, activities, note, share_with_family, signed_at, author_id, profiles(full_name)')
@@ -97,6 +101,14 @@ export default async function ResidentPage({ params, searchParams }) {
         {resident.date_of_birth && ` · age ${age(resident.date_of_birth)}`}
         {resident.admission_date && ` · admitted ${fmtDate(resident.admission_date)}`}
       </p>
+      {missingNow && (
+        <p className="miss-banner no-print"><Link href={`/missing/${missingNow.id}`}>
+          {missingNow.status === 'Missing' ? `🔎 MISSING since ${fmtTime(new Date(missingNow.started_at).toLocaleTimeString('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit' }))} — open the missing log →` : '✅ Back — finish the missing log and debrief →'}
+        </Link></p>
+      )}
+      {isStaff && !missingNow && resident.status === 'active' && (
+        <p className="no-print" style={{ margin: '0 0 8px' }}><Link className="button miss-go small-btn" href={`/missing/new?resident=${id}`}>🔎 Report missing</Link></p>
+      )}
       {isStaff && resident.allergies && (
         <p className="alert">Allergies: {resident.allergies}</p>
       )}

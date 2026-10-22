@@ -71,6 +71,7 @@ export default async function RootLayout({ children }) {
                     { href: '/checklist', label: 'Shift checklist', icon: '📋', color: '#2e8b57' },
                     { href: '/notes', label: 'Daily notes', icon: '📝', color: '#1f6fb2' },
                     { href: '/action-items', label: 'Problems to fix', icon: '⚠️', color: '#b3261e' },
+                    { href: '/missing', label: 'Missing youth', icon: '🔎', color: '#b3261e' },
                     ...(levelOf(profile) >= 2 ? [{ href: '/approvals', label: 'Approvals & 🆘', icon: '🙋', color: '#b3261e' }] : []),
                     ...(levelOf(profile) >= 2 ? [{ href: '/kpi', label: 'How we’re doing (KPIs)', icon: '📈', color: '#1f6fb2' }] : []),
                     { href: '/homes', label: 'Houses', icon: '🏡', color: '#2e8b57' },

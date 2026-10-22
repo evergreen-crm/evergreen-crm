@@ -797,3 +797,22 @@ details.rule li { margin: 4px 0; }
 .badge.rule-all { background: #e6f2ea; color: #0b5a34; }
 .badge.rule-youth, .badge.rule-adults, .badge.rule-all { white-space: nowrap; }
 .rules-group { margin: 18px 0 4px; font-size: 1.05rem; }
+
+/* ---------- 🔎 Missing youth or adult ---------- */
+.button.miss-go, button.miss-go { background: #b3261e; color: #fff; border-color: #b3261e; font-weight: 700; }
+.miss-banner { margin: 8px 0; } .miss-banner a { display: block; background: #b3261e; color: #fff; font-weight: 700; padding: 10px 14px; border-radius: 10px; text-decoration: none; }
+.miss-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 14px 16px; border-radius: 12px; margin: 8px 0 12px; color: #fff; background: #b3261e; }
+.miss-head.found { background: #8a5a00; } .miss-head.closed { background: #4d5a52; }
+.miss-head h1 { color: #fff; font-size: 1.35rem; } .miss-head .badge { background: #fff; color: #b3261e; }
+.miss-clock { text-align: right; font-size: .85rem; white-space: nowrap; } .miss-clock strong { font-size: 1.6rem; }
+.miss-dls { list-style: none; padding: 0; margin: 0; }
+.miss-dl { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.miss-dl.done span { color: var(--green-dark, #0b5a34); } .miss-dl.late span { color: #b3261e; font-weight: 700; }
+.miss-steps { list-style: none; padding: 0; margin: 0 0 6px; }
+.miss-step { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.miss-step.done { color: var(--muted); } .miss-tick { font-weight: 700; width: 18px; color: #b3261e; } .miss-step.done .miss-tick { color: #0b5a34; }
+.miss-form { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
+.miss-form input, .miss-form select { flex: 1 1 140px; margin: 0; }
+.miss-log { padding-left: 18px; } .miss-log li { margin: 4px 0; }
+li.miss-row { border-left: 4px solid #b3261e; padding-left: 8px; }
+@media print { .miss-sheet { border: 0; } }
