@@ -7,6 +7,7 @@ import { pickUp } from '@/app/schedule/teams-actions';
 import { levelOf } from '@/lib/levels';
 import { plainError } from '@/lib/plain';
 import { TabBar, MyTab, OpenTab, TimeOffTab, TeamsTab } from './TeamTabs';
+import ShiftRules from '@/app/components/ShiftRules';
 
 export default async function SchedulePage({ searchParams }) {
   const sp = await searchParams;
@@ -26,6 +27,7 @@ export default async function SchedulePage({ searchParams }) {
       <main>
         <div className="title-row"><h1>Schedule</h1></div>
         <TabBar tab={tab} lead={lead} />
+        <ShiftRules />
         {flash}
         <T supabase={supabase} profile={profile} homeId={sp.home} />
       </main>
@@ -68,6 +70,7 @@ export default async function SchedulePage({ searchParams }) {
         </span>
       </div>
       <TabBar tab="week" lead={lead} />
+      <ShiftRules />
       {flash}
       <p className="muted">Week of {fmtDate(week)} to {fmtDate(end)}</p>
 

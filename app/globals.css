@@ -778,3 +778,8 @@ table.ss-grid th.who small { font-size: .68rem; }
 table.ss-grid th.wk { font-weight: 600; color: var(--muted); font-size: .7rem; border-bottom: 1px solid var(--line); }
 table.ss-grid .wkstart { border-left: 6px solid transparent; }
 table.ss-grid tr.pair-end td, table.ss-grid tr.pair-end th { padding-bottom: 6px; }
+
+/* ---------- Shift rules (Schedule page) ---------- */
+.shift-rules h3 { font-size: 1rem; margin: 14px 0 6px; }
+.shift-rules ul, .shift-rules ol { margin: 0 0 6px; padding-left: 22px; }
+.shift-rules li { margin: 3px 0; }
