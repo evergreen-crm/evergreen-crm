@@ -6,6 +6,7 @@
 import Link from 'next/link';
 import { levelOf, groupOf } from '@/lib/levels';
 import { fmtDate, fmtTime, todayISO, addDaysISO } from '@/lib/options';
+import { getMyTodos } from '@/lib/todos';
 
 const rows = (res) => (res && !res.error ? res.data ?? [] : []);
 const cnt = (res) => (res && !res.error ? res.count ?? 0 : 0);
@@ -31,32 +32,29 @@ export default async function RoleHome({ supabase, profile, userId }) {
   const lvl = levelOf(profile);
   const today = todayISO();
   const in7 = addDaysISO(today, 7);
-  const in30 = addDaysISO(today, 30);
   const homeId = profile.home_id;
   const worker = lvl <= 2 && homeId && !groupOf(profile);
+
+  // Everyone's own to-do list (the same list as /todo and the ✅ counter).
+  const todos = await getMyTodos(supabase, profile).catch(() => []);
 
   // ---------- Level 1-2: my shift ----------
   let shift = null;
   if (worker) {
-    const [home, open, youth, notes, appts, handover, onb, certs, offer] = await Promise.all([
+    const [home, open, youth, notes, appts, handover] = await Promise.all([
       supabase.from('homes').select('id, name').eq('id', homeId).maybeSingle(),
       supabase.from('time_entries').select('id, clock_in').eq('profile_id', userId).is('clock_out', null).maybeSingle(),
       supabase.from('residents').select('id, first_name, preferred_name, last_name, allergies, status').eq('home_id', homeId).neq('status', 'discharged').order('first_name'),
       supabase.from('shift_notes').select('resident_id, author_id, signed_at').eq('note_date', today),
       supabase.from('appointments').select('id, title, start_time, residents(first_name, preferred_name)').eq('home_id', homeId).eq('appt_date', today).neq('status', 'Cancelled').order('start_time'),
       supabase.from('entries').select('id, entry_date, entry_time, data, author:created_by(full_name)').eq('home_id', homeId).eq('kind', 'commbook').order('created_at', { ascending: false }).limit(3),
-      supabase.from('onboarding_items').select('id, title, due_date, status').eq('profile_id', userId).in('status', ['To do', 'Returned']).order('due_date').limit(5),
-      supabase.from('certifications').select('id, cert_type, expires_on').eq('profile_id', userId).lte('expires_on', in30).order('expires_on').limit(5),
-      supabase.from('offer_letters').select('id, position').eq('profile_id', userId).eq('status', 'Sent').limit(1),
     ]);
     const noteBy = {};
     for (const n of rows(notes)) (noteBy[n.resident_id] ??= []).push(n);
-    const due = [
-      ...rows(offer).map((o) => ({ key: 'o' + o.id, href: `/offer/${o.id}`, text: `Sign your offer letter (${o.position})`, when: 'now', bad: true })),
-      ...rows(onb).map((i) => ({ key: 'i' + i.id, href: '/onboarding', text: i.title, when: i.due_date, bad: i.status === 'Returned' || (i.due_date && i.due_date < today) })),
-      ...rows(certs).map((c) => ({ key: 'c' + c.id, href: `/hr/${userId}`, text: `${c.cert_type ?? 'Certificate'} ${c.expires_on < today ? 'expired' : 'expires'}`, when: c.expires_on, bad: c.expires_on < today })),
-    ].slice(0, 3);
-    shift = { home: home.data, open: open.data, youth: rows(youth), noteBy, appts: rows(appts), handover: rows(handover), due };
+    // Same list as /todo, so the numbers match everywhere.
+    const due = todos.slice(0, 3).map((t) => ({ key: t.key, href: t.href, text: t.title, when: t.bucket === 'today' ? 'now' : t.due, bad: t.bucket === 'overdue' }));
+    const dueTotal = todos.length;
+    shift = { home: home.data, open: open.data, youth: rows(youth), noteBy, appts: rows(appts), handover: rows(handover), due, dueTotal };
   }
 
   // ---------- Level 2: waiting for me (my house) ----------
@@ -78,7 +76,7 @@ export default async function RoleHome({ supabase, profile, userId }) {
       supabase.from('incidents').select('id, occurred_on, incident_type, home_id, homes(name)').eq('is_critical', true).is('verbal_report_at', null).eq('status', 'Open').order('occurred_on').limit(5),
       supabase.from('incidents').select('id', { count: 'exact', head: true }).gte('created_at', since),
       supabase.from('time_entries').select('id', { count: 'exact', head: true }).not('clock_out', 'is', null).is('approved_by', null),
-      supabase.from('probation_reviews').select('id', { count: 'exact', head: true }).is('completed_on', null).lte('due_date', in7),
+      supabase.from('probation_due_list').select('review_id', { count: 'exact', head: true }).in('review_status', ['Overdue', 'Due this week']).in('probation_status', ['On probation', 'Extended']),
       supabase.from('homes').select('id, name').order('name'),
       supabase.from('shifts').select('home_id').is('profile_id', null).gte('shift_date', today).lte('shift_date', in7),
       supabase.from('incidents').select('home_id').eq('status', 'Open'),
@@ -97,7 +95,8 @@ export default async function RoleHome({ supabase, profile, userId }) {
     ex = { signoffs: rows(signoffs), promos: cnt(promos) };
   }
 
-  if (!shift && !pc && !pm && !ex) return null;
+  if (!shift && !pc && !pm && !ex && !todos.length) return null;
+  const overdue = todos.filter((t) => t.bucket === 'overdue').length;
 
   return (
     <section className="rh no-print">
@@ -154,9 +153,17 @@ export default async function RoleHome({ supabase, profile, userId }) {
               <h3>Due soon for me</h3>
               {!shift.due.length && <p className="muted small">Nothing due. 🎉</p>}
               <ul className="list compact">{shift.due.map((d) => <li key={d.key}><Link href={d.href}>{d.text}</Link><span className={`badge ${d.bad ? 'bad' : 'warn'}`}>{d.when === 'now' ? 'Now' : d.when ? fmtDate(d.when) : 'To do'}</span></li>)}</ul>
-              <p className="small"><Link href="/academy/plan">My training plan →</Link> · <Link href="/onboarding">My onboarding →</Link></p>
+              <p className="small"><Link href="/todo">✅ All my to-do{shift.dueTotal ? ` (${shift.dueTotal})` : ''} →</Link> · <Link href="/academy/plan">My training plan →</Link></p>
             </div>
           </div>
+        </div>
+      )}
+
+      {!shift && todos.length > 0 && (
+        <div className={`card ${overdue ? 'rh-urgent' : ''}`}>
+          <h2 style={{ marginTop: 0 }}>✅ My to-do <span className="muted small">— {todos.length} task{todos.length === 1 ? '' : 's'}{overdue ? `, ${overdue} overdue` : ''}</span></h2>
+          <ul className="list compact">{todos.slice(0, 5).map((t) => <li key={t.key}><Link href={t.href}>{t.icon} {t.title}</Link><span className={`badge ${t.bucket === 'overdue' ? 'bad' : 'warn'}`}>{t.bucket === 'overdue' ? 'Overdue' : t.bucket === 'today' ? 'Today' : t.due ? fmtDate(t.due) : 'This week'}</span></li>)}</ul>
+          <p className="small"><Link href="/todo">See all →</Link>{levelOf(profile) >= 3 && <> · <Link href="/todo?view=team">Who on my team is behind →</Link></>}</p>
         </div>
       )}
 
