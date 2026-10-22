@@ -10,6 +10,9 @@ import DatePickerOpener from '@/app/components/DatePickerOpener';
 import IdleLogout from '@/app/components/IdleLogout';
 import PhoneHelpers from '@/app/components/PhoneHelpers';
 import { Suspense } from 'react';
+import { after } from 'next/server';
+import { maybeFlushUrgent } from '@/lib/emailOutbox';
+import HelpButton from '@/app/components/HelpButton';
 import { getMyTodos, todoCount } from '@/lib/todos';
 import { levelOf, groupOf, personLabel, canHR, canPayroll } from '@/lib/levels';
 
@@ -29,6 +32,7 @@ export default async function RootLayout({ children }) {
   if (profile) {
     const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('profile_id', profile.id).is('read_at', null);
     unread = count ?? 0;
+    after(() => maybeFlushUrgent()); // Step 7: urgent alert emails, at most once a minute
   }
   let psRole = null;
   let todo = { total: 0, overdue: 0 };
@@ -85,6 +89,7 @@ export default async function RootLayout({ children }) {
                     { href: '/policies', label: 'Policies', icon: '📘', color: '#0f3059' },
                     { href: '/notifications', label: 'Alerts', icon: '🔔', color: '#b3261e', badge: unread || null },
                     { href: '/words', label: 'What does this mean?', icon: '📖', color: '#0f3059' },
+                    { href: '/help', label: levelOf(profile) >= 2 ? 'Help & questions' : 'Help', icon: '❓', color: '#0f3059' },
                     { href: '/install', label: 'Install app', icon: '📲', color: '#0b5a34' },
                   ] },
                   ...(isMgr || psRole || canHR(profile) || canPayroll(profile) || levelOf(profile) >= 2 ? [{ title: 'Manage', items: [
@@ -105,6 +110,7 @@ export default async function RootLayout({ children }) {
                   {staffLike && <Link href="/todo" className={`navquick todo-count${todo.overdue ? ' late' : ''}`} title={todo.overdue ? `${todo.overdue} overdue` : 'My to-do'}>✅ <b>{todo.total}</b><span> To-do</span></Link>}
                   {staffLike && <Link href="/id" className="navquick">🪪 <span>My ID</span></Link>}
                   {onb && onb.status !== 'Complete' && <Link href="/onboarding" className="nav-alert">My onboarding</Link>}
+                  {staffLike && <HelpButton />}
                   <Link href="/notifications" className="bell" title="Alerts">🔔{unread > 0 && <span className="bell-count">{unread > 99 ? '99+' : unread}</span>}</Link>
                   <span className="muted who">{profile.full_name} · {personLabel(profile)}</span>
                   <PrintButton />

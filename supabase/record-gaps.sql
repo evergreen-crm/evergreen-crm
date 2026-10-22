@@ -197,7 +197,7 @@ begin
               where g.id = any(new_ids) group by o loop
       perform notify(r.pid, 'Missing details: ' || cardinality(r.ids) || ' to fill in',
         'Please complete by ' || to_char(r.due, 'Mon DD') || ' (1 week). If not done it goes to the Director of Operations. ' || gap_list(r.ids),
-        '/records', 'gaps1:' || r.pid || ':' || today);
+        '/records', 'gaps1:' || r.pid || ':' || extract(epoch from now())::bigint);
     end loop;
   end if;
 
@@ -210,7 +210,7 @@ begin
              group by pid loop
       perform notify(r.pid, 'Overdue: ' || cardinality(r.ids) || ' missing detail' || case when cardinality(r.ids) = 1 then '' else 's' end || ' not done within 1 week',
         'Now reported to the Director of Operations. After 1 month it goes to the Executive Director and CEO. ' || gap_list(r.ids),
-        '/records?stage=2', 'gaps2:' || r.pid || ':' || today);
+        '/records?stage=2', 'gaps2:' || r.pid || ':' || extract(epoch from now())::bigint);
     end loop;
   end if;
 
@@ -225,7 +225,7 @@ begin
              group by pid loop
       perform notify(r.pid, 'Still missing after 1 month: ' || cardinality(r.ids) || ' detail' || case when cardinality(r.ids) = 1 then '' else 's' end,
         'Reported to the Executive Director, CSO and CEO. ' || gap_list(r.ids),
-        '/records?stage=3', 'gaps3:' || r.pid || ':' || today);
+        '/records?stage=3', 'gaps3:' || r.pid || ':' || extract(epoch from now())::bigint);
     end loop;
   end if;
 
@@ -293,12 +293,12 @@ end $$;
 revoke execute on function fill_staff_blanks(uuid, jsonb) from public, anon;
 grant execute on function fill_staff_blanks(uuid, jsonb) to authenticated;
 
--- 6. Every morning at 8:20 am Vancouver time (15:20 UTC; 7:20 am in winter).
+-- 6. Every morning at 6:40 am Vancouver time (13:40 UTC; 5:40 am in winter), before the 7 am email.
 do $$
 begin
   create extension if not exists pg_cron;
   perform cron.unschedule('evergreen-record-gaps') where exists (select 1 from cron.job where jobname = 'evergreen-record-gaps');
-  perform cron.schedule('evergreen-record-gaps', '20 15 * * *', $c$select public.scan_record_gaps('cron')$c$);
+  perform cron.schedule('evergreen-record-gaps', '40 13 * * *', $c$select public.scan_record_gaps('cron')$c$);
 exception when others then
   raise notice 'Scheduler not available here (%). The check still runs when leaders open the portal.', sqlerrm;
 end $$;

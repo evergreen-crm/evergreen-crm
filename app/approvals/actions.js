@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
+import { after } from 'next/server';
+import { flushOutbox } from '@/lib/emailOutbox';
 
 const s = (fd, k) => { const v = fd.get(k); return typeof v === 'string' && v.trim() ? v.trim() : null; };
 const back = (msg, bad) => redirect(`/approvals?${bad ? 'error' : 'ok'}=${encodeURIComponent(msg)}`);
@@ -10,6 +12,7 @@ const back = (msg, bad) => redirect(`/approvals?${bad ? 'error' : 'ok'}=${encode
 export async function decideRequest(fd) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);
   const approve = fd.get('decision') === 'approve';
+  after(() => flushOutbox('urgent').catch(() => null));
   const { error } = await supabase.rpc('decide_shift_permission', { p_id: s(fd, 'id'), p_approve: approve, p_note: s(fd, 'note') });
   if (error) back(error.message, true);
   revalidatePath('/approvals'); revalidatePath('/portal'); revalidatePath('/todo');

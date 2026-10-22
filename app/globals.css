@@ -728,3 +728,16 @@ table.wide td:first-child, table.wide th:first-child { position: sticky; left: 0
 .gap-card details > summary { display: inline-block; list-style: none; cursor: pointer; margin: 4px 0; }
 .gap-card details > summary::-webkit-details-marker { display: none; }
 .fill-form { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+
+/* ---------- ❓ Help (Step 8) ---------- */
+.help-btn { background: none; border: 0; padding: 4px 6px; font-size: 1.05rem; color: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; min-height: 0; }
+.help-btn span { font-size: .9rem; }
+@media (max-width: 720px) { .help-btn span { display: none; } }
+.help-tips { padding-left: 18px; }
+.help-tips li { margin-bottom: 6px; }
+.help-topics { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.help-topics .pill { border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: .9rem; cursor: pointer; }
+.help-topics .pill.on { background: #e8f3ec; border-color: #0b5a34; font-weight: 600; }
+.help-topics .pill input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.faq { border-bottom: 1px solid var(--line); padding: 8px 0; }
+.faq summary { cursor: pointer; }

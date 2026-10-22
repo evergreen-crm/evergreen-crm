@@ -7,6 +7,8 @@ import { requireUser, requireHR } from '@/lib/auth';
 import { CARD_VALID_MONTHS } from '@/lib/idcard';
 import { addMonthsISO } from '@/lib/onboarding';
 import { todayISO } from '@/lib/options';
+import { after } from 'next/server';
+import { flushOutbox } from '@/lib/emailOutbox';
 
 const text = (formData, key) => {
   const v = formData.get(key);
@@ -156,6 +158,7 @@ export async function clockInSafe({ homeId, loc, note }) {
 
 export async function clockOutSafe({ loc, answers, breakMinutes, note }) {
   const { supabase, user } = await requireUser(['admin', 'manager', 'staff']);
+  after(() => flushOutbox('urgent').catch(() => null)); // injury / permission emails (Step 7)
   const { data, error } = await supabase.rpc('clock_out_safely', { ...L(loc), p_answers: answers ?? {}, p_break: Math.max(0, Number(breakMinutes) || 0), p_note: note || null });
   if (error) return { error: clean(error) };
   refresh(user.id); revalidatePath('/portal'); revalidatePath('/todo');
@@ -164,6 +167,7 @@ export async function clockOutSafe({ loc, answers, breakMinutes, note }) {
 
 export async function askShiftPermission({ kind, homeId, reasons, note, loc }) {
   const { supabase, user } = await requireUser(['admin', 'manager', 'staff']);
+  after(() => flushOutbox('urgent').catch(() => null));
   const { error } = await supabase.rpc('request_shift_permission', { p_kind: kind, p_home: homeId || null, p_reasons: reasons ?? [], p_note: note ?? '', ...L(loc) });
   if (error) return { error: clean(error) };
   refresh(user.id);
@@ -172,6 +176,7 @@ export async function askShiftPermission({ kind, homeId, reasons, note, loc }) {
 
 export async function raiseEmergency({ kind, note, loc }) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);
+  after(() => flushOutbox('urgent').catch(() => null)); // 🆘 emails go out right after the alert is saved
   const { data, error } = await supabase.rpc('raise_emergency', { p_kind: kind, p_note: note || null, ...L(loc) });
   if (error) return { error: clean(error) };
   revalidatePath('/approvals');

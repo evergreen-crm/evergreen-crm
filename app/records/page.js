@@ -15,6 +15,7 @@ const STAGE = {
   3: { short: 'Over a month → ED & CEO', who: 'now also the Executive Director, CSO and CEO', cls: 'bad' },
 };
 const FILLABLE = ['hire_date', 'program', 'position', 'employment', 'emergency', 'phone'];
+const KIND_ICON = { house: '🏠 ', resident: '🧒 ', staff: '👤 ' };
 const POSITIONS = ['Youth Worker', 'Support Worker', 'Senior Support Worker', 'Program Coordinator', 'Program Manager', 'Director of Operations', 'Office / Admin'];
 const days = (a, b) => Math.max(0, Math.round((new Date(b) - new Date(a)) / 864e5));
 
@@ -112,7 +113,7 @@ export default async function Records({ searchParams }) {
         <span className="div-icon">🧩</span>
         <div>
           <h1>Missing details</h1>
-          <p>{lead ? 'Hire dates, programs, contacts, certificates and house details. Fill them in within 1 week.' : 'Details your staff record still needs.'}</p>
+          <p>{lead ? 'Staff, house and youth / adult records. Fill in what’s missing within 1 week.' : 'Details your staff record still needs.'}</p>
         </div>
       </div>
       {sp?.ok && <p className="message ok">{sp.ok}</p>}
@@ -137,7 +138,7 @@ export default async function Records({ searchParams }) {
               <li>Still not done after 1 month → it goes to the <strong>Executive Director, CSO and CEO</strong>.</li>
               <li>Every Monday there’s a reminder while anything is still missing. Once a detail is filled in, it closes by itself and counts as fixed.</li>
             </ol>
-            <p className="muted small">Checked for staff: hire date, program, position, full-time/part-time/casual, phone, emergency contact, house (frontline), criminal record check and First Aid (missing or expired). For houses: map location, on-call phone, house phone and address.</p>
+            <p className="muted small">Checked for staff: hire date, program, position, full-time/part-time/casual, phone, emergency contact, house (frontline), criminal record check and First Aid (missing or expired). For houses: map location, on-call phone, house phone and address. For each youth / adult: date of birth, admission date, funder and file number, social worker or CLBC facilitator, guardian (youth), emergency contact, Personal Health Number, family doctor, allergies and the care plan review date.</p>
           </details>
 
           {houseRows.length > 0 && (
@@ -170,13 +171,13 @@ export default async function Records({ searchParams }) {
       <datalist id="positions">{POSITIONS.map((p) => <option key={p} value={p} />)}</datalist>
       {groups.map((x) => {
         const st = STAGE[x.stage];
-        const fill = x.items.filter((g) => FILLABLE.includes(g.field)).map((g) => g.field);
-        const other = x.items.filter((g) => !FILLABLE.includes(g.field));
+        const fill = x.kind === 'staff' ? x.items.filter((g) => FILLABLE.includes(g.field)).map((g) => g.field) : [];
+        const other = x.kind === 'staff' ? x.items.filter((g) => !FILLABLE.includes(g.field)) : [];
         const self = x.kind === 'staff' && x.id === user.id;
         return (
           <section key={x.key} id={`p-${x.id}`} className={`card gap-card${x.stage === 3 ? ' rh-urgent' : ''}`}>
             <div className="rh-head">
-              <h3 style={{ margin: 0 }}>{x.kind === 'house' ? '🏠 ' : '👤 '}{x.name}{x.kind === 'staff' && x.home && <span className="muted small"> · {hName[x.home]}</span>}</h3>
+              <h3 style={{ margin: 0 }}>{KIND_ICON[x.kind] ?? ''}{x.name}{x.kind !== 'house' && x.home && <span className="muted small"> · {hName[x.home]}</span>}</h3>
               <span className={`badge ${st.cls}`}>{st.short}{x.stage === 1 ? ` ${fmtDate(x.due)}` : ''}</span>
             </div>
             <ul className="gap-chips">
@@ -203,6 +204,8 @@ export default async function Records({ searchParams }) {
               {x.kind === 'house' && (lvl >= 3 || profile.role === 'admin') && <Link href={`/homes/${x.id}?edit=1`}>✏️ Edit the house →</Link>}
               {x.kind === 'house' && lvl < 3 && profile.role !== 'admin' && <span className="muted">House details: the Program Manager fills these in.</span>}
               {x.kind === 'staff' && (hr || lvl >= 3) && <Link href={`/hr/${x.id}`}>Open HR file →</Link>}
+              {x.kind === 'resident' && (lvl >= 3 || profile.role === 'admin') && <Link href={`/residents/${x.id}/edit`}>✏️ Edit their profile →</Link>}
+              {x.kind === 'resident' && lvl < 3 && profile.role !== 'admin' && <><Link href={`/residents/${x.id}`}>Open their file →</Link><span className="muted">The Program Manager updates the profile — send them what’s missing.</span></>}
             </div>
           </section>
         );
