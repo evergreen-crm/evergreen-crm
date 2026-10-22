@@ -761,6 +761,7 @@ table.lines td, table.lines th { vertical-align: middle; }
 .ss.D { background: #fde9b8; color: #6b4a00; }
 .ss.E { background: #cfe0fb; color: #163e7a; }
 .ss.N { background: #2c3a63; color: #fff; }
+.ss.X { background: #cdeccf; color: #145a2a; }
 .ss.off { background: #fff; border: 1px solid var(--line); }
 table.ss-grid { border-collapse: separate; border-spacing: 2px; font-size: .75rem; }
 table.ss-grid th, table.ss-grid td { padding: 0; text-align: center; border: 0; }
@@ -770,6 +771,7 @@ table.ss-grid .we { background-color: #eef2ef; }
 table.ss-grid td.ss.D.we { background: #f6d98e; }
 table.ss-grid td.ss.E.we { background: #b3cdf6; }
 table.ss-grid td.ss.N.we { background: #1f2a4a; }
+table.ss-grid td.ss.X.we { background: #a9dcae; }
 table.ss-grid th small { display: block; font-weight: 400; color: var(--muted); }
 table.ss-grid th.who { text-align: left; padding: 0 10px 0 0; white-space: nowrap; position: sticky; left: 0; background: #fbfcfb; }
 table.ss-grid th.who small { font-size: .68rem; }

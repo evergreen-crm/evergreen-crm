@@ -7,15 +7,16 @@ import NotReady from '@/app/components/NotReady';
 import { plainError } from '@/lib/plain';
 import SampleSchedule from '@/app/components/SampleSchedule';
 
-const MARK = '[[sample-schedule]]';
+// [[sample-schedule]] / [[sample-schedule-2bed]] / [[sample-schedule-2bed-peak]] show a colour-coded sample.
+const MARK = /\[\[sample-schedule(?:-(2bed(?:-peak)?))?\]\]/;
 function Body({ text }) {
-  if (!text.includes(MARK)) return <p className="notice-body">{text}</p>;
-  const [before, after] = text.split(MARK);
+  if (!MARK.test(text)) return <p className="notice-body">{text}</p>;
+  const parts = text.split(new RegExp(MARK.source, 'g')); // text, home, text, home, …, text
   return (
     <>
-      {before.trim() && <p className="notice-body">{before.replace(/\s+$/, '')}</p>}
-      <SampleSchedule />
-      {after?.trim() && <p className="notice-body">{after.replace(/^\s+/, '')}</p>}
+      {parts.map((p, i) => (i % 2
+        ? <SampleSchedule key={i} home={p ?? '1bed'} />
+        : p.trim() && <p key={i} className="notice-body">{p.replace(/^\s*\n/, '').replace(/\s+$/, '')}</p>))}
     </>
   );
 }

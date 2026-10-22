@@ -1,25 +1,61 @@
-// A colour-coded sample of the weekend-partner schedule (1-bed home, 4 weeks), shown inside notices that
-// contain the marker [[sample-schedule]]. Names are examples. Same pattern the CRM uses (schedule-teams.sql).
+// Colour-coded samples of the weekend-partner schedule (4 weeks), shown inside notices that contain a marker:
+//   [[sample-schedule]]            1-bed home (6 staff)
+//   [[sample-schedule-2bed]]       2-bed home, 2 staff on days and evenings (10 staff)
+//   [[sample-schedule-2bed-peak]]  2-bed home, 1 staff on each shift + an extra 3–7 pm helper (8 staff)
+// Names are examples. Same pattern the CRM uses (schedule-teams.sql): a second pair on a shift starts a week later.
 const A = new Set([0, 1, 4, 5, 6, 8, 9, 10, 11]);
 const START = '2026-11-02';
-const TEAMS = [
-  { shift: 'D', name: 'Day 7 am–3 pm', ft: 'Maria', pt: 'Jordan' },
-  { shift: 'E', name: 'Evening 3–11 pm', ft: 'Priya', pt: 'Sam' },
-  { shift: 'N', name: 'Awake night 11 pm–7 am', ft: 'Daniel', pt: 'Lee' },
-];
 const day = (i) => new Date(Date.parse(START + 'T12:00:00Z') + i * 864e5);
 
-export default function SampleSchedule() {
+const HOMES = {
+  '1bed': {
+    title: 'Sample: a 1-bed home, Nov 2–29',
+    teams: [
+      { shift: 'D', ft: 'Maria', pt: 'Jordan' },
+      { shift: 'E', ft: 'Priya', pt: 'Sam' },
+      { shift: 'N', ft: 'Daniel', pt: 'Lee' },
+    ],
+    note: 'One staff on every shift, 6 people (3 full-time, 3 part-time). Each pair covers one shift every day. Full-timers work weekends 1 and 3; part-timers work weekends 2 and 4. After 4 weeks it repeats.',
+  },
+  '2bed': {
+    title: 'Sample: a 2-bed home with 2 staff on days and evenings, Nov 2–29',
+    teams: [
+      { shift: 'D', ft: 'Maria', pt: 'Jordan' },
+      { shift: 'D', ft: 'Aisha', pt: 'Ben', pair: 2 },
+      { shift: 'E', ft: 'Priya', pt: 'Sam' },
+      { shift: 'E', ft: 'Grace', pt: 'Omar', pair: 2 },
+      { shift: 'N', ft: 'Daniel', pt: 'Lee' },
+    ],
+    note: '10 people (5 full-time, 5 part-time). Days and evenings always have 2 staff; nights have 1 awake staff. The second day pair and second evening pair start a week later, so there is always a full-timer and a part-timer on each shift, and every weekend has a mix of both.',
+  },
+  '2bed-peak': {
+    title: 'Sample: a 2-bed home with 1 staff per shift + extra 3–7 pm helper, Nov 2–29',
+    teams: [
+      { shift: 'D', ft: 'Maria', pt: 'Jordan' },
+      { shift: 'X', ft: 'Aisha', pt: 'Ben', pair: 2, hours: ['Part-time · 18 h', 'Part-time · 10 h'] },
+      { shift: 'E', ft: 'Priya', pt: 'Sam' },
+      { shift: 'N', ft: 'Daniel', pt: 'Lee' },
+    ],
+    note: '8 people. One staff on each shift, plus a second person from 3 to 7 pm, the busiest time (after school, dinner, homework). The 3–7 pm pair are part-timers who can pick up more shifts, up to 36 h a week.',
+  },
+};
+
+export default function SampleSchedule({ home = '1bed' }) {
+  const h = HOMES[home] ?? HOMES['1bed'];
   const days = Array.from({ length: 28 }, (_, i) => day(i));
-  const rows = TEAMS.flatMap((t) => [
-    { who: t.ft, kind: 'Full-time · 36 h', shift: t.shift, team: t.name, on: (i) => A.has(i % 14) },
-    { who: t.pt, kind: 'Part-time · 20 h', shift: t.shift, team: t.name, on: (i) => !A.has(i % 14) },
+  const off = (t) => (t.pair === 2 ? 7 : 0);
+  const rows = h.teams.flatMap((t) => [
+    { who: t.ft, kind: t.hours?.[0] ?? 'Full-time · 36 h', shift: t.shift, on: (i) => A.has((i + off(t)) % 14) },
+    { who: t.pt, kind: t.hours?.[1] ?? 'Part-time · 20 h', shift: t.shift, on: (i) => !A.has((i + off(t)) % 14) },
   ]);
+  const hasPeak = h.teams.some((t) => t.shift === 'X');
   return (
     <div className="sample-sched">
-      <p className="small" style={{ margin: '4px 0 8px' }}><strong>Sample: a 1-bed home, Nov 2–29</strong> (example names). Each coloured box is a shift. Shaded columns are weekends.</p>
+      <p className="small" style={{ margin: '4px 0 8px' }}><strong>{h.title}</strong> (example names). Each coloured box is a shift. Shaded columns are weekends.</p>
       <div className="legend-row small">
-        <span><i className="ss D">D</i> Day 7–3</span><span><i className="ss E">E</i> Evening 3–11</span><span><i className="ss N">N</i> Awake night 11–7</span><span><i className="ss off" /> Off</span>
+        <span><i className="ss D">D</i> Day 7–3</span><span><i className="ss E">E</i> Evening 3–11</span><span><i className="ss N">N</i> Awake night 11–7</span>
+        {hasPeak && <span><i className="ss X">X</i> Extra 3–7 pm</span>}
+        <span><i className="ss off" /> Off</span>
       </div>
       <div className="scroll-x">
         <table className="ss-grid wide">
@@ -44,7 +80,7 @@ export default function SampleSchedule() {
           </tbody>
         </table>
       </div>
-      <p className="small muted" style={{ margin: '6px 0 0' }}>Each pair (Maria and Jordan, Priya and Sam, Daniel and Lee) covers one shift every day. Full-timers work weekends 1 and 3; part-timers work weekends 2 and 4. After 4 weeks it repeats.</p>
+      <p className="small muted" style={{ margin: '6px 0 0' }}>{h.note}</p>
     </div>
   );
 }
