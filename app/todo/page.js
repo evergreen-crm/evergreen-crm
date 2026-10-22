@@ -66,7 +66,7 @@ export default async function Todo({ searchParams }) {
       {view === 'team' && (
         <section className="card">
           <h2 style={{ marginTop: 0 }}>My team</h2>
-          <p className="muted small">Staff with tasks overdue or due soon: offer letters, onboarding, training plan, certificates, badges and unsigned daily notes. A reminder goes to their portal (and email when it is set up) — one per person per day.</p>
+          <p className="muted small">Staff with tasks overdue or due soon: offer letters, onboarding, training plan, certificates, badges, unsigned daily notes and shift checklists. A reminder goes to their portal (and email when it is set up) — one per person per day.</p>
           {!team?.length ? <p className="muted">Everyone is up to date. 🎉</p> : (
             <ul className="todo-team">
               {team.map((p) => (
