@@ -3,11 +3,34 @@ import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { SHIFT_LABELS, shiftHours, addDaysISO, weekStart, todayISO, fmtDate, fmtTime } from '@/lib/options';
 import { addShift, deleteShift, copyLastWeek } from '@/app/schedule/actions';
+import { pickUp } from '@/app/schedule/teams-actions';
+import { levelOf } from '@/lib/levels';
+import { plainError } from '@/lib/plain';
+import { TabBar, MyTab, OpenTab, TimeOffTab, TeamsTab } from './TeamTabs';
 
 export default async function SchedulePage({ searchParams }) {
   const sp = await searchParams;
   const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
   const canEdit = ['admin', 'manager'].includes(profile.role);
+  const tab = sp.tab ?? 'week';
+  const lead = levelOf(profile) >= 2 || profile.role === 'admin';
+  const flash = (
+    <>
+      {sp.ok && <p className="message ok">{sp.ok}</p>}
+      {sp.error && <p className="message error">{plainError(sp.error)}</p>}
+    </>
+  );
+  if (tab !== 'week') {
+    const T = { mine: MyTab, open: OpenTab, timeoff: TimeOffTab, teams: lead ? TeamsTab : MyTab }[tab] ?? MyTab;
+    return (
+      <main>
+        <div className="title-row"><h1>Schedule</h1></div>
+        <TabBar tab={tab} lead={lead} />
+        {flash}
+        <T supabase={supabase} profile={profile} homeId={sp.home} />
+      </main>
+    );
+  }
   const today = todayISO();
   const week = weekStart(sp.w ?? today);
   const end = addDaysISO(week, 6);
@@ -44,6 +67,8 @@ export default async function SchedulePage({ searchParams }) {
           <Link href={qs({ w: addDaysISO(week, 7) })}>Next week →</Link>
         </span>
       </div>
+      <TabBar tab="week" lead={lead} />
+      {flash}
       <p className="muted">Week of {fmtDate(week)} to {fmtDate(end)}</p>
 
       <form className="row no-print" action="/schedule">
@@ -73,6 +98,12 @@ export default async function SchedulePage({ searchParams }) {
                   <span>{s.profiles?.full_name ?? 'OPEN'}</span>
                   <span className="muted small">{[s.label, !homeId && s.homes?.name].filter(Boolean).join(' · ')}</span>
                   {s.notes && <span className="small">{s.notes}</span>}
+                  {!s.profile_id && d >= today && (
+                    <form action={pickUp} className="no-print">
+                      <input type="hidden" name="shift_id" value={s.id} /><input type="hidden" name="tab" value="week" />
+                      <button className="link small">Pick up</button>
+                    </form>
+                  )}
                   {canEdit && (
                     <form action={deleteShift} className="no-print">
                       <input type="hidden" name="id" value={s.id} />

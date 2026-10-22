@@ -742,3 +742,13 @@ table.wide td:first-child, table.wide th:first-child { position: sticky; left: 0
 .help-topics .pill input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .faq { border-bottom: 1px solid var(--line); padding: 8px 0; }
 .faq summary { cursor: pointer; }
+
+/* ---------- Automatic schedule: patterns and lines ---------- */
+.pat-row { display: grid; grid-template-columns: repeat(14, 22px); gap: 2px; }
+.pat-row .pat:nth-child(7) { margin-right: 6px; }
+.pat { display: grid; place-items: center; height: 22px; font-size: .68rem; border-radius: 4px; background: #eef2ef; color: var(--muted); }
+.pat.we { background: #e2e8e4; }
+.pat.on { background: var(--green, #0b5a34); color: #fff; font-weight: 700; }
+.scroll-x { overflow-x: auto; }
+table.lines td, table.lines th { vertical-align: middle; }
+.small-btn { padding: 6px 10px; font-size: .85rem; }
