@@ -6,7 +6,8 @@ import { isDone } from '@/lib/divisions';
 import { todayISO, fmtDate } from '@/lib/options';
 import ExecDashboard from './ExecDashboard';
 import MyBadge from '@/app/components/MyBadge';
-import { levelOf } from '@/lib/levels';
+import RoleHome from './RoleHome';
+import { levelOf, groupOf } from '@/lib/levels';
 
 const QUICK = [
   { href: '/dashboard', icon: '🔔', label: 'Today’s alerts' },
@@ -55,8 +56,12 @@ export default async function PortalHome() {
 
       <MyBadge supabase={supabase} userId={user.id} />
 
+      <RoleHome supabase={supabase} profile={profile} userId={user.id} />
+
       <ExecDashboard supabase={supabase} profile={profile} userId={user.id} />
 
+      {/* Frontline and Program Coordinators: everything else is folded away so their shift tools stay on top. */}
+      <Fold open={!(levelOf(profile) <= 2 && profile.home_id && !groupOf(profile))}>
       <div className="quick-grid no-print">
         {QUICK.filter((q) => (!q.boss || isBoss(profile)) && levelOf(profile) >= (q.minLevel ?? 0)).map((q) => (
           <Link key={q.href} href={q.href} className="quick"><span>{q.icon}</span>{q.label}</Link>
@@ -103,6 +108,13 @@ export default async function PortalHome() {
           );
         })}
       </div>
+      </Fold>
     </main>
   );
+}
+
+// Shows its children directly, or folded under “All portal areas” for frontline staff.
+function Fold({ open, children }) {
+  if (open) return <>{children}</>;
+  return <details className="card no-print"><summary><strong>☰ All portal areas</strong> <span className="muted small">— schedule, timesheet, academy, policies, divisions</span></summary>{children}</details>;
 }
