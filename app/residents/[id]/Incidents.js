@@ -4,8 +4,13 @@ import { fmtDate, fmtTime, todayISO, TZ } from '@/lib/options';
 import { addIncident, updateIncident } from '@/app/residents/actions';
 import { writtenDue, reviewDue, INCIDENT_CLASSES } from '@/lib/incidents';
 import Link from 'next/link';
+import { plainError } from '@/lib/plain';
 
-export default async function Incidents({ supabase, resident, program, cls, openNew }) {
+// ✋ Restraint / restricted practice: the steps that must be done before the incident can be closed.
+const isRestraint = (i) => i.physical_intervention || /^Restricted practice|^Physical intervention/.test(i.incident_type ?? '');
+
+
+export default async function Incidents({ supabase, resident, program, cls, openNew, msg = {}, lead = false }) {
   let q = supabase.from('incidents').select('*, profiles:reported_by(full_name)').eq('resident_id', resident.id);
   if (cls) q = q.eq('incident_class', cls);
   const { data: incidents } = await q.order('occurred_on', { ascending: false });
@@ -15,6 +20,8 @@ export default async function Incidents({ supabase, resident, program, cls, open
 
   return (
     <section>
+      {msg.ok && <p className="message ok no-print">{msg.ok}</p>}
+      {msg.error && <p className="message error no-print">{plainError(msg.error)}</p>}
       <div className="pills no-print">
         <Link href={base} className={!cls ? 'on' : ''}>All</Link>
         {INCIDENT_CLASSES.map((c) => <Link key={c.key} href={`${base}&class=${c.key}`} className={cls === c.key ? 'on' : ''}>{c.key}</Link>)}
@@ -31,7 +38,7 @@ export default async function Incidents({ supabase, resident, program, cls, open
               Type
               <select name="incident_type" required defaultValue="">
                 <option value="" disabled>Pick a type</option>
-                {INCIDENT_TYPES.map((t) => <option key={t}>{t}</option>)}
+                {INCIDENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </label>
           </div>
@@ -50,6 +57,21 @@ export default async function Incidents({ supabase, resident, program, cls, open
             <label>Injuries (anyone)<input name="injuries" placeholder="None, or describe" /></label>
           </div>
           <label className="check"><input type="checkbox" name="physical_intervention" /> Physical intervention / restraint used (always a critical incident)</label>
+          <fieldset className="card rst-fields">
+            <legend>✋ Restraint or restricted practice</legend>
+            <p className="small muted" style={{ marginTop: 0 }}>Only to stop immediate harm, by staff with current NVCI, for the shortest time. Leaders are alerted when you save.</p>
+            <label>What did you try first? ⭐ (calm talk, space, choices, the plan’s strategies)<textarea name="tried_first" rows={2} /></label>
+            <div className="row">
+              <label>Hold or method used<input name="hold_used" placeholder="For example: NVCI escort" /></label>
+              <label>Staff involved and witnesses<input name="staff_involved" /></label>
+            </div>
+            <label className="check"><input type="checkbox" name="no_prohibited" /> ⭐ I confirm <strong>no</strong> prone (face-down) hold, no pressure on the neck, chest or back, no mechanical or chemical restraint, and no seclusion</label>
+            {program === 'clbc' && (
+              <label>Is this in the person’s approved behaviour support or safety plan?
+                <select name="in_safety_plan" defaultValue=""><option value="">Not sure</option><option value="yes">Yes</option><option value="no">No (emergency)</option></select>
+              </label>
+            )}
+          </fieldset>
           <label>Actions taken / follow-up<textarea name="actions_taken" rows={2} /></label>
           <label className="check"><input type="checkbox" name="is_urgent" /> Urgent — phone the {who} immediately (written report within 24 hours)</label>
           <label className="check"><input type="checkbox" name="family_notified" /> Family / guardian notified</label>
@@ -82,6 +104,7 @@ export default async function Incidents({ supabase, resident, program, cls, open
             {inc.intervention && <p><strong>Support used:</strong> {inc.intervention}</p>}
             {(inc.duration_minutes || inc.injuries) && <p className="small">{[inc.duration_minutes && `${inc.duration_minutes} minutes`, inc.injuries && `Injuries: ${inc.injuries}`].filter(Boolean).join(' · ')}</p>}
             {inc.actions_taken && <p><strong>Actions taken:</strong> {inc.actions_taken}</p>}
+            {isRestraint(inc) && <AfterRestraint inc={inc} resident={resident} program={program} lead={lead} />}
 
             {inc.is_critical && (
               <ul className="checklist">
@@ -150,5 +173,55 @@ export default async function Incidents({ supabase, resident, program, cls, open
         );
       })}
     </section>
+  );
+}
+
+function RstStep({ inc, resident, step, done, label, detail, field = 'note', placeholder, canDo = true }) {
+  return (
+    <li className={done ? 'done' : 'overdue'}>
+      <div className="req-text"><span className="tick">{done ? '✓' : '○'}</span>
+        <span>{label}{done && <div className="muted small">Done {new Date(done).toLocaleString('en-CA', { timeZone: TZ })}{detail && ` · ${detail}`}</div>}</span></div>
+      {!done && canDo && (
+        <form action={updateIncident} className="req-form no-print">
+          <input type="hidden" name="id" value={inc.id} /><input type="hidden" name="resident_id" value={resident.id} />
+          <input type="hidden" name="step" value={step} />
+          {placeholder && <input name={field} placeholder={placeholder} required />}
+          <button className="secondary">Done</button>
+        </form>
+      )}
+      {!done && !canDo && <span className="muted small">Program Coordinator or Manager</span>}
+    </li>
+  );
+}
+
+function AfterRestraint({ inc, resident, program, lead }) {
+  const funder = program === 'clbc' ? 'CLBC told (every restricted practice is a critical incident)' : 'Social worker told right away';
+  return (
+    <div className="rst-box">
+      <h4>✋ Restraint / restricted practice</h4>
+      {inc.nvci_flag && <p className="message error small" style={{ margin: '4px 0' }}>⚠️ {inc.nvci_flag} Only staff with current NVCI may use physical intervention.</p>}
+      {(inc.tried_first || inc.hold_used || inc.staff_involved) && (
+        <p className="small">{inc.tried_first && <><strong>Tried first:</strong> {inc.tried_first}<br /></>}{inc.hold_used && <><strong>Hold / method:</strong> {inc.hold_used}<br /></>}{inc.staff_involved && <><strong>Staff and witnesses:</strong> {inc.staff_involved}</>}
+          {inc.in_safety_plan != null && <><br /><strong>In approved plan:</strong> {inc.in_safety_plan ? 'Yes' : 'No (emergency)'}</>}</p>
+      )}
+      {(!inc.tried_first || !inc.no_prohibited) && inc.status === 'Open' && (
+        <form action={updateIncident} className="stack no-print rst-fix">
+          <input type="hidden" name="id" value={inc.id} /><input type="hidden" name="resident_id" value={resident.id} />
+          <input type="hidden" name="step" value="rst_first" />
+          <label>What was tried first? ⭐<textarea name="tried_first" rows={2} required defaultValue={inc.tried_first ?? ''} /></label>
+          <label>Hold or method used<input name="hold_used" defaultValue={inc.hold_used ?? ''} /></label>
+          <label className="check"><input type="checkbox" name="no_prohibited" required defaultChecked={inc.no_prohibited} /> ⭐ No prone hold, no pressure on neck, chest or back, no mechanical or chemical restraint, no seclusion</label>
+          <button className="secondary">Save</button>
+        </form>
+      )}
+      <ul className="checklist">
+        <RstStep inc={inc} resident={resident} step="rst_injury" done={inc.injury_check_at} detail={inc.injury_check_note} label="Checked the person for injuries and how they’re feeling" placeholder="What you found (for example: no injuries, calm)" />
+        <RstStep inc={inc} resident={resident} step="rst_person" done={inc.person_debrief_at} detail={inc.person_view} label="Debrief with the person — their side, in their words" placeholder="What they said" />
+        <RstStep inc={inc} resident={resident} step="rst_staff" done={inc.staff_debrief_at} detail={inc.staff_view} label="Staff debrief — what happened and what could prevent it" placeholder="Staff side and ideas" />
+        <RstStep inc={inc} resident={resident} step="rst_funder" done={inc.funder_told_at} detail={inc.funder_told_who} label={funder} placeholder="Who you spoke to" />
+        <RstStep inc={inc} resident={resident} step="rst_review" done={inc.manager_review_at} detail={inc.manager_review} label="Program Coordinator or Manager review (was it needed? plan changes?)" placeholder="Review and any plan changes" canDo={lead} />
+      </ul>
+      <p className="muted small">The incident can’t be closed until these are done.</p>
+    </div>
   );
 }

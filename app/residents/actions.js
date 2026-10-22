@@ -1,6 +1,7 @@
 'use server';
 // Requirements checklist and incident reports: saving.
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 
 const text = (formData, key) => {
@@ -52,13 +53,20 @@ export async function addIncident(formData) {
     description: text(formData, 'description'),
     actions_taken: text(formData, 'actions_taken'),
     family_notified: formData.get('family_notified') === 'on',
+    ...(physical || /^Restricted practice|^Physical intervention/.test(text(formData, 'incident_type') ?? '') ? {
+      tried_first: text(formData, 'tried_first'),
+      hold_used: text(formData, 'hold_used'),
+      staff_involved: text(formData, 'staff_involved'),
+      no_prohibited: formData.get('no_prohibited') === 'on',
+      in_safety_plan: formData.get('in_safety_plan') === 'yes' ? true : formData.get('in_safety_plan') === 'no' ? false : null,
+    } : {}),
   });
   if (error) throw new Error('Could not save incident: ' + error.message);
   revalidatePath(`/residents/${residentId}`);
 }
 
 export async function updateIncident(formData) {
-  const { supabase } = await requireUser(['admin', 'manager', 'staff']);
+  const { supabase, user } = await requireUser(['admin', 'manager', 'staff']);
   const residentId = text(formData, 'resident_id');
   const patch = {};
   const step = text(formData, 'step');
@@ -71,7 +79,16 @@ export async function updateIncident(formData) {
   if (step === 'family') patch.family_notified = true;
   if (step === 'close') patch.status = 'Closed';
   if (step === 'reopen') patch.status = 'Open';
+  // ✋ After-restraint steps (supabase/restraint-log.sql)
+  const now = new Date().toISOString();
+  if (step === 'rst_first') { patch.tried_first = text(formData, 'tried_first'); patch.hold_used = text(formData, 'hold_used'); patch.no_prohibited = formData.get('no_prohibited') === 'on'; }
+  if (step === 'rst_injury') { patch.injury_check_at = now; patch.injury_check_note = text(formData, 'note'); }
+  if (step === 'rst_person') { patch.person_debrief_at = now; patch.person_view = text(formData, 'note'); }
+  if (step === 'rst_staff') { patch.staff_debrief_at = now; patch.staff_view = text(formData, 'note'); }
+  if (step === 'rst_funder') { patch.funder_told_at = now; patch.funder_told_who = text(formData, 'note'); }
+  if (step === 'rst_review') { patch.manager_review_at = now; patch.manager_review_by = user.id; patch.manager_review = text(formData, 'note'); }
   const { error } = await supabase.from('incidents').update(patch).eq('id', text(formData, 'id'));
-  if (error) throw new Error('Could not update incident: ' + error.message);
   revalidatePath(`/residents/${residentId}`);
+  if (error) redirect(`/residents/${residentId}?tab=incidents&error=${encodeURIComponent(error.message.replace(/^.*?(Finish|Only)/, '$1'))}`);
+  if (step?.startsWith('rst_')) redirect(`/residents/${residentId}?tab=incidents&ok=${encodeURIComponent('Saved.')}`);
 }

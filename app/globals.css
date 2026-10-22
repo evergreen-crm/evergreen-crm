@@ -816,3 +816,12 @@ details.rule li { margin: 4px 0; }
 .miss-log { padding-left: 18px; } .miss-log li { margin: 4px 0; }
 li.miss-row { border-left: 4px solid #b3261e; padding-left: 8px; }
 @media print { .miss-sheet { border: 0; } }
+
+/* ---------- ✋ Restraint / restricted practice ---------- */
+.rst-fields { display: none; border-color: #e7b3ad; background: #fffaf9; }
+form:has(input[name="physical_intervention"]:checked) .rst-fields,
+form:has(select[name="incident_type"] option:checked[value^="Restricted practice"]) .rst-fields,
+form:has(select[name="incident_type"] option:checked[value^="Physical intervention"]) .rst-fields { display: block; }
+.rst-box { border: 1px solid #e7b3ad; background: #fffaf9; border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+.rst-box h4 { margin: 0 0 4px; }
+.rst-fix { margin: 6px 0 8px; }

@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth';
 import { addShiftNote, signShiftNote } from '@/app/actions';
 import { age, fmtDate, fmtTime, todayISO, TZ } from '@/lib/options';
 import { programsFor } from '@/lib/requirements';
+import { levelOf } from '@/lib/levels';
 import NoteCard from '@/app/notes/NoteCard';
 import { saveNote } from '@/app/notes/actions';
 import { shiftNow } from '@/lib/checklist';
@@ -263,7 +264,7 @@ export default async function ResidentPage({ params, searchParams }) {
       {isStaff && (tab === 'incidents' || tab === 'all') && (
         <>
           {tab === 'all' && <h2 className="page-break">Incidents</h2>}
-          <Incidents supabase={supabase} resident={resident} program={programsFor(resident)[0]?.key ?? 'mcfd'} cls={sp.class} openNew={sp.new === '1'} />
+          <Incidents supabase={supabase} resident={resident} program={programsFor(resident)[0]?.key ?? 'mcfd'} cls={sp.class} openNew={sp.new === '1'} msg={{ ok: sp.ok, error: sp.error }} lead={levelOf(profile) >= 2 || profile.role === 'admin'} />
         </>
       )}
 
