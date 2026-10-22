@@ -783,3 +783,16 @@ table.ss-grid tr.pair-end td, table.ss-grid tr.pair-end th { padding-bottom: 6px
 .shift-rules h3 { font-size: 1rem; margin: 14px 0 6px; }
 .shift-rules ul, .shift-rules ol { margin: 0 0 6px; padding-left: 22px; }
 .shift-rules li { margin: 3px 0; }
+
+/* ---------- Help topics and rules ---------- */
+.help-jump a { white-space: nowrap; }
+.help-dl { margin: 6px 0 0; }
+.help-dl > div { margin: 0 0 8px; }
+.help-dl dt { font-weight: 600; }
+.help-dl dd { margin: 2px 0 0; }
+details.rule ul { margin: 6px 0; padding-left: 22px; }
+details.rule li { margin: 4px 0; }
+.badge.rule-youth { background: #e3eefc; color: #163e7a; }
+.badge.rule-adults { background: #efe6fa; color: #4b2a7a; }
+.badge.rule-all { background: #e6f2ea; color: #0b5a34; }
+.badge.rule-youth, .badge.rule-adults, .badge.rule-all { white-space: nowrap; }

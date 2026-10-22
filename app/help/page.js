@@ -5,7 +5,8 @@ import { requireUser } from '@/lib/auth';
 import { levelOf } from '@/lib/levels';
 import { fmtDateTime } from '@/lib/options';
 import { plainError } from '@/lib/plain';
-import { FAQ, HELP_TOPICS, PAGE_HELP } from '@/lib/help';
+import { FAQ, HELP_TOPICS, PAGE_HELP, HELP_GUIDES } from '@/lib/help';
+import { RULES, RULE_FOR, RULES_CHECKED } from '@/lib/rules';
 import { emailReady } from '@/lib/email';
 import { adminKey, createAdminClient } from '@/lib/supabase/admin';
 import NotReady from '@/app/components/NotReady';
@@ -53,6 +54,7 @@ export default async function Help({ searchParams }) {
       {sp?.ok && <p className="message ok">{sp.ok}</p>}
       {sp?.error && <p className="message error">{plainError(sp.error)}</p>}
       <p className="small">🆘 <strong>Emergency?</strong> Call 911 if anyone is in danger, then use the 🆘 button. Don’t use this page for emergencies.</p>
+      <p className="small help-jump">Jump to: <a href="#faq">Common questions</a> · <a href="#topics">Help topics</a> · <a href="#rules">⚖️ Rules and laws we follow</a> · <a href="#mine">Ask for help</a></p>
 
       {lead && !notReady && (
         <section className={`card${toAnswer.length ? ' rh-urgent' : ''}`} id="answer">
@@ -111,13 +113,37 @@ export default async function Help({ searchParams }) {
         )}
       </section>
 
-      <section className="card">
+      <section className="card" id="faq">
         <h2 style={{ marginTop: 0 }}>Common questions</h2>
         {FAQ.map((f) => <details key={f.q} className="faq"><summary><strong>{f.q}</strong></summary><p>{f.a}</p></details>)}
         <details className="faq"><summary><strong>Help for every page</strong></summary>
           {PAGE_HELP.map((h) => <div key={h.path}><p style={{ margin: '10px 0 2px' }}><strong>{h.title}</strong></p><ul className="small" style={{ marginTop: 0 }}>{h.tips.map((t) => <li key={t}>{t}</li>)}</ul></div>)}
         </details>
         <p className="small"><Link href="/words">📖 What does this word mean? →</Link></p>
+      </section>
+
+      <section className="card" id="topics">
+        <h2 style={{ marginTop: 0 }}>📚 Help topics</h2>
+        {HELP_GUIDES.map((g) => (
+          <details key={g.title} className="faq">
+            <summary><strong>{g.icon} {g.title}</strong></summary>
+            <dl className="help-dl">{g.items.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+          </details>
+        ))}
+      </section>
+
+      <section className="card" id="rules">
+        <h2 style={{ marginTop: 0 }}>⚖️ Rules and laws we follow</h2>
+        <p className="small">The BC laws, ministry standards and funder rules behind our work, in plain words. Our Evergreen policies follow these. If a rule here and a policy seem to disagree, or you’re not sure what to do, ask your Program Coordinator or on-call. In an emergency, keep people safe first.</p>
+        <p className="small"><span className="badge rule-youth">Youth (MCFD)</span> applies in youth homes, <span className="badge rule-adults">Adults (CLBC)</span> in adult homes, <span className="badge rule-all">Everyone</span> everywhere.</p>
+        {RULES.map((r) => (
+          <details key={r.id} id={`rule-${r.id}`} className="faq rule">
+            <summary><strong>{r.icon} {r.title}</strong> <span className={`badge rule-${r.for}`}>{RULE_FOR[r.for]}</span></summary>
+            <ul>{r.points.map((t) => <li key={t}>{t}</li>)}</ul>
+            <p className="small muted" style={{ margin: '4px 0 0' }}>Source: {r.sources.map((x, i) => <span key={x.url}>{i > 0 && ' · '}<a href={x.url} target="_blank" rel="noopener noreferrer">{x.label}</a></span>)}</p>
+          </details>
+        ))}
+        <p className="muted small">Summaries last checked {RULES_CHECKED}. Laws and standards change. The linked source is always the final word.</p>
       </section>
 
       {isAdmin && (
