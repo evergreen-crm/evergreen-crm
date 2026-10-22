@@ -1,6 +1,6 @@
 // Colour-coded samples of the weekend-partner schedule (4 weeks), shown inside notices that contain a marker:
 //   [[sample-schedule]]            1-bed home (6 staff)
-//   [[sample-schedule-2bed]]       2-bed home, 2 staff on days and evenings (10 staff)
+//   [[sample-schedule-2bed]]       2-bed home, 2 staff on every shift (12 staff)
 //   [[sample-schedule-2bed-peak]]  2-bed home, 1 staff on each shift + an extra 3–7 pm helper (8 staff)
 // Names are examples. Same pattern the CRM uses (schedule-teams.sql): a second pair on a shift starts a week later.
 const A = new Set([0, 1, 4, 5, 6, 8, 9, 10, 11]);
@@ -18,15 +18,16 @@ const HOMES = {
     note: 'One staff on every shift, 6 people (3 full-time, 3 part-time). Each pair covers one shift every day. Full-timers work weekends 1 and 3; part-timers work weekends 2 and 4. After 4 weeks it repeats.',
   },
   '2bed': {
-    title: 'Sample: a 2-bed home with 2 staff on days and evenings, Nov 2–29',
+    title: 'Sample: a 2-bed home with 2 staff on every shift, Nov 2–29',
     teams: [
       { shift: 'D', ft: 'Maria', pt: 'Jordan' },
       { shift: 'D', ft: 'Aisha', pt: 'Ben', pair: 2 },
       { shift: 'E', ft: 'Priya', pt: 'Sam' },
       { shift: 'E', ft: 'Grace', pt: 'Omar', pair: 2 },
       { shift: 'N', ft: 'Daniel', pt: 'Lee' },
+      { shift: 'N', ft: 'Nadia', pt: 'Tom', pair: 2 },
     ],
-    note: '10 people (5 full-time, 5 part-time). Days and evenings always have 2 staff; nights have 1 awake staff. The second day pair and second evening pair start a week later, so there is always a full-timer and a part-timer on each shift, and every weekend has a mix of both.',
+    note: '12 people (6 full-time, 6 part-time). Every shift, day, evening and awake night, always has 2 staff. The second pair on each shift starts a week later, so there is always a full-timer and a part-timer on each shift, and every weekend has a mix of both.',
   },
   '2bed-peak': {
     title: 'Sample: a 2-bed home with 1 staff per shift + extra 3–7 pm helper, Nov 2–29',
