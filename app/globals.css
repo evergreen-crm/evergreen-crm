@@ -752,3 +752,27 @@ table.wide td:first-child, table.wide th:first-child { position: sticky; left: 0
 .scroll-x { overflow-x: auto; }
 table.lines td, table.lines th { vertical-align: middle; }
 .small-btn { padding: 6px 10px; font-size: .85rem; }
+
+/* ---------- Colour-coded sample schedule in notices ---------- */
+.sample-sched { margin: 10px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fbfcfb; }
+.legend-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; align-items: center; }
+.legend-row span { display: inline-flex; gap: 5px; align-items: center; }
+.ss { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 4px; font-size: .7rem; font-weight: 700; }
+.ss.D { background: #fde9b8; color: #6b4a00; }
+.ss.E { background: #cfe0fb; color: #163e7a; }
+.ss.N { background: #2c3a63; color: #fff; }
+.ss.off { background: #fff; border: 1px solid var(--line); }
+table.ss-grid { border-collapse: separate; border-spacing: 2px; font-size: .75rem; }
+table.ss-grid th, table.ss-grid td { padding: 0; text-align: center; border: 0; }
+table.ss-grid td.ss { display: table-cell; width: 24px; min-width: 24px; height: 26px; }
+table.ss-grid td.off { background: transparent; border: 0; }
+table.ss-grid .we { background-color: #eef2ef; }
+table.ss-grid td.ss.D.we { background: #f6d98e; }
+table.ss-grid td.ss.E.we { background: #b3cdf6; }
+table.ss-grid td.ss.N.we { background: #1f2a4a; }
+table.ss-grid th small { display: block; font-weight: 400; color: var(--muted); }
+table.ss-grid th.who { text-align: left; padding: 0 10px 0 0; white-space: nowrap; position: sticky; left: 0; background: #fbfcfb; }
+table.ss-grid th.who small { font-size: .68rem; }
+table.ss-grid th.wk { font-weight: 600; color: var(--muted); font-size: .7rem; border-bottom: 1px solid var(--line); }
+table.ss-grid .wkstart { border-left: 6px solid transparent; }
+table.ss-grid tr.pair-end td, table.ss-grid tr.pair-end th { padding-bottom: 6px; }

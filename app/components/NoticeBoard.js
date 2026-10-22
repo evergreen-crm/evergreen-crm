@@ -5,6 +5,20 @@ import { fmtDate, todayISO } from '@/lib/options';
 import { createPost, markPostRead, removePost, togglePin } from '@/app/posts/actions';
 import NotReady from '@/app/components/NotReady';
 import { plainError } from '@/lib/plain';
+import SampleSchedule from '@/app/components/SampleSchedule';
+
+const MARK = '[[sample-schedule]]';
+function Body({ text }) {
+  if (!text.includes(MARK)) return <p className="notice-body">{text}</p>;
+  const [before, after] = text.split(MARK);
+  return (
+    <>
+      {before.trim() && <p className="notice-body">{before.replace(/\s+$/, '')}</p>}
+      <SampleSchedule />
+      {after?.trim() && <p className="notice-body">{after.replace(/^\s+/, '')}</p>}
+    </>
+  );
+}
 
 const PRIORITY = { Urgent: { dot: '🔴', cls: 'bad' }, Important: { dot: '🟡', cls: 'warn' }, Normal: { dot: '📌', cls: '' } };
 
@@ -46,7 +60,7 @@ export default async function NoticeBoard({ supabase, profile, userId, homeId = 
                 <strong>{pr.dot} {p.title}</strong>
                 <span className="muted small">{p.pinned && '📍 Pinned · '}{p.home_id ? p.homes?.name ?? 'House' : 'All houses'} · {p.author?.full_name ?? 'Staff'} · {fmtDate(p.created_at.slice(0, 10))}{p.expires_on && ` · until ${fmtDate(p.expires_on)}`}</span>
               </div>
-              {p.body && <p className="notice-body">{p.body}</p>}
+              {p.body && <Body text={p.body} />}
               <div className="row small no-print" style={{ alignItems: 'center', gap: 8 }}>
                 {iRead ? <span className="muted">✓ You read this</span> : (
                   <form action={markPostRead}><input type="hidden" name="post_id" value={p.id} /><input type="hidden" name="back" value={back} /><button className="secondary small">Mark as read</button></form>

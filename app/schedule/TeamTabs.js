@@ -243,7 +243,7 @@ export async function TeamsTab({ supabase, profile, homeId }) {
       {home.schedule_from && (
         <section className="card">
           <h2 style={{ marginTop: 0 }}>Lines — who is on each one</h2>
-          <div className="scroll-x"><table className="lines">
+          <div className="scroll-x"><table className="lines wide">
             <thead><tr><th>Team</th><th>Line</th><th>Person</th><th>Two-week pattern {anchor && <span className="muted small">(from {fmtDate(anchor)}, repeats)</span>}</th></tr></thead>
             <tbody>{ls.map((l) => (
               <tr key={l.id}>
