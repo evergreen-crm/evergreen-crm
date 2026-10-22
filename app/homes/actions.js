@@ -30,9 +30,14 @@ export async function updateHome(formData) {
     const n = (k, lo, hi) => { const v = Number(text(formData, k)); return text(formData, k) !== null && Number.isFinite(v) && v >= lo && v <= hi ? v : null; };
     row.lat = n('lat', -90, 90);
     row.lng = n('lng', -180, 180);
-    row.geofence_m = Math.round(n('geofence_m', 25, 2000) ?? 200);
+    row.geofence_m = Math.round(n('geofence_m', 25, 2000) ?? 100);
   }
-  const { error } = await supabase.from('homes').update(row).eq('id', id);
+  if (formData.has('on_call_phone')) row.on_call_phone = text(formData, 'on_call_phone');
+  let { error } = await supabase.from('homes').update(row).eq('id', id);
+  if (error && /on_call_phone/.test(error.message)) {  // safe-shifts.sql not run yet: save the rest
+    delete row.on_call_phone;
+    ({ error } = await supabase.from('homes').update(row).eq('id', id));
+  }
   if (error) throw new Error('Could not save house: ' + error.message);
   revalidatePath(`/homes/${id}`);
   revalidatePath('/homes');
@@ -75,4 +80,21 @@ export async function updateResident(formData) {
   revalidatePath(`/residents/${id}`);
   revalidatePath(`/homes/${row.home_id}`);
   redirect(`/residents/${id}`);
+}
+
+// "Find from address": OpenStreetMap (Nominatim) lookup for a Canadian street address. Returns { lat, lng, label }.
+export async function geocodeAddress(address) {
+  await requireUser(['admin', 'manager']);
+  const q = String(address ?? '').trim().slice(0, 200);
+  if (!q) return { error: 'Type the street address first.' };
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ca&addressdetails=0&q=${encodeURIComponent(q)}`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'EvergreenCommunityCare-CRM/1.0 (house locations)', 'Accept-Language': 'en-CA' }, cache: 'no-store' });
+    if (!res.ok) return { error: 'The address lookup isn’t answering right now. Try again, or use “Use my current location” at the house.' };
+    const [hit] = await res.json();
+    if (!hit) return { error: 'Address not found. Check the spelling and include the city (e.g. 123 Main St, Surrey BC).' };
+    return { lat: Number(hit.lat), lng: Number(hit.lon), label: hit.display_name };
+  } catch {
+    return { error: 'Couldn’t reach the address lookup. Try again, or use “Use my current location” at the house.' };
+  }
 }

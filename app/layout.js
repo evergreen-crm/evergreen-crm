@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth';
 import PrintButton from '@/app/PrintButton';
 import NavMenu from '@/app/components/NavMenu';
 import MobileTabs from '@/app/components/MobileTabs';
+import EmergencyButton from '@/app/components/EmergencyButton';
 import PwaRegister from '@/app/components/PwaRegister';
 import DatePickerOpener from '@/app/components/DatePickerOpener';
 import IdleLogout from '@/app/components/IdleLogout';
@@ -31,10 +32,21 @@ export default async function RootLayout({ children }) {
   }
   let psRole = null;
   let todo = { total: 0, overdue: 0 };
+  let sosHome = null;
   if (profile && profile.role !== 'family') {
     ({ data: onb } = await supabase.from('onboardings').select('status').eq('profile_id', profile.id).maybeSingle());
     ({ data: psRole } = await supabase.rpc('prescreen_role'));
     try { todo = todoCount(await getMyTodos(supabase, profile)); } catch {}
+    // The house for the 🆘 button: where I'm clocked in now, or my own house.
+    try {
+      const { data: te } = await supabase.from('time_entries').select('home_id').eq('profile_id', profile.id).is('clock_out', null).maybeSingle();
+      const hid = te?.home_id ?? profile.home_id;
+      if (hid) {
+        let r = await supabase.from('homes').select('id, name, phone, on_call_phone').eq('id', hid).maybeSingle();
+        if (r.error) r = await supabase.from('homes').select('id, name, phone').eq('id', hid).maybeSingle();
+        sosHome = r.data ?? null;
+      }
+    } catch {}
   }
 
   return (
@@ -55,6 +67,7 @@ export default async function RootLayout({ children }) {
                     { href: '/checklist', label: 'Shift checklist', icon: '📋', color: '#2e8b57' },
                     { href: '/notes', label: 'Daily notes', icon: '📝', color: '#1f6fb2' },
                     { href: '/action-items', label: 'Problems to fix', icon: '⚠️', color: '#b3261e' },
+                    ...(levelOf(profile) >= 2 ? [{ href: '/approvals', label: 'Approvals & 🆘', icon: '🙋', color: '#b3261e' }] : []),
                     ...(levelOf(profile) >= 2 ? [{ href: '/kpi', label: 'How we’re doing (KPIs)', icon: '📈', color: '#1f6fb2' }] : []),
                     { href: '/homes', label: 'Houses', icon: '🏡', color: '#2e8b57' },
                     { href: '/calendar', label: 'Calendar', icon: '📅', color: '#1f6fb2' },
@@ -105,6 +118,7 @@ export default async function RootLayout({ children }) {
         <div className="print-only print-head"><img src="/logo.png" alt="Evergreen Community Care" className="print-logo" /></div>
         <div className={`page${profile && profile.role !== 'family' ? ' has-tabs' : ''}`}>{children}</div>
         {profile && profile.role !== 'family' && <MobileTabs unread={unread} todo={todo} frontline={levelOf(profile) <= 2 && !!profile.home_id && !groupOf(profile)} />}
+        {profile && profile.role !== 'family' && <EmergencyButton onCall={sosHome?.on_call_phone ?? null} housePhone={sosHome?.phone ?? null} homeName={sosHome?.name ?? null} homeId={sosHome?.id ?? null} />}
         {profile && <IdleLogout />}
         <Suspense fallback={null}><PhoneHelpers /></Suspense>
         <PwaRegister />

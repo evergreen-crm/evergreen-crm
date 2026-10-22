@@ -3,7 +3,7 @@ import { canHR } from '@/lib/levels';
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { cardStatus, siteOrigin, qrSvg, emergencyFor, fmtDistance, CHECKIN_EVERY_HOURS } from '@/lib/idcard';
-import { fmtDateTime, todayISO } from '@/lib/options';
+import { fmtDateTime, todayISO, addDaysISO } from '@/lib/options';
 import { ackLocationNotice } from '@/app/id/actions';
 import { IdCardFront, IdCardBack } from './IdCard';
 import IdPhotoUpload from './IdPhotoUpload';
@@ -46,7 +46,7 @@ export default async function IdPage({ searchParams }) {
   const emergency = emergencyFor(details, onb);
 
   // Shift and check-ins (own card only)
-  let openEntry = null, checks = [], homes = [];
+  let openEntry = null, checks = [], homes = [], outStatus = null, staffOnShift = [];
   if (isSelf) {
     ({ data: openEntry } = await supabase.from('time_entries').select('id, clock_in, home_id, homes(name)')
       .eq('profile_id', user.id).is('clock_out', null).maybeSingle());
@@ -55,6 +55,14 @@ export default async function IdPage({ searchParams }) {
         .eq('time_entry_id', openEntry.id).order('at', { ascending: false }));
     }
     ({ data: homes } = await supabase.from('homes').select('id, name').order('name'));
+    if (openEntry) {
+      const [st, sched] = await Promise.all([
+        supabase.rpc('clock_out_status'),
+        supabase.from('shifts').select('shift_date, profiles(full_name)').eq('home_id', openEntry.home_id).gte('shift_date', today).lte('shift_date', addDaysISO(today, 1)).not('profile_id', 'is', null),
+      ]);
+      outStatus = st.error ? null : st.data;
+      staffOnShift = [...new Set((sched.data ?? []).map((x) => x.profiles?.full_name).filter((n) => n && n !== profile.full_name))];
+    }
   }
   const lastAt = checks?.[0]?.at ?? openEntry?.clock_in;
   const nextDue = lastAt ? new Date(new Date(lastAt).getTime() + CHECKIN_EVERY_HOURS * 3600000) : null;
@@ -99,7 +107,7 @@ export default async function IdPage({ searchParams }) {
           <h2>Shift check-in</h2>
           {!card?.location_ack_at ? (
             <form action={ackLocationNotice}>
-              <p className="small"><strong>About location.</strong> When you tap <em>Clock in</em>, <em>Check in</em> or <em>Clock out</em>, your phone shares its location once so we can confirm you are at your house during your shift. Location is <strong>not</strong> tracked in the background or when you are off shift. Your manager sees the time, the distance from the house and a map link. Records are kept with timesheets.</p>
+              <p className="small"><strong>About location.</strong> When you tap <em>Clock in</em>, <em>Check in</em> or <em>Clock out</em>, your phone shares its location once so we can confirm you are at your house during your shift. Clock in and clock out only work at the house (or with your manager’s OK). Location is <strong>not</strong> tracked in the background or when you are off shift. Your manager sees the time, the distance from the house and a map link. Records are kept with timesheets.</p>
               <p className="small">You’ll get a reminder to check in every {CHECKIN_EVERY_HOURS} hours while on shift.</p>
               <button>I understand</button>
             </form>
@@ -111,7 +119,7 @@ export default async function IdPage({ searchParams }) {
                   {nextDue && <span className={overdue ? 'badge bad' : 'badge'}>{overdue ? 'Check-in due now' : `Next check-in by ${fmtDateTime(nextDue.toISOString()).split(', ').pop()}`}</span>}
                 </p>
               ) : <p className="muted small">You are not clocked in.</p>}
-              <CheckInPanel onShift={!!openEntry} homes={homes ?? []} defaultHome={profile.home_id} houseName={openEntry?.homes?.name} />
+              <CheckInPanel onShift={!!openEntry} homes={homes ?? []} defaultHome={profile.home_id} houseName={openEntry?.homes?.name} status={outStatus} staffOnShift={staffOnShift} />
               {checks?.length > 0 && (
                 <ul className="list compact">
                   {checks.map((c, i) => (

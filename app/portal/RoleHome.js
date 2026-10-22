@@ -41,20 +41,21 @@ export default async function RoleHome({ supabase, profile, userId }) {
   // ---------- Level 1-2: my shift ----------
   let shift = null;
   if (worker) {
-    const [home, open, youth, notes, appts, handover] = await Promise.all([
+    const [home, open, youth, notes, appts, handover, outSt] = await Promise.all([
       supabase.from('homes').select('id, name').eq('id', homeId).maybeSingle(),
       supabase.from('time_entries').select('id, clock_in').eq('profile_id', userId).is('clock_out', null).maybeSingle(),
       supabase.from('residents').select('id, first_name, preferred_name, last_name, allergies, status').eq('home_id', homeId).neq('status', 'discharged').order('first_name'),
       supabase.from('shift_notes').select('resident_id, author_id, signed_at').eq('note_date', today),
       supabase.from('appointments').select('id, title, start_time, residents(first_name, preferred_name)').eq('home_id', homeId).eq('appt_date', today).neq('status', 'Cancelled').order('start_time'),
       supabase.from('entries').select('id, entry_date, entry_time, data, author:created_by(full_name)').eq('home_id', homeId).eq('kind', 'commbook').order('created_at', { ascending: false }).limit(3),
+      supabase.rpc('clock_out_status'),
     ]);
     const noteBy = {};
     for (const n of rows(notes)) (noteBy[n.resident_id] ??= []).push(n);
     // Same list as /todo, so the numbers match everywhere.
     const due = todos.slice(0, 3).map((t) => ({ key: t.key, href: t.href, text: t.title, when: t.bucket === 'today' ? 'now' : t.due, bad: t.bucket === 'overdue' }));
     const dueTotal = todos.length;
-    shift = { home: home.data, open: open.data, youth: rows(youth), noteBy, appts: rows(appts), handover: rows(handover), due, dueTotal };
+    shift = { home: home.data, open: open.data, youth: rows(youth), noteBy, appts: rows(appts), handover: rows(handover), due, dueTotal, out: outSt && !outSt.error ? outSt.data : null };
   }
 
   // ---------- Level 2: waiting for me (my house) ----------
@@ -109,6 +110,10 @@ export default async function RoleHome({ supabase, profile, userId }) {
             </div>
             <Link href="/id#checkin" className={`button ${shift.open ? 'secondary' : ''} rh-clock`}>{shift.open ? '🪪 Check in / Clock out' : '🪪 Clock in'}</Link>
           </div>
+
+          {shift.out?.on_shift && shift.out.window_open && (
+            <Link href="/id#checkin" className="rh-leave">🛡 <strong>Before you leave is open</strong> — finish your checklist and notes, then clock out at the house →</Link>
+          )}
 
           <div className="rh-bigs">
             <Big href="/checklist" icon="📋" label="Shift checklist" hint="Tick & sign every shift" />

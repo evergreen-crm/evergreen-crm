@@ -694,3 +694,29 @@ table.wide td:first-child, table.wide th:first-child { position: sticky; left: 0
   .sticky-actions { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 20; background: rgba(247,245,240,.96); padding: 10px 0; margin: 0 -12px; padding-left: 12px; padding-right: 12px; box-shadow: 0 -6px 12px rgba(15,48,89,.06); }
   .sticky-actions button { flex: 1 1 auto; }
 }
+
+/* ---------- Safe check-out and 🆘 ---------- */
+.before-leave { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+.bl-checks { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 6px; }
+.bl-checks li { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 10px; background: #f3faf5; }
+.bl-checks li.no { background: #fff7e8; }
+.bl-checks li span { font-weight: 700; }
+.bl-q { display: grid; gap: 10px; }
+.bl-hurt { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.bl-hurt legend { font-weight: 600; font-size: .95rem; padding: 0 4px; }
+.bl-hurt > label:not(.check) { flex-basis: 100%; }
+.ask-perm { border-left: 5px solid #d4a72c; margin-top: 10px; }
+.rh-leave { display: block; margin: 12px 0 0; padding: 12px 14px; border-radius: 12px; background: #fff7e8; border: 1px solid #f0d18a; color: var(--text); }
+.sos-fab { position: fixed; right: 16px; bottom: 24px; z-index: 45; width: 58px; height: 58px; border-radius: 50%; padding: 0; font-size: 1.6rem; background: #c62828; color: #fff; box-shadow: 0 6px 18px rgba(198,40,40,.4); }
+.sos-sheet { position: fixed; inset: 0; z-index: 70; background: rgba(15,20,25,.55); display: flex; align-items: flex-end; justify-content: center; }
+.sos-panel { background: var(--card); width: min(560px, 100%); max-height: 92vh; overflow: auto; border-radius: 16px 16px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+.sos-calls { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 12px 0; }
+.sos-calls .button { text-align: center; padding: 14px; font-size: 1.05rem; }
+.sos-911 { background: #c62828 !important; }
+.sos-kinds { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
+.sos-kind { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 8px; background: #fff3f2; color: var(--text); border: 1px solid #f3c2bd; border-radius: 12px; font-weight: 600; }
+.sos-kind span { font-size: 1.6rem; }
+.sos-steps li { margin-bottom: 6px; }
+.sos-row, .req-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
+@media (max-width: 720px) { .sos-fab { bottom: calc(84px + env(safe-area-inset-bottom)); right: 12px; width: 54px; height: 54px; } .sticky-actions { padding-right: 76px !important; } }
+@media print { .sos-fab, .sos-sheet { display: none !important; } }

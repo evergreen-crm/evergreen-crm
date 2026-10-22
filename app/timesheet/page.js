@@ -3,7 +3,7 @@ import { canPayroll } from '@/lib/levels';
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { payPeriod, addDaysISO, todayISO, fmtDate, fmtDateTime, TZ } from '@/lib/options';
-import { clockIn, clockOut, addTime, approveTime, deleteTime } from '@/app/timesheet/actions';
+import { addTime, approveTime, deleteTime } from '@/app/timesheet/actions';
 
 const hours = (e) => !e.clock_out ? 0 : Math.max(0, (new Date(e.clock_out) - new Date(e.clock_in)) / 3600000 - (e.break_minutes ?? 0) / 60);
 const localDate = (ts) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(ts));
@@ -47,28 +47,10 @@ export default async function TimesheetPage({ searchParams }) {
       <p className="muted">Pay period {fmtDate(period.start)} to {fmtDate(period.end)} · <Link href="/id">📍 Clock in and check in with location from your ID card</Link>{isMgr && <> · <Link href="/checkins">Check-in log</Link></>}</p>
 
       <div className="card no-print">
-        {openEntry ? (
-          <form action={clockOut}>
-            <p><strong>You are clocked in</strong> since {fmtDateTime(openEntry.clock_in)}.</p>
-            <input type="hidden" name="id" value={openEntry.id} />
-            <div className="row">
-              <label>Unpaid break (minutes)<input type="number" min="0" name="break_minutes" defaultValue="0" /></label>
-              <label>Notes<input name="notes" /></label>
-            </div>
-            <button>Clock out</button>
-          </form>
-        ) : (
-          <form action={clockIn} className="row">
-            <label>House
-              <select name="home_id" defaultValue={profile.home_id ?? ''}>
-                <option value="">—</option>
-                {homes?.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
-              </select>
-            </label>
-            <label>Notes<input name="notes" placeholder="optional" /></label>
-            <button>Clock in</button>
-          </form>
-        )}
+        {openEntry
+          ? <p><strong>You are clocked in</strong> since {fmtDateTime(openEntry.clock_in)}. <Link href="/id#checkin" className="button">🛡 Before you leave / Clock out</Link></p>
+          : <p>You are not clocked in. <Link href="/id#checkin" className="button">▶ Clock in at the house</Link></p>}
+        <p className="muted small">Clock in and out from your ID card. It checks you are at the house, and runs a short safety check before you leave.</p>
       </div>
 
       {isMgr && (

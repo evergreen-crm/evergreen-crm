@@ -140,3 +140,40 @@ export async function replaceIdQr(formData) {
   if (error) throw new Error('Could not replace: ' + error.message);
   refresh(pid);
 }
+
+// ---------- Safe clock in / clock out, permission requests, emergency (supabase/safe-shifts.sql) ----------
+const NOT_ON = 'Safe clock in and out isn’t switched on yet. Please tell the office (setup file: safe-shifts.sql).';
+const clean = (e) => (/does not exist|Could not find the function/i.test(e?.message ?? '') ? NOT_ON : (e?.message ?? 'Something went wrong.').replace(/^.*?ERROR:\s*/, ''));
+const L = (loc) => ({ p_lat: num(loc?.lat), p_lng: num(loc?.lng), p_acc: loc?.accuracy != null ? Math.round(loc.accuracy) : null });
+
+export async function clockInSafe({ homeId, loc, note }) {
+  const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
+  const { data, error } = await supabase.rpc('clock_in_safely', { p_home: homeId || profile.home_id, ...L(loc), p_note: note || null });
+  if (error) return { error: clean(error) };
+  refresh(user.id); revalidatePath('/portal'); revalidatePath('/checklist');
+  return data;
+}
+
+export async function clockOutSafe({ loc, answers, breakMinutes, note }) {
+  const { supabase, user } = await requireUser(['admin', 'manager', 'staff']);
+  const { data, error } = await supabase.rpc('clock_out_safely', { ...L(loc), p_answers: answers ?? {}, p_break: Math.max(0, Number(breakMinutes) || 0), p_note: note || null });
+  if (error) return { error: clean(error) };
+  refresh(user.id); revalidatePath('/portal'); revalidatePath('/todo');
+  return data;
+}
+
+export async function askShiftPermission({ kind, homeId, reasons, note, loc }) {
+  const { supabase, user } = await requireUser(['admin', 'manager', 'staff']);
+  const { error } = await supabase.rpc('request_shift_permission', { p_kind: kind, p_home: homeId || null, p_reasons: reasons ?? [], p_note: note ?? '', ...L(loc) });
+  if (error) return { error: clean(error) };
+  refresh(user.id);
+  return { ok: true };
+}
+
+export async function raiseEmergency({ kind, note, loc }) {
+  const { supabase } = await requireUser(['admin', 'manager', 'staff']);
+  const { data, error } = await supabase.rpc('raise_emergency', { p_kind: kind, p_note: note || null, ...L(loc) });
+  if (error) return { error: clean(error) };
+  revalidatePath('/approvals');
+  return { ok: true, id: data };
+}

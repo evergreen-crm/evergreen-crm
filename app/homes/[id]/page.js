@@ -1,6 +1,7 @@
 // One house: its residents, upcoming calendar, and house details (editable).
 import Link from 'next/link';
 import UseMyLocation from './UseMyLocation';
+import FindAddress from './FindAddress';
 import HouseDashboard from './HouseDashboard';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
@@ -65,6 +66,7 @@ export default async function HomePage({ params, searchParams }) {
           <label>Address<input name="address" defaultValue={home.address ?? ''} /></label>
           <div className="row">
             <label>Phone<input name="phone" type="tel" inputMode="tel" defaultValue={home.phone ?? ''} /></label>
+            <label>On-call phone (for the 🆘 button)<input name="on_call_phone" type="tel" inputMode="tel" defaultValue={home.on_call_phone ?? ''} placeholder="Manager on-call cell" /></label>
             <label>
               Who lives here
               <select name="house_type" defaultValue={home.house_type ?? 'Adults'}>
@@ -75,14 +77,15 @@ export default async function HomePage({ params, searchParams }) {
           </div>
           <label>Licence number<input name="licence_number" defaultValue={home.licence_number ?? ''} /></label>
           <fieldset className="card">
-            <legend>House location (for staff check-ins)</legend>
+            <legend>House location — staff can clock in and out only here</legend>
             <div className="row">
               <label>Latitude<input name="lat" inputMode="decimal" defaultValue={home.lat ?? ''} placeholder="49.2827" /></label>
               <label>Longitude<input name="lng" inputMode="decimal" defaultValue={home.lng ?? ''} placeholder="-123.1207" /></label>
-              <label>Counts as “at the house” within (metres)<input type="number" min="25" max="2000" name="geofence_m" defaultValue={home.geofence_m ?? 200} /></label>
+              <label>Counts as “at the house” within (metres)<input type="number" min="25" max="2000" name="geofence_m" defaultValue={home.geofence_m ?? 100} /></label>
             </div>
-            <UseMyLocation />
-            <p className="muted small">Stand at the house and tap the button, or in Google Maps right-click the house and copy the two numbers.</p>
+            <div className="row" style={{ gap: 8 }}><FindAddress /><UseMyLocation /></div>
+            {home.lat != null && <p className="small"><a href={`https://maps.google.com/?q=${home.lat},${home.lng}`} target="_blank" rel="noreferrer">📍 See the saved pin on the map</a></p>}
+            <p className="muted small">Most precise: stand at the front door and tap “Use my current location”. Or type the address above and tap “Find from address”. 100 m works well; phones indoors can be 20–60 m off, so don’t go below about 75 m.</p>
           </fieldset>
           <label>Notes<textarea name="notes" rows={2} defaultValue={home.notes ?? ''} /></label>
           <div className="row">
