@@ -111,7 +111,8 @@ export default async function RoleHome({ supabase, profile, userId }) {
           </div>
 
           <div className="rh-bigs">
-            <Big href="#my-youth" icon="📝" label="Daily note" hint="Before you leave" />
+            <Big href="/checklist" icon="✅" label="Shift checklist" hint="Tick & sign every shift" />
+            <Big href="/notes" icon="📝" label="Daily notes" hint="Everyone, one screen" />
             <Big href="#my-youth" icon="💊" label="Medication" hint="Record each dose" />
             <Big href="#my-youth" icon="⚠️" label="Report an incident" hint="Tell on-call first" />
             <Big href={shift.home ? `/homes/${shift.home.id}?tab=commbook` : '/homes'} icon="📋" label="Shift log" hint="Handover & comm book" />
@@ -130,9 +131,9 @@ export default async function RoleHome({ supabase, profile, userId }) {
                     <span className={`small ${mine ? '' : 'muted'}`}>{mine ? '✓ your note done' : n.length ? `${n.length} note${n.length > 1 ? 's' : ''} today` : 'no note yet today'}</span>
                   </Link>
                   <span className="rh-acts">
-                    <Link href={`/residents/${r.id}?tab=notes`} className="chip">📝 Note</Link>
+                    <Link href={`/notes#r-${r.id}`} className="chip">📝 Note</Link>
                     <Link href={`/residents/${r.id}?tab=mar`} className="chip">💊 Meds</Link>
-                    <Link href={`/residents/${r.id}?tab=incidents`} className="chip">⚠️ Incident</Link>
+                    <Link href={`/residents/${r.id}?tab=incidents&new=1`} className="chip">⚠️ Incident</Link>
                   </span>
                 </li>
               );
