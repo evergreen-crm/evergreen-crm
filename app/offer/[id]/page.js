@@ -9,6 +9,8 @@ import { emailReady } from '@/lib/email';
 import PrintButton from '@/app/PrintButton';
 import OfferUpload from '../OfferUpload';
 import { sendOffer, withdrawOffer, acceptOffer, declineOffer, emailOffer } from '../actions';
+import { plainStatus } from '@/lib/plain';
+import { plainError } from '@/lib/plain';
 
 const BADGE = { Draft: 'warn', Sent: 'warn', Accepted: '', Declined: 'bad', Withdrawn: 'bad' };
 
@@ -34,11 +36,11 @@ export default async function OfferPage({ params, searchParams }) {
     <main>
       <p className="small no-print">{hr ? <Link href={`/hr/${o.profile_id}#offer`}>← {name}’s HR record</Link> : <Link href="/onboarding">← My onboarding</Link>}</p>
       <div className="title-row no-print">
-        <h1>Offer letter <span className={`badge ${BADGE[o.status]}`}>{o.status}</span></h1>
+        <h1>Offer letter <span className={`badge ${BADGE[o.status]}`}>{plainStatus(o.status)}</span></h1>
         <PrintButton label="Print / Save as PDF" />
       </div>
       {sp?.ok && <p className="message ok no-print">{sp.ok}</p>}
-      {sp?.error && <p className="message no-print">{sp.error}</p>}
+      {sp?.error && <p className="message no-print">{plainError(sp.error)}</p>}
 
       {hr && o.status === 'Draft' && (
         <section className="card no-print">

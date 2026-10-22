@@ -11,7 +11,7 @@ export default async function Notifications() {
   return (
     <main>
       <div className="title-row">
-        <h1>Notifications</h1>
+        <h1>Alerts</h1>
         {unread > 0 && <form action={markAllRead}><button className="secondary">Mark all as read</button></form>}
       </div>
       <p className="muted small">Reminders are checked every morning at 8 am: training and certificates 30 days before they expire, overdue onboarding items, and policies not signed after 14 days.</p>

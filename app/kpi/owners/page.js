@@ -6,6 +6,7 @@ import { levelOf, levelName, groupOf, groupName, personLabel } from '@/lib/level
 import { fmtDate } from '@/lib/options';
 import { AREAS, STATUS, loadKpiData, computeKpis, DEFAULT_KPI_ROLE } from '@/lib/kpis';
 import { saveKpiOwners, fillKpiOwnersByRole } from '../actions';
+import { plainError } from '@/lib/plain';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,7 @@ export default async function KpiOwners({ searchParams }) {
       <h1>👤 KPI owners</h1>
       <p className="muted">Each KPI has one person who is accountable for it. When the automatic check finds a problem for a KPI, the action item goes to that KPI’s owner. If no one is assigned, it goes to the house’s Program Coordinator, then a Program Manager.</p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
-      {sp.error && <p className="message">{sp.error}</p>}
+      {sp.error && <p className="message">{plainError(sp.error)}</p>}
       {!canEdit && <p className="card small">Only the Director of Operations, Executive Director, CSO, CEO or an Administrator can change KPI owners.</p>}
       <p className="small"><strong>{assigned}</strong> of {kpis.length} KPIs have an owner.</p>
       {canEdit && (

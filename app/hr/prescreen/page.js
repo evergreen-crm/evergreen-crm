@@ -4,6 +4,7 @@ import { requirePrescreen } from '@/lib/prescreenAuth';
 import { POSITIONS, PROGRAMS, CLEARANCE, clearance, currentStep, interviewAvg, refsDone, renewals } from '@/lib/prescreen';
 import ProgramBadge from '@/app/components/ProgramBadge';
 import { createPrescreen } from './actions';
+import { plainError } from '@/lib/plain';
 
 export const metadata = { title: 'Prescreening · Evergreen' };
 
@@ -29,11 +30,11 @@ export default async function PrescreenList({ searchParams }) {
       <p className="small"><Link href="/hr">← HR portal</Link></p>
       <div className="div-banner" style={{ '--div': '#5a3d8a' }}>
         <span className="div-icon">🧾</span>
-        <div><h1>Pre-employment screening</h1>
+        <div><h1>Job applicants <span className="muted small">— pre-employment screening</span></h1>
           <p>Every employee, contractor, volunteer, relief worker and caregiver with access to residents is screened and cleared here before working independently.</p></div>
       </div>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
-      {sp.error && <p className="message">{sp.error}</p>}
+      {sp.error && <p className="message">{plainError(sp.error)}</p>}
 
       <div className="stats">
         <div className="stat ps-green"><strong>{count('green')}</strong><span>Green – cleared</span></div>

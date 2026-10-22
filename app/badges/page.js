@@ -2,11 +2,13 @@
 // Everyone has a badge, executives and administrators included; nobody sets their own. Program Coordinators see their own house read-only. Policy: Staff Duties, Expectations, Performance Badges and Bonus v1.1.
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
-import { levelOf, groupOf } from '@/lib/levels';
+import { levelOf, groupOf, personLabel } from '@/lib/levels';
 import { todayISO } from '@/lib/options';
 import { BADGE, REASONS, bonusCount, fmtMonth, monthStart, reasonByKey, canSetBadge } from '@/lib/badges';
 import BadgePill from '@/app/components/BadgePill';
 import { setBadge, acknowledgeBadge } from './actions';
+import NotReady from '@/app/components/NotReady';
+import { plainError } from '@/lib/plain';
 
 const prevMonth = (iso) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 10); };
 const reasonText = (keys) => (keys ?? []).map((k) => reasonByKey(k)?.label).filter(Boolean).join(' · ');
@@ -24,7 +26,7 @@ export default async function Badges({ searchParams }) {
     supabase.from('staff_badges').select('id, profile_id, month, color, reasons, restart, note, set_at, acknowledged_at').order('month', { ascending: false }),
     seesTeam ? supabase.from('profiles').select('id, full_name, level, role, home_id').in('role', ['staff', 'manager', 'admin']).eq('active', true).order('full_name') : Promise.resolve({ data: [] }),
   ]);
-  if (error) return <main><h1>Performance badges</h1><p className="card">Badges are not switched on yet. An administrator needs to run <code>supabase/performance-badges.sql</code> in Supabase.</p></main>;
+  if (error) return <main><h1>Performance badges</h1><NotReady what="Performance badges" file="performance-badges.sql" /></main>;
 
   const byPerson = {};
   for (const b of all ?? []) (byPerson[b.profile_id] ??= []).push(b);
@@ -49,7 +51,7 @@ export default async function Badges({ searchParams }) {
         <div><h1>Performance badges</h1><p>🟢 Green · 🟡 Yellow · 🔴 Red — set every month. Green with zero substantiated complaints for 24 months earns the Excellence Bonus.</p></div>
       </div>
       {sp?.ok && <p className="message ok">{sp.ok}</p>}
-      {sp?.error && <p className="message error">{sp.error}</p>}
+      {sp?.error && <p className="message error">{plainError(sp.error)}</p>}
 
       <section className="card">
         <h2>My badge</h2>
@@ -95,7 +97,7 @@ export default async function Badges({ searchParams }) {
                 const c = bonusCount(list);
                 return (
                   <tr key={p.id}>
-                    <td>{p.full_name}{p.me && <strong> (you)</strong>}<div className="muted small">Level {p.lvl}</div></td>
+                    <td>{p.full_name}{p.me && <strong> (you)</strong>}<div className="muted small">{personLabel(p)}</div></td>
                     <td><BadgePill color={now?.color} />{now && !now.acknowledged_at && <div className="muted small">not seen yet</div>}</td>
                     <td><BadgePill color={prev?.color} /></td>
                     <td className="small">{c.months} / 24{c.eligible ? ' 🎉' : ''} · Yellow {c.yellows}/3</td>
@@ -115,7 +117,7 @@ export default async function Badges({ searchParams }) {
             <div className="row" style={{ gap: 8, alignItems: 'flex-end' }}>
               <label>Staff member<select name="profile_id" defaultValue={person?.id ?? ''} required>
                 <option value="" disabled>Choose…</option>
-                {settable.map((p) => <option key={p.id} value={p.id}>{p.full_name} (level {p.lvl})</option>)}
+                {settable.map((p) => <option key={p.id} value={p.id}>{p.full_name} ({personLabel(p)})</option>)}
               </select></label>
               <label>Month<input type="month" name="month" defaultValue={formMonth.slice(0, 7)} required /></label>
             </div>

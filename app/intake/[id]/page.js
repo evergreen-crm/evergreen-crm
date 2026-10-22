@@ -9,6 +9,7 @@ import { formsForStream, DEFAULT_PACKAGE, SIGNER_ROLES } from '@/lib/intakeForms
 import ProgramBadge from '@/app/components/ProgramBadge';
 import CopyLink from './CopyLink';
 import { sendForms, fillInternal, cancelRequest, renewRequest, updateCase } from '../actions';
+import { plainError } from '@/lib/plain';
 
 const badge = { Sent: 'warn', Opened: 'warn', Completed: '', Cancelled: 'bad' };
 
@@ -54,7 +55,7 @@ export default async function IntakeCase({ params, searchParams }) {
       </div>
       <p className="muted">Referred {fmtDate(c.referral_date)}{c.homes?.name && ` · ${c.homes.name}`} · {done} of {live.length} forms signed</p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
-      {sp.error && <p className="message">{sp.error}</p>}
+      {sp.error && <p className="message">{plainError(sp.error)}</p>}
 
       {Object.values(groups).map((g) => {
         const pending = g.items.filter((r) => r.status !== 'Completed');

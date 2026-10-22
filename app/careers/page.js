@@ -4,6 +4,8 @@ import { requireUser } from '@/lib/auth';
 import { levelOf } from '@/lib/levels';
 import { fmtDate } from '@/lib/options';
 import { requestPromotion, decidePromotion } from './actions';
+import NotReady from '@/app/components/NotReady';
+import { plainError } from '@/lib/plain';
 
 const PHASES = ['At launch', 'After 6 months', 'Year 1+'];
 const CAT_ICON = { Recognition: '🌟', Growth: '🌱', Schedule: '🗓', Wellbeing: '💚', Pay: '💵', Practical: '🧰' };
@@ -37,8 +39,8 @@ export default async function Careers({ searchParams }) {
       <h1>🌱 Career & perks</h1>
       <p className="muted">How to grow at Evergreen: a clear ladder, what each step needs, and the perks you get along the way.</p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
-      {sp.error && <p className="message">{sp.error}</p>}
-      {error && <p className="message">The career ladder isn’t set up yet. Run <code>supabase/launch-people.sql</code> in Supabase → SQL Editor.</p>}
+      {sp.error && <p className="message">{plainError(sp.error)}</p>}
+      {error && <NotReady what="The career ladder" file="launch-people.sql" card={false} />}
 
       {ladder?.length > 0 && (
         <section className="card">

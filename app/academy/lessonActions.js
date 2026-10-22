@@ -4,7 +4,7 @@
 import { requireUser } from '@/lib/auth';
 import { levelOf } from '@/lib/levels';
 
-const SETUP = 'Lesson tracking isn’t set up yet — run supabase/academy-integrity.sql in Supabase.';
+const SETUP = 'Lesson tracking isn’t switched on yet. Please tell the office (setup file: academy-integrity.sql).';
 
 export async function startLesson(key) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);

@@ -7,6 +7,7 @@ import { todayISO, TZ } from '@/lib/options';
 import { SHIFTS, shiftNow } from '@/lib/checklist';
 import NoteCard from './NoteCard';
 import { saveNote, signAllMine } from './actions';
+import { plainError } from '@/lib/plain';
 
 const time = (ts) => new Date(ts).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
 
@@ -48,7 +49,7 @@ export default async function Notes({ searchParams }) {
         <div><h1>Daily notes — {home.name}</h1><p>{SHIFTS[now.shift]?.icon} {now.shift} shift · write a note for each person before you leave. Tap choices, then a few sentences in your own words.</p></div>
       </div>
       {sp?.ok && <p className="message ok">{sp.ok}</p>}
-      {sp?.error && <p className="message error">{sp.error}</p>}
+      {sp?.error && <p className="message error">{plainError(sp.error)}</p>}
 
       <section className="card notes-bar">
         <div><strong>{done} of {list.length}</strong> signed by you this shift{drafts > 0 && <> · <span className="badge warn">{drafts} draft{drafts > 1 ? 's' : ''}</span></>}</div>

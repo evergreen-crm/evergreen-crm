@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { requirePrescreen } from '@/lib/prescreenAuth';
 import { grantAccess, revokeAccess } from '../actions';
 import { personLabel } from '@/lib/levels';
+import { plainError } from '@/lib/plain';
 
 export const metadata = { title: 'Prescreening access · Evergreen' };
 const LABEL = { hr: 'HR staff — full screening access and clearance decisions', interviewer: 'Interviewer — interviews and reference checks only' };
@@ -23,7 +24,7 @@ export default async function PrescreenAccess({ searchParams }) {
       <h1>Who can open prescreens</h1>
       <p className="muted">Only you, the administrator, can give or remove access. Screening files hold personal information, references and criminal record results, so keep this list short. Executive approval can only be signed by an administrator.</p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
-      {sp.error && <p className="message">{sp.error}</p>}
+      {sp.error && <p className="message">{plainError(sp.error)}</p>}
 
       <form action={grantAccess} className="card">
         <h2>Give access</h2>

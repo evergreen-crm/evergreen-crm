@@ -6,6 +6,7 @@ import { levelOf, groupOf } from '@/lib/levels';
 import { fmtDate } from '@/lib/options';
 import KpiCard from './KpiCard';
 import { AREAS, STATUS, SCORECARD, loadKpiData, computeKpis, visibleKpis, scorecard, overallCompliance } from '@/lib/kpis';
+import Abbr from '@/app/components/Abbr';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,8 +31,8 @@ export default async function KpiPage() {
 
   return (
     <main>
-      <h1>KPIs</h1>
-      <p className="muted">Live from the records in the system · {fmtDate(data.today)} · {lvl >= 3 || group ? 'all houses' : 'your house'}. 🟢 on target · 🟡 attention required · 🔴 immediate action.</p>
+      <h1>How we’re doing <span className="muted small">(<Abbr t="KPI">KPIs</Abbr>)</span></h1>
+      <p className="muted">Live from the records in the system · {fmtDate(data.today)} · {lvl >= 3 || group ? 'all houses' : 'your house'}. 🟢 on track · 🟡 needs attention · 🔴 fix now.</p>
 
       <div className="stats">
         <div className={`stat ${overall === null ? '' : overall >= 98 ? '' : overall >= 90 ? 'warn' : 'bad'}`}><strong>{overall === null ? '—' : `${overall}%`}</strong><span>Overall compliance</span></div>

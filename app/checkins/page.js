@@ -43,7 +43,7 @@ export default async function CheckinsPage({ searchParams }) {
   return (
     <main>
       <div className="title-row">
-        <h1>Check-ins</h1>
+        <h1>Staff on shift <span className="muted small">— check-ins and locations</span></h1>
         <span className="small no-print">
           <Link href={`/checkins?d=${addDaysISO(day, -1)}`}>← Previous day</Link>{' · '}
           <Link href="/checkins">Today</Link>{' · '}

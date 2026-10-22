@@ -3,6 +3,8 @@
 import { levelOf, groupOf } from '@/lib/levels';
 import { fmtDate, todayISO } from '@/lib/options';
 import { createPost, markPostRead, removePost, togglePin } from '@/app/posts/actions';
+import NotReady from '@/app/components/NotReady';
+import { plainError } from '@/lib/plain';
 
 const PRIORITY = { Urgent: { dot: '🔴', cls: 'bad' }, Important: { dot: '🟡', cls: 'warn' }, Normal: { dot: '📌', cls: '' } };
 
@@ -13,7 +15,7 @@ export default async function NoticeBoard({ supabase, profile, userId, homeId = 
     .order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(30);
   if (homeId) q = q.or(`home_id.eq.${homeId},home_id.is.null`);
   const { data: posts, error } = await q;
-  if (error) return <section className="card" id="notices"><h2>📢 Notice board</h2><p className="muted small">Run <code>supabase/house-dashboards.sql</code> in Supabase to switch on the notice board.</p></section>;
+  if (error) return <section className="card" id="notices"><h2>📢 Notice board</h2><NotReady what="The notice board" file="house-dashboards.sql" card={false} /></section>;
 
   const live = (posts ?? []).filter((p) => !p.expires_on || p.expires_on >= today);
   const ids = live.map((p) => p.id);
@@ -30,7 +32,7 @@ export default async function NoticeBoard({ supabase, profile, userId, homeId = 
     <section className="card" id="notices">
       <h2>📢 Notice board</h2>
       {sp.post_ok && <p className="message ok">{sp.post_ok}</p>}
-      {sp.post_error && <p className="message">{sp.post_error}</p>}
+      {sp.post_error && <p className="message">{plainError(sp.post_error)}</p>}
 
       {live.length === 0 && <p className="muted">No notices right now.</p>}
       <ul className="notices">

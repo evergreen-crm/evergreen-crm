@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/auth';
 import { fmtDate, todayISO } from '@/lib/options';
 import ProgramBadge from '@/app/components/ProgramBadge';
 import { createCase } from './actions';
+import { plainError } from '@/lib/plain';
 
 export const metadata = { title: 'Intake · Evergreen' };
 
@@ -41,9 +42,9 @@ export default async function IntakeHome({ searchParams }) {
     <main>
       <div className="div-banner" style={{ '--div': '#1f6fb2' }}>
         <span className="div-icon">📨</span>
-        <div><h1>Intake</h1><p>Send MCFD and CLBC intake forms by email. People fill them in and sign online — no account needed.</p></div>
+        <div><h1>New referrals</h1><p>Send MCFD and CLBC intake forms by email. People fill them in and sign online — no account needed.</p></div>
       </div>
-      {sp.error && <p className="message">{sp.error}</p>}
+      {sp.error && <p className="message">{plainError(sp.error)}</p>}
 
       <details className="card" open={(cases ?? []).length === 0}>
         <summary><strong>+ Start a new intake</strong></summary>

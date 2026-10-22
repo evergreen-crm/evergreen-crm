@@ -7,6 +7,8 @@ import { fmtDate, fmtDateTime, todayISO, addDaysISO, TZ } from '@/lib/options';
 import { SHIFTS, SECTIONS, AREAS, shiftHours, expectedBedChecks, notesForShift } from '@/lib/checklist';
 import ChecklistItem from './ChecklistItem';
 import { startChecklist, logBedCheck, signChecklist } from './actions';
+import NotReady from '@/app/components/NotReady';
+import { plainError } from '@/lib/plain';
 
 const time = (ts) => new Date(ts).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
 const STATUS_BADGE = { Signed: '', 'In progress': 'warn', Finishing: 'warn', Late: 'bad' };
@@ -33,7 +35,7 @@ export default async function Checklist({ searchParams }) {
         <div><h1>Shift checklist</h1><p>Every staff member, every shift. Tap each duty as you do it, then initial and sign before you leave.</p></div>
       </div>
       {sp?.ok && <p className="message ok">{sp.ok}</p>}
-      {sp?.error && <p className="message error">{sp.error}</p>}
+      {sp?.error && <p className="message error">{plainError(sp.error)}</p>}
       {lead && (
         <nav className="tabs-bar no-print">
           <Link href="/checklist" className={view === 'me' ? 'on' : ''}>My checklist</Link>
@@ -43,7 +45,7 @@ export default async function Checklist({ searchParams }) {
       )}
     </>
   );
-  if (notReady) return <main>{header}<p className="card">Shift checklists are not switched on yet. An administrator needs to run <code>supabase/shift-checklists.sql</code> in Supabase.</p></main>;
+  if (notReady) return <main>{header}<NotReady what="The shift checklist" file="shift-checklists.sql" /></main>;
 
   // ---------------- House board ----------------
   if (view === 'house') {

@@ -128,7 +128,7 @@ export default async function Dashboard({ searchParams }) {
 
   return (
     <main>
-      <h1>Dashboard — {fmtDate(today)}</h1>
+      <h1>Overview — {fmtDate(today)}</h1>
       <HousesOverview supabase={supabase} homes={homes ?? []} />
       <NoticeBoard supabase={supabase} profile={profile} userId={user.id} homes={homes ?? []} back="/dashboard" sp={sp} />
       <h2 style={{ marginTop: 24 }}>Today</h2>
@@ -170,7 +170,7 @@ export default async function Dashboard({ searchParams }) {
         </div>
       </div>
 
-      <h2>Communication book (last 3 days)</h2>
+      <h2>Shift log (last 3 days)</h2>
       {commbook?.length === 0 && <p className="muted">No new messages.</p>}
       <ul className="timeline">
         {commbook?.map((e) => (

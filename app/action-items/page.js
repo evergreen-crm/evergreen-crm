@@ -6,6 +6,8 @@ import { fmtDate, todayISO } from '@/lib/options';
 import { scanActionItems, runDailyNow, setMyEmailAlerts } from './actions';
 import { automationSetup } from '@/lib/automation';
 import { Dot, isDoneStatus, categoryLabel } from './ui';
+import NotReady from '@/app/components/NotReady';
+import { plainError } from '@/lib/plain';
 
 export const maxDuration = 60; // the "Run daily job now" button can take a little while
 
@@ -48,11 +50,11 @@ export default async function ActionItems({ searchParams }) {
 
   return (
     <main>
-      <h1>Action required</h1>
-      <p className="muted">Every issue has an owner, a due date and a status: Issue → Owner → Due date → Status → Evidence → Approval → Closed. Each step is recorded.</p>
+      <h1>Problems to fix</h1>
+      <p className="muted">Each problem has one person who fixes it and a due date. They fix it, show what they did, a manager approves, and it closes. Every step is recorded.</p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
-      {sp.error && <p className="message">{sp.error}</p>}
-      {error && <p className="message">Action items aren’t set up yet. Run <code>supabase/kpi-actions.sql</code> in Supabase → SQL Editor.</p>}
+      {sp.error && <p className="message">{plainError(sp.error)}</p>}
+      {error && <NotReady what="Problems to fix" file="kpi-actions.sql" card={false} />}
 
       <div className="row no-print" style={{ alignItems: 'center' }}>
         {lvl >= 3 && <form action={scanActionItems}><button>🔄 Check for new issues now</button></form>}

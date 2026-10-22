@@ -2,11 +2,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
-import { levelOf } from '@/lib/levels';
+import { levelOf, levelName } from '@/lib/levels';
 import { fmtDate, todayISO, daysUntil, addDaysISO } from '@/lib/options';
 import { updatePlan, setTask, setMilestone, updateDocument, setChecklistItem } from '../actions';
 import DocFile from '../DocFile';
 import ChecklistFile from '../ChecklistFile';
+import NotReady from '@/app/components/NotReady';
+import { plainError } from '@/lib/plain';
 
 const TABS = [
   { key: 'milestones', label: '🏁 Milestones' },
@@ -73,7 +75,7 @@ export default async function LaunchPlan({ params, searchParams }) {
       <p className="muted">{plan.service_type} · Status: <strong>{plan.status}</strong> · Agency: Evergreen Community Care</p>
       <p className="no-print"><Link className="button secondary" href={`/launch/${id}/print`}>🖨 Print options</Link></p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
-      {sp.error && <p className="message">{sp.error}</p>}
+      {sp.error && <p className="message">{plainError(sp.error)}</p>}
 
       <div className="stats">
         <div className={`stat ${d !== null && d < 14 && plan.status !== 'Complete' ? 'warn' : ''}`}>
@@ -155,7 +157,7 @@ export default async function LaunchPlan({ params, searchParams }) {
   }
 
   function Checklist() {
-    if (!ck.length) return <p className="card">The house checklist isn’t switched on yet. An administrator needs to run <code>supabase/launch-checklist.sql</code> in Supabase.</p>;
+    if (!ck.length) return <NotReady what="The house checklist" file="launch-checklist.sql" />;
     const f = CK_FILTERS.some((x) => x.key === sp.f) ? sp.f : 'todo';
     const open = (x) => !x.done_on && !x.not_applicable;
     const rows = ck.filter((x) => f === 'all' ? true : f === 'required' ? x.tag !== 'BP'
@@ -189,7 +191,7 @@ export default async function LaunchPlan({ params, searchParams }) {
                   <tr key={x.id} className={x.due_status === 'Overdue' ? 'late' : ''}>
                     <td>{x.done_on ? '✅ ' : x.not_applicable ? '➖ ' : locked ? '🔒 ' : '☐ '}{x.item}
                       {x.due_note && <div className="muted small">{x.due_note}</div>}
-                      {x.min_level >= 5 && <div className="muted small">Signed by level {x.min_level}+ only</div>}</td>
+                      {x.min_level >= 5 && <div className="muted small">Signed by {levelName(x.min_level)} or above</div>}</td>
                     <td className="small">{TAG[x.tag]}</td>
                     <td className="small">{x.owner_role}</td>
                     <td className={`small ${x.due_status === 'Overdue' ? 'bad-text' : ''}`}>

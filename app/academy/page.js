@@ -49,7 +49,7 @@ export default async function Academy({ searchParams }) {
     <main>
       <div className="div-banner academy">
         <span className="div-icon">🎓</span>
-        <div><h1>Evergreen Academy</h1><p>Mandatory training (MCFD Standard G.3), renewals and certificates</p></div>
+        <div><h1>Evergreen Academy</h1><p>Your required training, renewals and certificates (MCFD Standard G.3)</p></div>
         <span className="no-print"><PrintButton label="Print" /></span>
       </div>
       <section className="card no-print">

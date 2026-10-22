@@ -7,6 +7,7 @@ import { siteOrigin } from '@/lib/idcard';
 import { emailReady } from '@/lib/email';
 import ProgramBadge from '@/app/components/ProgramBadge';
 import CopyLink from '@/app/intake/[id]/CopyLink';
+import { plainError } from '@/lib/plain';
 import {
   SECTIONS, STEPS, POST, INTERVIEW, REFQ, ITEM_ST, TAG_LABEL, CLEARANCE, PROGRAMS, WORKER_TYPES, SELF,
   applies, stOf, stepState, currentStep, clearance, outstanding, renewals, interviewCount, interviewAvg, refsDone, managerConfirmed, daysUntil,
@@ -49,7 +50,7 @@ export default async function PrescreenFile({ params, searchParams }) {
       </div>
       <p className="muted">{p.position ?? 'Position not chosen'} · {p.worker_type ?? 'Employee'}{submitted && ` · signed ${fmtDateTime(p.signed_at)}`}{p.file_status !== 'Open' && ` · ${p.file_status}`}</p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
-      {sp.error && <p className="message">{sp.error}</p>}
+      {sp.error && <p className="message">{plainError(sp.error)}</p>}
 
       <ol className="ps-steps">
         {STEPS.map(([k, l], i) => (

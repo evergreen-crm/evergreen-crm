@@ -6,6 +6,8 @@ import { requireUser } from '@/lib/auth';
 import { levelOf } from '@/lib/levels';
 import { SHIFTS, AREAS, houseTimes } from '@/lib/checklist';
 import { saveHouseSettings, saveItem, toggleItem, resetHouseList } from '../actions';
+import NotReady from '@/app/components/NotReady';
+import { plainError } from '@/lib/plain';
 
 const SECTION_ORDER = ['Start', 'Day', 'Evening', 'Night', 'End'];
 const SECTION_LABEL = { Start: 'Every shift — start', Day: '☀️ Day shift', Evening: '🌆 Evening shift', Night: '🌙 Night shift', End: 'Every shift — end' };
@@ -18,7 +20,7 @@ export default async function Setup({ searchParams }) {
   if (lvl < 2) return <main><h1>Set up duties</h1><p className="card">Only the Program Coordinator or Program Manager can change a house’s checklist.</p></main>;
   const { data: homes, error } = await supabase.from('homes')
     .select('id, name, house_type, shift_day_start, shift_evening_start, shift_night_start, bed_check_minutes, med_count_required').order('name');
-  if (error) return <main><h1>Set up duties</h1><p className="card">Shift checklists are not switched on yet. Run <code>supabase/shift-checklists.sql</code> in Supabase.</p></main>;
+  if (error) return <main><h1>Set up duties</h1><NotReady what="The shift checklist" file="shift-checklists.sql" /></main>;
   const allowed = lvl >= 3 ? homes : homes.filter((h) => h.id === profile.home_id);
   const home = allowed.find((h) => h.id === sp?.home) ?? allowed[0];
   if (!home) return <main><h1>Set up duties</h1><p className="card">You are not assigned to a house.</p></main>;
@@ -34,7 +36,7 @@ export default async function Setup({ searchParams }) {
         <div><h1>Shift duties — {home.name}</h1><p>{home.house_type === 'Adults' ? 'CLBC adult home' : 'MCFD youth home'} · changes apply from the next shift. Signed checklists never change.</p></div>
       </div>
       {sp?.ok && <p className="message ok">{sp.ok}</p>}
-      {sp?.error && <p className="message error">{sp.error}</p>}
+      {sp?.error && <p className="message error">{plainError(sp.error)}</p>}
 
       {lvl >= 3 && allowed.length > 1 && (
         <form className="row no-print" style={{ alignItems: 'flex-end', gap: 8 }}>

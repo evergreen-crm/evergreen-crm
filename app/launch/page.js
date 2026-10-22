@@ -4,6 +4,9 @@ import { requireUser } from '@/lib/auth';
 import { fmtDate, daysUntil } from '@/lib/options';
 import { levelOf } from '@/lib/levels';
 import { createLaunchPlan } from './actions';
+import Abbr from '@/app/components/Abbr';
+import NotReady from '@/app/components/NotReady';
+import { plainError } from '@/lib/plain';
 
 const SERVICE_TYPES = ['Specialized Long-Term Care', 'Low-Barrier Short-Term Stabilization Care', 'Respite Care', 'Emergency Care'];
 
@@ -38,11 +41,11 @@ export default async function LaunchPlans({ searchParams }) {
 
   return (
     <main>
-      <h1>🚀 Launch plans</h1>
-      <p className="muted">MCFD SHSS Transition-In plans (Appendix E): 12 milestones, the documents needed before opening, and readiness for each new program. A plan can’t be marked <strong>Complete</strong> until every MCFD-required and legal document is approved.</p>
+      <h1>🚀 Opening a new house</h1>
+      <p className="muted">Everything needed before a new house can open, step by step (MCFD <Abbr t="SHSS" /> “Transition-In plan”, Appendix E): 12 milestones, the documents, and the house checklist. A plan can’t be marked <strong>Complete</strong> until every MCFD-required and legal document is approved.</p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
-      {sp.error && <p className="message">{sp.error}</p>}
-      {error && <p className="message">Launch plans aren’t set up yet. Run <code>supabase/launch-people.sql</code> in Supabase → SQL Editor.</p>}
+      {sp.error && <p className="message">{plainError(sp.error)}</p>}
+      {error && <NotReady what="Opening a new house" file="launch-people.sql" card={false} />}
 
       <div className="grid2">
         {(plans ?? []).map((p) => {

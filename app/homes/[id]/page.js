@@ -40,7 +40,7 @@ export default async function HomePage({ params, searchParams }) {
   const { data: lastDrill } = await supabase.from('entries').select('entry_date')
     .eq('home_id', id).eq('kind', 'fire_drill').order('entry_date', { ascending: false }).limit(1).maybeSingle();
   const drillThisMonth = lastDrill?.entry_date?.slice(0, 7) === today.slice(0, 7);
-  const TABS = [['dashboard', '📊 Dashboard'], ['residents', 'Residents'], ['commbook', 'Communication book'], ['safety', 'Fire drills & safety']];
+  const TABS = [['dashboard', '📊 Dashboard'], ['residents', 'Residents'], ['commbook', 'Shift log'], ['safety', 'Fire drills & safety']];
 
   const current = residents?.filter((r) => r.status !== 'discharged') ?? [];
   const past = residents?.filter((r) => r.status === 'discharged') ?? [];

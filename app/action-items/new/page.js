@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { AREAS } from '@/lib/kpis';
 import { addDaysISO, todayISO } from '@/lib/options';
 import { createActionItem } from '../actions';
+import { plainError } from '@/lib/plain';
 
 export default async function NewActionItem({ searchParams }) {
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
@@ -19,7 +20,7 @@ export default async function NewActionItem({ searchParams }) {
     <main>
       <p className="small"><Link href="/action-items">← Action required</Link></p>
       <h1>Add an issue</h1>
-      {sp.error && <p className="message">{sp.error}</p>}
+      {sp.error && <p className="message">{plainError(sp.error)}</p>}
       <form action={createActionItem} className="card">
         <label>Issue<input name="title" required placeholder="e.g. First aid kit missing items at Maple House" /></label>
         <label>Details<textarea name="details" rows={3} /></label>

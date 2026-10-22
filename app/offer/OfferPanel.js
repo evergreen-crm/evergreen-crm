@@ -1,6 +1,8 @@
 // HR record section: this person's offer letters, and a form that creates a new one automatically.
 import Link from 'next/link';
 import { createOffer } from './actions';
+import { plainStatus } from '@/lib/plain';
+import NotReady from '@/app/components/NotReady';
 
 const STATUS = { Draft: 'warn', Sent: 'warn', Accepted: '', Declined: 'bad', Withdrawn: 'bad' };
 const fmt = (ts) => (ts ? new Date(ts).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'America/Vancouver' }) : '');
@@ -8,7 +10,7 @@ const fmt = (ts) => (ts ? new Date(ts).toLocaleDateString('en-CA', { year: 'nume
 export default async function OfferPanel({ supabase, person, details, canEdit, isSelf }) {
   const { data: offers, error } = await supabase.from('offer_letters')
     .select('id, status, position, start_date, created_at, issued_at, accepted_at').eq('profile_id', person.id).order('created_at', { ascending: false });
-  if (error) return canEdit ? <div className="card" id="offer"><h2>📄 Offer letter</h2><p className="muted small">Offer letters aren’t switched on yet — run <code>supabase/offer-letters.sql</code>.</p></div> : null;
+  if (error) return canEdit ? <div className="card" id="offer"><h2>📄 Offer letter</h2><NotReady what="Offer letters" file="offer-letters.sql" card={false} /></div> : null;
   const list = (offers ?? []).filter((x) => canEdit || x.status !== 'Draft');
   if (!canEdit && !list.length) return null;
   const today = new Date().toISOString().slice(0, 10);
@@ -21,7 +23,7 @@ export default async function OfferPanel({ supabase, person, details, canEdit, i
           {list.map((x) => (
             <li key={x.id}>
               <span><Link href={`/offer/${x.id}`}>{x.position}</Link> <span className="muted small">· created {fmt(x.created_at)}{x.accepted_at ? ` · signed ${fmt(x.accepted_at)}` : x.issued_at ? ` · sent ${fmt(x.issued_at)}` : ''}</span></span>
-              <span className={`badge ${STATUS[x.status]}`}>{x.status === 'Accepted' ? '✓ Signed' : x.status}</span>
+              <span className={`badge ${STATUS[x.status]}`}>{x.status === 'Accepted' ? '✓ Signed' : plainStatus(x.status)}</span>
             </li>
           ))}
         </ul>

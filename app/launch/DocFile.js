@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { compressImage, fmtSize } from '@/lib/compressImage';
 import { attachLaunchFile } from '@/app/launch/actions';
+import { plainError } from '@/lib/plain';
 
 const MAX = 25 * 1024 * 1024;
 
@@ -26,7 +27,7 @@ export default function DocFile({ planId, docId, fileName, fileUrl }) {
     const { error } = await createClient().storage.from('launch-files').upload(path, file, { contentType: file.type || undefined });
     if (error) {
       setBusy(false);
-      setMsg(/bucket/i.test(error.message) ? 'File storage isn’t set up yet — run supabase/launch-files.sql in Supabase.' : 'Upload failed: ' + error.message);
+      setMsg(/bucket/i.test(error.message) ? 'File storage isn’t switched on yet. Please tell the office (setup file: launch-files.sql).' : plainError('Upload failed: ' + error.message));
       return;
     }
     const res = await attachLaunchFile({ id: docId, plan_id: planId, path, name: file.name });

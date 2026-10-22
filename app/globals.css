@@ -634,3 +634,11 @@ table.matrix .prog-row th span.prog-dot { writing-mode: horizontal-tb; transform
   .nc-label { padding-top: 0; }
   .cl-progress progress, .notes-bar progress { width: 100%; }
 }
+
+/* ---------- Plain words ---------- */
+.abbr-wrap { position: relative; display: inline; }
+.abbr { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
+.abbr-tip { position: absolute; left: 0; top: 1.6em; z-index: 30; width: max-content; max-width: min(320px, 80vw); background: #0f3059; color: #fff; font-size: .82rem; font-weight: 400; line-height: 1.35; padding: 8px 10px; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.18); white-space: normal; }
+.notready { border-left: 5px solid #d4a72c; }
+.words { display: grid; gap: 12px; margin: 0; }
+.words dd { margin: 2px 0 0; }

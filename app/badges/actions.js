@@ -37,5 +37,5 @@ export async function acknowledgeBadge(fd) {
   const { error } = await supabase.rpc('acknowledge_badge', { badge: String(fd.get('id') ?? '') });
   if (error) back(error.message, true);
   revalidatePath('/badges'); revalidatePath('/portal');
-  back('Thank you — your badge is acknowledged.');
+  back('Thank you — we’ve noted that you’ve seen your badge.');
 }

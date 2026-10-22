@@ -75,7 +75,7 @@ export default async function HouseDashboard({ supabase, profile, userId, home, 
           </ul>
         </div>
         <div className="card">
-          <h3>📒 Communication book</h3>
+          <h3>📒 Shift log</h3>
           {!commbook?.length && <p className="muted small">No entries yet.</p>}
           <ul className="timeline">
             {commbook?.map((e) => (

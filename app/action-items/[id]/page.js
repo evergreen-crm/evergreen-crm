@@ -6,6 +6,7 @@ import { levelOf, personLabel } from '@/lib/levels';
 import { fmtDate, fmtDateTime, todayISO } from '@/lib/options';
 import { updateActionItem } from '../actions';
 import { Chain, Dot, isDoneStatus, categoryLabel } from '../ui';
+import { plainError } from '@/lib/plain';
 
 function Op({ id, op, label, className, children }) {
   return (
@@ -41,7 +42,7 @@ export default async function ActionItem({ params, searchParams }) {
       <p className="small no-print"><Link href="/action-items">← Action required</Link></p>
       <h1><Dot item={it} /> {it.title}</h1>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
-      {sp.error && <p className="message">{sp.error}</p>}
+      {sp.error && <p className="message">{plainError(sp.error)}</p>}
       <Chain status={it.status} />
 
       <section className="card">
@@ -73,7 +74,7 @@ export default async function ActionItem({ params, searchParams }) {
         {!done && (isOwner || mgr) && it.status === 'Open' && <Op id={id} op="start" label="Start working on it"><p className="muted small">Lets everyone know you’re on it.</p></Op>}
         {!done && (isOwner || mgr) && ['Open', 'In progress'].includes(it.status) && (
           <Op id={id} op="evidence" label="Submit evidence">
-            <h2>Submit evidence</h2>
+            <h2>Show what you did to fix it</h2>
             <label>What was done<textarea name="note" rows={3} required placeholder="e.g. First aid renewed 2026-10-10, certificate uploaded to HR file" /></label>
             <label>Link to the evidence (optional)<input name="evidence_link" placeholder="Link to the record, certificate or document" /></label>
           </Op>
