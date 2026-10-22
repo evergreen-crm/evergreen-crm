@@ -7,6 +7,7 @@ import MobileTabs from '@/app/components/MobileTabs';
 import PwaRegister from '@/app/components/PwaRegister';
 import DatePickerOpener from '@/app/components/DatePickerOpener';
 import IdleLogout from '@/app/components/IdleLogout';
+import { getMyTodos, todoCount } from '@/lib/todos';
 import { levelOf, personLabel, canHR, canPayroll } from '@/lib/levels';
 
 export const metadata = {
@@ -27,9 +28,11 @@ export default async function RootLayout({ children }) {
     unread = count ?? 0;
   }
   let psRole = null;
+  let todo = { total: 0, overdue: 0 };
   if (profile && profile.role !== 'family') {
     ({ data: onb } = await supabase.from('onboardings').select('status').eq('profile_id', profile.id).maybeSingle());
     ({ data: psRole } = await supabase.rpc('prescreen_role'));
+    try { todo = todoCount(await getMyTodos(supabase, profile)); } catch {}
   }
 
   return (
@@ -55,6 +58,7 @@ export default async function RootLayout({ children }) {
                     { href: '/timesheet', label: 'Timesheet', icon: '⏱', color: '#8a5a00' },
                   ] },
                   { title: 'Me', items: [
+                    { href: '/todo', label: 'My to-do', icon: '✅', color: todo.overdue ? '#b3261e' : '#0b5a34', badge: todo.total || null, alert: todo.overdue > 0 },
                     { href: '/id', label: 'My ID card', icon: '🪪', color: '#0b5a34' },
                     ...(onb && onb.status !== 'Complete' ? [{ href: '/onboarding', label: 'My onboarding', icon: '✅', color: '#d4a72c', alert: true }] : []),
                     ...(profile.role === 'staff' && !canHR(profile) ? [{ href: `/hr/${profile.id}`, label: 'My HR', icon: '📁', color: '#5a3d8a' }] : []),
@@ -79,6 +83,7 @@ export default async function RootLayout({ children }) {
               return (
                 <nav>
                   <NavMenu groups={groups} />
+                  {staffLike && <Link href="/todo" className={`navquick todo-count${todo.overdue ? ' late' : ''}`} title={todo.overdue ? `${todo.overdue} overdue` : 'My to-do'}>✅ <b>{todo.total}</b><span> To-do</span></Link>}
                   {staffLike && <Link href="/id" className="navquick">🪪 <span>My ID</span></Link>}
                   {onb && onb.status !== 'Complete' && <Link href="/onboarding" className="nav-alert">My onboarding</Link>}
                   <Link href="/notifications" className="bell" title="Notifications">🔔{unread > 0 && <span className="bell-count">{unread > 99 ? '99+' : unread}</span>}</Link>
@@ -94,7 +99,7 @@ export default async function RootLayout({ children }) {
         )}
         <div className="print-only print-head"><img src="/logo.png" alt="Evergreen Community Care" className="print-logo" /></div>
         <div className={`page${profile && profile.role !== 'family' ? ' has-tabs' : ''}`}>{children}</div>
-        {profile && profile.role !== 'family' && <MobileTabs unread={unread} />}
+        {profile && profile.role !== 'family' && <MobileTabs unread={unread} todo={todo} />}
         {profile && <IdleLogout />}
         <PwaRegister />
         <DatePickerOpener />

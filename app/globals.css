@@ -572,3 +572,25 @@ table.matrix .prog-row th span.prog-dot { writing-mode: horizontal-tb; transform
   .rh-clock { width: 100%; text-align: center; }
   .rh-youth li { flex-direction: column; align-items: flex-start; }
 }
+
+/* ---------- My to-do ---------- */
+.topbar .todo-count b { background: #e7f3ec; color: var(--green); border-radius: 999px; padding: 0 7px; font-size: .8rem; }
+.topbar .todo-count.late b { background: var(--red); color: #fff; }
+.todo-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.todo-item { display: grid; grid-template-columns: 32px 1fr auto auto; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #e1e8e4; border-left: 5px solid #cfd8d3; border-radius: 10px; }
+.todo-item.b-overdue { border-left-color: #d64545; background: #fff7f6; }
+.todo-item.b-today { border-left-color: #e08a1e; }
+.todo-item.b-week { border-left-color: #d4a72c; }
+.todo-icon { font-size: 1.4rem; text-align: center; }
+.todo-text { display: flex; flex-direction: column; gap: 2px; }
+.todo-when { white-space: nowrap; color: var(--muted); }
+.todo-go { white-space: nowrap; }
+.todo-team { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.todo-team > li > details { border: 1px solid #e1e8e4; border-radius: 10px; padding: 10px 12px; }
+.todo-team summary { cursor: pointer; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.mt-icon b.ok { background: var(--green); }
+@media (max-width: 700px) {
+  .todo-item { grid-template-columns: 28px 1fr; }
+  .todo-when { grid-column: 2; }
+  .todo-go { grid-column: 1 / -1; text-align: center; padding: 10px; }
+}
