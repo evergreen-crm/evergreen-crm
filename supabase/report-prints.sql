@@ -1,7 +1,7 @@
 -- =====================================================================
 -- Evergreen CRM - Printed reports log. Safe to run again.
--- Every time someone opens or prints a documentation report, a row is saved here:
--- who, which report, which house or person, which dates, and when.
+-- Every time someone opens or prints a report (daily documentation or a complete staff file), a row is saved here:
+-- who, which report, which house, person or staff member, which dates, and when.
 -- Program Coordinators and up can add their own rows; Director of Operations (level 4) and up can read them.
 -- Rows can't be changed or deleted from the app.
 -- =====================================================================
@@ -18,6 +18,8 @@ create table if not exists report_prints (
   printed_at  timestamptz not null default now()
 );
 create index if not exists report_prints_at on report_prints (printed_at desc);
+-- Complete staff file printouts: whose file it was.
+alter table report_prints add column if not exists staff_id uuid references profiles on delete set null;
 
 alter table report_prints enable row level security;
 drop policy if exists rp_insert on report_prints;
