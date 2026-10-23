@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { compressImage, fmtSize } from '@/lib/compressImage';
+import { prepareOne, contentTypeFor, MAX_LABEL } from '@/lib/uploadRules';
 import { submitExternalCourse } from './actions';
 
 export default function ExternalUpload({ courseKey, proof, profileId, today, name }) {
@@ -19,11 +19,11 @@ export default function ExternalUpload({ courseKey, proof, profileId, today, nam
     let file_path = null; let file = f.file?.files?.[0]; let note = '';
     if (needsFile && !file) { setBusy(false); setMsg({ bad: true, text: proof === 'screenshot' ? 'Please choose your completion screenshot.' : 'Please choose your certificate file.' }); return; }
     if (file) {
-      const small = await compressImage(file);
-      if (small.saved) { file = small.file; note = ` Photo made smaller: ${fmtSize(small.before)} → ${fmtSize(small.after)}.`; }
-      if (file.size > 25 * 1024 * 1024) { setBusy(false); setMsg({ bad: true, text: 'That file is over 25 MB.' }); return; }
+      const ready = await prepareOne(file); // zip with one file is unpacked; photos made smaller; max 10 MB
+      if (ready.error) { setBusy(false); setMsg({ bad: true, text: ready.error }); return; }
+      file = ready.file; note = ready.note;
       file_path = `${profileId}/academy-${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, '_')}`;
-      const { error } = await createClient().storage.from('staff-files').upload(file_path, file, { contentType: file.type || undefined });
+      const { error } = await createClient().storage.from('staff-files').upload(file_path, file, { contentType: contentTypeFor(file) });
       if (error) { setBusy(false); setMsg({ bad: true, text: 'Upload failed: ' + error.message }); return; }
     }
     const res = await submitExternalCourse(courseKey, {
@@ -42,7 +42,7 @@ export default function ExternalUpload({ courseKey, proof, profileId, today, nam
       <h2>{proof === 'reading' ? 'Show what you learned' : proof === 'screenshot' ? 'Upload your completion screenshot' : 'Upload your certificate'}</h2>
       <div className="row">
         <label>Date completed<input type="date" name="completed_on" required max={today} /></label>
-        {needsFile && <label>{proof === 'screenshot' ? 'Screenshot of the completion page' : 'Certificate (PDF or photo)'}<input type="file" name="file" accept=".pdf,image/*" required /></label>}
+        {needsFile && <label>{proof === 'screenshot' ? 'Screenshot of the completion page' : `Certificate (PDF or photo, max ${MAX_LABEL})`}<input type="file" name="file" accept=".pdf,image/*,.zip" required /></label>}
       </div>
       {proof === 'reading' && (
         <label>3 things you learned, and how they change what you’ll do on shift
