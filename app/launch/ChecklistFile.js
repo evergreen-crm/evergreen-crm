@@ -1,12 +1,11 @@
 'use client';
 // Attach evidence (photo, PDF, Word, Excel) to one House checklist item. Stored in the private "launch-files" bucket.
+// Uses lib/uploadRules.js: a zip with one file is unpacked, photos are made smaller, max 10 MB.
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { compressImage } from '@/lib/compressImage';
+import { prepareOne, contentTypeFor } from '@/lib/uploadRules';
 import { attachChecklistFile } from '@/app/launch/actions';
-
-const MAX = 25 * 1024 * 1024;
 
 export default function ChecklistFile({ planId, itemId, fileName, fileUrl }) {
   const [busy, setBusy] = useState(false);
@@ -18,10 +17,11 @@ export default function ChecklistFile({ planId, itemId, fileName, fileUrl }) {
     e.target.value = '';
     if (!picked) return;
     setBusy(true); setMsg(null);
-    const file = (await compressImage(picked)).file;
-    if (file.size > MAX) { setBusy(false); setMsg('That file is over 25 MB.'); return; }
+    const ready = await prepareOne(picked);
+    if (ready.error) { setBusy(false); setMsg(ready.error); return; }
+    const file = ready.file;
     const path = `${planId}/checklist/${itemId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, '_')}`;
-    const { error } = await createClient().storage.from('launch-files').upload(path, file, { contentType: file.type || undefined });
+    const { error } = await createClient().storage.from('launch-files').upload(path, file, { contentType: contentTypeFor(file) });
     if (error) { setBusy(false); setMsg('Upload failed: ' + error.message); return; }
     const res = await attachChecklistFile({ id: itemId, plan_id: planId, path, name: file.name });
     setBusy(false);
@@ -34,7 +34,7 @@ export default function ChecklistFile({ planId, itemId, fileName, fileUrl }) {
       {fileUrl && <div><a href={fileUrl} target="_blank" rel="noreferrer">📎 {fileName ?? 'Evidence'}</a></div>}
       <label className="no-print" style={{ margin: '2px 0 0', fontWeight: 400 }}>
         {busy ? 'Uploading…' : fileName ? 'Replace evidence' : '📎 Add evidence'}
-        <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*" onChange={onChange} disabled={busy} style={{ padding: 4 }} />
+        <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*,.zip" onChange={onChange} disabled={busy} style={{ padding: 4 }} />
       </label>
       {msg && <div>{msg}</div>}
     </div>
