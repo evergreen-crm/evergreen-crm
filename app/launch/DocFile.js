@@ -4,11 +4,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { compressImage, fmtSize } from '@/lib/compressImage';
+import { prepareOne, contentTypeFor } from '@/lib/uploadRules';
 import { attachLaunchFile } from '@/app/launch/actions';
 import { plainError } from '@/lib/plain';
 
-const MAX = 25 * 1024 * 1024;
 
 export default function DocFile({ planId, docId, fileName, fileUrl }) {
   const [busy, setBusy] = useState(false);
@@ -20,11 +19,11 @@ export default function DocFile({ planId, docId, fileName, fileUrl }) {
     e.target.value = '';
     if (!picked) return;
     setBusy(true); setMsg(null);
-    const small = await compressImage(picked);
-    const file = small.file;
-    if (file.size > MAX) { setBusy(false); setMsg('That file is over 25 MB.'); return; }
+    const ready = await prepareOne(picked);
+    if (ready.error) { setBusy(false); setMsg(ready.error); return; }
+    const file = ready.file;
     const path = `${planId}/${docId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, '_')}`;
-    const { error } = await createClient().storage.from('launch-files').upload(path, file, { contentType: file.type || undefined });
+    const { error } = await createClient().storage.from('launch-files').upload(path, file, { contentType: contentTypeFor(file) });
     if (error) {
       setBusy(false);
       setMsg(/bucket/i.test(error.message) ? 'File storage isn’t switched on yet. Please tell the office (setup file: launch-files.sql).' : plainError('Upload failed: ' + error.message));
@@ -33,7 +32,7 @@ export default function DocFile({ planId, docId, fileName, fileUrl }) {
     const res = await attachLaunchFile({ id: docId, plan_id: planId, path, name: file.name });
     setBusy(false);
     if (res?.error) { setMsg('Could not save: ' + res.error); return; }
-    setMsg(small.saved ? `Uploaded (photo made smaller: ${fmtSize(small.before)} → ${fmtSize(small.after)}).` : 'Uploaded.');
+    setMsg('Uploaded.' + ready.note);
     router.refresh();
   }
 
@@ -42,7 +41,7 @@ export default function DocFile({ planId, docId, fileName, fileUrl }) {
       {fileUrl && <div><a href={fileUrl} target="_blank" rel="noreferrer">📎 {fileName ?? 'Open file'}</a></div>}
       <label className="no-print" style={{ margin: '4px 0 0' }}>
         {busy ? 'Uploading…' : fileName ? 'Replace file' : '⬆ Upload file'}
-        <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*" onChange={onChange} disabled={busy} style={{ padding: 6 }} />
+        <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*,.zip" onChange={onChange} disabled={busy} style={{ padding: 6 }} />
       </label>
       {msg && <div>{msg}</div>}
     </div>
