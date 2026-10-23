@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { addMyTraining } from '@/app/academy/actions';
-import { compressImage, fmtSize } from '@/lib/compressImage';
+import { prepareOne, contentTypeFor, MAX_LABEL } from '@/lib/uploadRules';
 
 export default function AddTraining({ profileId, trainings, today, preset }) {
   const [busy, setBusy] = useState(false);
@@ -21,11 +21,11 @@ export default function AddTraining({ profileId, trainings, today, preset }) {
     let file = f.file.files[0];
     let note = '';
     if (file) {
-      const small = await compressImage(file); // photos of certificates are made smaller; PDFs unchanged
-      if (small.saved) { file = small.file; note = ` Photo made smaller: ${fmtSize(small.before)} → ${fmtSize(small.after)}.`; }
-      if (file.size > 25 * 1024 * 1024) { setBusy(false); setMsg({ bad: true, text: 'That file is over 25 MB.' }); return; }
+      const ready = await prepareOne(file); // zip with one file is unpacked; photos made smaller; max 10 MB
+      if (ready.error) { setBusy(false); setMsg({ bad: true, text: ready.error }); return; }
+      file = ready.file; note = ready.note;
       file_path = `${profileId}/academy-${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, '_')}`;
-      const { error } = await createClient().storage.from('staff-files').upload(file_path, file, { contentType: file.type || undefined });
+      const { error } = await createClient().storage.from('staff-files').upload(file_path, file, { contentType: contentTypeFor(file) });
       if (error) { setBusy(false); setMsg({ bad: true, text: 'Upload failed: ' + error.message }); return; }
     }
     const res = await addMyTraining({
@@ -61,7 +61,7 @@ export default function AddTraining({ profileId, trainings, today, preset }) {
         </label>
       </div>
       <div className="row">
-        <label>Certificate file (optional)<input type="file" name="file" accept=".pdf,image/*" /></label>
+        <label>Certificate file (optional, max {MAX_LABEL})<input type="file" name="file" accept=".pdf,image/*,.zip" /></label>
         <label>Notes<input name="notes" /></label>
       </div>
       <button disabled={busy}>{busy ? 'Saving…' : 'Save training'}</button>
