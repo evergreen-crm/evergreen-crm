@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { createPolicy, publishVersion } from '@/app/policies/actions';
+import { prepareOne, contentTypeFor, MAX_LABEL } from '@/lib/uploadRules';
 
 export default function PolicyUpload({ mode, policyId, suggestedVersion = '1.0', categories = [] }) {
   const [busy, setBusy] = useState(false);
@@ -13,15 +14,17 @@ export default function PolicyUpload({ mode, policyId, suggestedVersion = '1.0',
   async function onSubmit(e) {
     e.preventDefault();
     const f = e.currentTarget;
-    const file = f.file.files[0];
-    if (!file) return;
-    if (file.size > 50 * 1024 * 1024) { setMsg({ bad: true, text: 'That file is over 50 MB.' }); return; }
+    const picked = f.file.files[0];
+    if (!picked) return;
     setBusy(true); setMsg(null);
+    const ready = await prepareOne(picked); // zip with one file is unpacked; max 10 MB
+    if (ready.error) { setBusy(false); setMsg({ bad: true, text: ready.error }); return; }
+    const file = ready.file;
     const path = `${policyId ?? 'new'}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, '_')}`;
-    const { error } = await createClient().storage.from('policies').upload(path, file, { contentType: file.type || undefined });
+    const { error } = await createClient().storage.from('policies').upload(path, file, { contentType: contentTypeFor(file) });
     if (error) { setBusy(false); setMsg({ bad: true, text: 'Upload failed: ' + error.message }); return; }
     const info = {
-      file_path: path, file_name: file.name, file_type: file.type,
+      file_path: path, file_name: file.name, file_type: contentTypeFor(file),
       version_label: f.version_label.value, change_note: f.change_note.value, effective_date: f.effective_date.value,
     };
     let res;
@@ -64,7 +67,7 @@ export default function PolicyUpload({ mode, policyId, suggestedVersion = '1.0',
         </>
       )}
       <div className="row">
-        <label>File (PDF works best — staff can read it on screen)<input type="file" name="file" required accept=".pdf,.doc,.docx" /></label>
+        <label>File (PDF works best — staff can read it on screen; max {MAX_LABEL})<input type="file" name="file" required accept=".pdf,.doc,.docx,.zip" /></label>
         <label>Version<input name="version_label" required defaultValue={suggestedVersion} /></label>
         <label>Effective date<input type="date" name="effective_date" /></label>
       </div>
