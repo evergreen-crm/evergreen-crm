@@ -6,11 +6,14 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { levelOf, groupOf } from '@/lib/levels';
-import { TZ, fmtDate, fmtTime, fmtDateTime, todayISO, addDaysISO } from '@/lib/options';
+import { TZ, fmtDate, fmtTime, todayISO, addDaysISO } from '@/lib/options';
 import { ENTRY_TYPES } from '@/lib/entries';
 import { STEP_LABEL } from '@/lib/missing';
 import NotReady from '@/app/components/NotReady';
 import ReportPrintButton from './ReportPrintButton';
+
+// Date and time with the year (reports can cover more than one year).
+const fmtDateTime = (ts) => (ts ? new Date(ts).toLocaleString('en-CA', { timeZone: TZ, year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
 
 export const dynamic = 'force-dynamic';
 
