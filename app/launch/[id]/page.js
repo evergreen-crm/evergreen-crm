@@ -238,7 +238,7 @@ export default async function LaunchPlan({ params, searchParams }) {
     let cat = null;
     return (
       <>
-        <p className="muted small">Best-practice checklist for opening. <strong>MCFD required</strong> items come from the SHSS Service Provider Guidebook; <strong>Legal</strong> items from WorkSafeBC, municipal and insurance requirements. Due dates count back from the opening date. Upload each document (PDF, Word, Excel or a photo — max 25 MB), or paste a SharePoint / OneDrive link.</p>
+        <p className="muted small">Best-practice checklist for opening. <strong>MCFD required</strong> items come from the SHSS Service Provider Guidebook; <strong>Legal</strong> items from WorkSafeBC, municipal and insurance requirements. Due dates count back from the opening date. Upload each document (PDF, Word, Excel or a photo — max 10 MB; a .zip with one file is unpacked), or paste a SharePoint / OneDrive link.</p>
         {!plan.opening_date && <p className="message">Due dates appear once the <Link href={`/launch/${id}?tab=details`}>opening date</Link> is set in Plan details.</p>}
         <nav className="tabs-bar">
           {DOC_FILTERS.map((x) => <Link key={x.key} href={`/launch/${id}?tab=documents&f=${x.key}`} className={f === x.key ? 'on' : ''}>{x.label}</Link>)}
