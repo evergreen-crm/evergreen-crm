@@ -9,10 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import { addDocument } from '@/app/residents/modules';
 import { unzip, isZip } from '@/lib/unzip';
 import { compressImage, fmtSize } from '@/lib/compressImage';
-
-const MAX = 25 * 1024 * 1024;
-const MAX_ZIP = 200 * 1024 * 1024;
-const MAX_PHOTO = 60 * 1024 * 1024; // a large photo is allowed in, then made smaller
+import { MAX_FILE as MAX, MAX_ZIP, MAX_RAW_PHOTO as MAX_PHOTO, MAX_LABEL, TOO_BIG, OTHER_ARCHIVE_MSG, isOtherArchive, contentTypeFor } from '@/lib/uploadRules';
 
 export default function DocUpload({ homeId, residentId, categories }) {
   const [busy, setBusy] = useState(false);
@@ -30,8 +27,9 @@ export default function DocUpload({ homeId, residentId, categories }) {
     // 1. Unpack any zips.
     const found = [], skipped = [];
     for (const f of picked) {
+      if (isOtherArchive(f)) { skipped.push({ name: f.name, reason: OTHER_ARCHIVE_MSG }); continue; }
       if (isZip(f)) {
-        if (f.size > MAX_ZIP) { skipped.push({ name: f.name, reason: 'zip is over 200 MB' }); continue; }
+        if (f.size > MAX_ZIP) { skipped.push({ name: f.name, reason: `zip is over ${fmtSize(MAX_ZIP)}` }); continue; }
         try {
           setProgress(`Unpacking ${f.name}…`);
           const r = await unzip(f, { maxFileBytes: MAX_PHOTO });
@@ -51,7 +49,7 @@ export default function DocUpload({ homeId, residentId, categories }) {
         const r = await compressImage(f);
         if (r.saved > 0) { file = r.file; savedBytes += r.saved; shrunk++; }
       }
-      if (file.size > MAX) skipped.push({ name: f.zipPath ?? f.name, reason: 'over 25 MB' });
+      if (file.size > MAX) skipped.push({ name: f.zipPath ?? f.name, reason: `${fmtSize(file.size)} — ${TOO_BIG}` });
       else files.push(file);
     }
 
@@ -64,7 +62,7 @@ export default function DocUpload({ homeId, residentId, categories }) {
       setProgress(`Uploading ${done + 1} of ${files.length}: ${file.name}`);
       const safe = file.name.replace(/[^\w.\-]+/g, '_');
       const path = `${homeId}/${residentId ?? 'house'}/${crypto.randomUUID()}-${safe}`;
-      const { error } = await supabase.storage.from('documents').upload(path, file, { contentType: file.type || undefined });
+      const { error } = await supabase.storage.from('documents').upload(path, file, { contentType: contentTypeFor(file) });
       if (error) { skipped.push({ name: file.name, reason: 'upload failed: ' + error.message }); continue; }
       const title = useTitle ? typedTitle : typedTitle ? `${typedTitle} – ${file.name}` : (file.zipPath ?? file.name);
       const res = await addDocument({
@@ -90,7 +88,7 @@ export default function DocUpload({ homeId, residentId, categories }) {
     <form onSubmit={onSubmit} className="card no-print">
       <h3>Upload documents</h3>
       <div className="row">
-        <label>Files (PDF, Word, photos — max 25 MB each). A <strong>.zip</strong> is unpacked automatically.
+        <label>Files (PDF, Word, photos — max {MAX_LABEL} each). A <strong>.zip</strong> is unpacked automatically.
           <input type="file" name="file" multiple required />
         </label>
         <label>Title<input name="title" placeholder="Leave blank to use the file names" /></label>
