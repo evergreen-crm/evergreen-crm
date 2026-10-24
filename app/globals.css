@@ -825,3 +825,27 @@ form:has(select[name="incident_type"] option:checked[value^="Physical interventi
 .rst-box { border: 1px solid #e7b3ad; background: #fffaf9; border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
 .rst-box h4 { margin: 0 0 4px; }
 .rst-fix { margin: 6px 0 8px; }
+
+/* Signatures: PDF pages with boxes (app/sign/PdfPages.js, BoxEditor.js, SignPanel.js) */
+.pdf-pages { margin: 8px auto 0; }
+.pdf-page { position: relative; width: 100%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); user-select: none; touch-action: manipulation; }
+.pdf-page canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sign-who { border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-top: 10px; }
+.outside-person { border-left: 4px solid var(--navy, #0f3059); background: rgba(15,48,89,.04); padding: 6px 10px; margin-bottom: 10px; border-radius: 6px; }
+.box-tools { position: sticky; top: 0; z-index: 5; margin-bottom: 8px; }
+.box-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.box-kinds button { padding: 6px 10px; font-size: 13px; }
+.box-selected { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); display: grid; gap: 4px; height: 150px; overflow: auto; align-content: start; }
+.box-selected .row { margin: 0; }
+.box-tools { max-height: 60vh; overflow: auto; }
+.sbox { position: absolute; border: 2px solid; border-radius: 3px; cursor: move; box-sizing: border-box; overflow: hidden; touch-action: none; }
+.sbox.on { outline: 2px dashed #111; outline-offset: 2px; }
+.sbox-label { position: absolute; left: 3px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-weight: 600; pointer-events: none; line-height: 1; }
+.sbox-size { position: absolute; right: 0; bottom: 0; width: 12px; height: 12px; background: currentColor; cursor: nwse-resize; }
+.fbox { position: absolute; box-sizing: border-box; border: 1.5px solid #c8a200; background: rgba(255, 236, 120, .55); border-radius: 3px; display: flex; align-items: center; overflow: hidden; }
+.fbox.todo { border-color: #d97706; box-shadow: 0 0 0 2px rgba(217,119,6,.35); }
+.fbox.other { background: rgba(120,120,120,.10); border: 1px dashed #999; }
+.fbox span { padding: 0 3px; white-space: nowrap; color: #0f3059; cursor: default; }
+.fbox img { width: 100%; height: 100%; object-fit: contain; }
+.fbox input:not([type=checkbox]), .fbox textarea { width: 100%; height: 100%; border: 0; background: transparent; padding: 0 3px; margin: 0; color: #0f3059; min-height: 0; box-shadow: none; border-radius: 0; resize: none; }
+.fbox input[type=checkbox] { width: 100%; height: 100%; margin: 0; }
