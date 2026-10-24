@@ -1,10 +1,10 @@
 'use client';
-// For the sender (and HR / Program Manager+): remind the people who haven't answered, or cancel.
+// For the sender (and managers at the house, or level 6+): remind the people who haven't answered, or cancel.
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { remindSigners, cancelRequest } from '@/app/sign/actions';
+import { remindSigners, cancelRequest, remakeFinished } from '@/app/sign/actions';
 
-export default function SenderTools({ id, waiting, canCancel }) {
+export default function SenderTools({ id, waiting, canCancel, open = true, remake = false }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
   const [cancelling, setCancelling] = useState(false);
@@ -15,7 +15,7 @@ export default function SenderTools({ id, waiting, canCancel }) {
     setBusy(true); setMsg(null);
     const res = await remindSigners(id);
     setBusy(false);
-    setMsg(res?.error ? { bad: true, text: res.error } : { bad: false, text: res.count ? `Reminder sent to ${res.count} ${res.count === 1 ? 'person' : 'people'}.` : 'Everyone waiting was already reminded in the last day.' });
+    setMsg(res?.error ? { bad: true, text: res.error } : { bad: false, text: res.count ? `Reminder sent to ${res.count} ${res.count === 1 ? 'person' : 'people'} (outside people by email).${res.failed?.length ? ` Email failed for: ${res.failed.join(', ')}.` : ''}` : 'Everyone waiting was already reminded in the last day.' });
     router.refresh();
   }
   async function cancel() {
@@ -24,6 +24,22 @@ export default function SenderTools({ id, waiting, canCancel }) {
     setBusy(false);
     if (res?.error) { setMsg({ bad: true, text: res.error }); return; }
     router.refresh();
+  }
+  async function rebuild() {
+    setBusy(true); setMsg(null);
+    const res = await remakeFinished(id);
+    setBusy(false);
+    setMsg(res?.error ? { bad: true, text: res.error } : { bad: false, text: 'The finished PDF is ready.' });
+    router.refresh();
+  }
+  if (!open) {
+    return remake ? (
+      <section className="card no-print">
+        <p className="small">The finished PDF wasn’t made yet.</p>
+        <button type="button" onClick={rebuild} disabled={busy}>{busy ? 'Making it…' : '📄 Make the finished PDF'}</button>
+        {msg && <p className={`message ${msg.bad ? 'error' : 'ok'}`}>{msg.text}</p>}
+      </section>
+    ) : null;
   }
   return (
     <section className="card no-print">
