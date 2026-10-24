@@ -63,6 +63,7 @@ export default function SendForm({ people, categories, preset, minDue, defaultDu
     if (!OK_TYPES.test(ready.file.name)) { setMsg('Please send a PDF, Word document or photo.'); e.target.value = ''; return; }
     const isPdf = /\.pdf$/i.test(ready.file.name);
     setDoc({ file: ready.file, isPdf, data: isPdf ? await ready.file.arrayBuffer() : null, note: ready.note });
+    if (isPdf) setPlacing(true);
   }
 
   async function onSubmit(e) {
@@ -72,6 +73,14 @@ export default function SendForm({ people, categories, preset, minDue, defaultDu
     if (!total) { setMsg('Choose at least one person to sign.'); return; }
     for (const o of outside) {
       if (!o.name.trim() || !EMAIL.test(o.email.trim()) || !o.role.trim()) { setMsg('Each outside person needs a name, a working email and their occupation.'); return; }
+    }
+    if (doc.isPdf) {
+      const noSign = signers.filter((p) => !boxes.some((b) => b.who === p.key && b.type === 'signature'));
+      if (noSign.length) {
+        setPlacing(true);
+        setMsg(`Mark where each person signs: add a ✍️ Signature box for ${noSign.map((p) => p.label).join(', ')}. Pick the person under “Boxes for”, choose Signature, then click the spot on the page.`);
+        return;
+      }
     }
     if (orphanBoxes) { setMsg(`${orphanBoxes} box${orphanBoxes === 1 ? ' belongs' : 'es belong'} to someone who is no longer signing. Change who fills ${orphanBoxes === 1 ? 'it' : 'them'} or remove ${orphanBoxes === 1 ? 'it' : 'them'}.`); return; }
     if (boxes.length && !viewports) { setMsg('Wait for the document to finish opening, then try again.'); return; }
@@ -171,18 +180,21 @@ export default function SendForm({ people, categories, preset, minDue, defaultDu
 
       {doc?.isPdf && (
         <fieldset className="sign-who">
-          <legend><strong>Boxes on the page</strong> <span className="badge">{boxes.length}</span></legend>
-          {!signers.length ? <p className="muted small">Choose who signs first, then you can mark where each person signs or writes.</p>
-            : !placing ? (
-              <>
-                <p className="muted small" style={{ marginTop: 0 }}>Optional: mark exactly where each person signs, initials, dates, writes or ticks. Without boxes, they read the PDF and sign once at the end.</p>
-                <button type="button" className="secondary" onClick={() => setPlacing(true)}>📍 Place boxes on the document</button>
-              </>
-            ) : <BoxEditor data={doc.data} people={signers} boxes={boxes} setBoxes={setBoxes} onViewports={setViewports} />}
+          <legend><strong>Where they sign</strong> <span className="badge">{boxes.length} box{boxes.length === 1 ? '' : 'es'}</span></legend>
+          {!signers.length ? <p className="muted small">Choose who signs (above), then mark where each person signs on the page.</p>
+            : <>
+                <p className="small" style={{ marginTop: 0 }}><strong>Required:</strong> put a ✍️ <strong>Signature</strong> box where each person signs. You can also add initials, date, name, text and checkbox boxes. Drag to move, drag the corner to resize, click a box to change or remove it.</p>
+                <p className="small" style={{ margin: '0 0 6px' }}>{signers.map((p) => {
+                  const ok = boxes.some((b) => b.who === p.key && b.type === 'signature');
+                  return <span key={p.key} className={`badge ${ok ? '' : 'warn'}`} style={{ marginRight: 4 }}>{ok ? '✓' : '✍️ needs a signature box:'} {p.short}</span>;
+                })}</p>
+                {placing ? <BoxEditor data={doc.data} people={signers} boxes={boxes} setBoxes={setBoxes} onViewports={setViewports} />
+                  : <button type="button" className="secondary" onClick={() => setPlacing(true)}>📍 Mark where they sign</button>}
+              </>}
           {orphanBoxes > 0 && <p className="message error small">{orphanBoxes} box{orphanBoxes === 1 ? '' : 'es'} belong to someone who is no longer signing — click {orphanBoxes === 1 ? 'it' : 'them'} to change who fills it, or remove.</p>}
         </fieldset>
       )}
-      {doc && !doc.isPdf && <p className="muted small">Tip: to place signature and fill-in boxes, save the document as a PDF first (in Word: File → Save as → PDF).</p>}
+      {doc && !doc.isPdf && <p className="message small">This isn’t a PDF, so you can’t mark where they sign — they’ll sign once at the end. To mark signature and fill-in spots, save it as a PDF first (in Word: File → Save as → PDF) and choose that file instead.</p>}
 
       <button disabled={busy} style={{ marginTop: 10 }}>{busy ? 'Sending…' : `Send to ${total || '…'} ${total === 1 ? 'person' : 'people'}`}</button>
       {msg && <p className="message error">{msg}</p>}
