@@ -88,6 +88,7 @@ export default async function RootLayout({ children }) {
                     { href: '/careers', label: 'Career & perks', icon: '🌱', color: '#2e8b57' },
                     ...(levelOf(profile) < 2 && !canHR(profile) ? [{ href: '/probation', label: 'My first 90 days', icon: '📝', color: '#8a5a00' }] : []),
                     { href: '/policies', label: 'Policies', icon: '📘', color: '#0f3059' },
+                    { href: '/sign', label: 'Documents to sign', icon: '✍️', color: '#5a3d8a' },
                     { href: '/notifications', label: 'Alerts', icon: '🔔', color: '#b3261e', badge: unread || null },
                     { href: '/words', label: 'What does this mean?', icon: '📖', color: '#0f3059' },
                     { href: '/help', label: levelOf(profile) >= 2 ? 'Help & questions' : 'Help', icon: '❓', color: '#0f3059' },
