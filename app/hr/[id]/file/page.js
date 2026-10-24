@@ -26,6 +26,7 @@ const PARTS = [
   { key: 'certs', label: 'Certificates (First Aid, NVCI, driver’s abstract…) and expiry dates' },
   { key: 'probation', label: 'Probation reviews (30, 90, 120 days) and outcome' },
   { key: 'policies', label: 'Policies signed' },
+  { key: 'signed', label: 'Documents sent for signature (letters, agreements…)' },
   { key: 'badges', label: 'Monthly badges, Letters of Expectation and commendations' },
   { key: 'promotions', label: 'Promotions' },
   { key: 'exit', label: 'Exit' },
@@ -103,6 +104,10 @@ export default async function StaffFile({ params, searchParams }) {
     safe(supabase.from('staff_promotions').select('*, recommender:recommended_by(full_name), approver:approved_by(full_name)').eq('staff_id', id).order('created_at')),
     person.email ? safe(supabase.from('prescreens').select('*').ilike('email', person.email.replace(/[\\%_]/g, (m) => '\\' + m)).order('created_at', { ascending: false }).limit(1)) : Promise.resolve({ data: [] }),
   ]);
+  const signR = await safe(supabase.from('sign_request_signers')
+    .select('id, status, signed_at, signed_name, declined_at, decline_reason, sign_requests(id, title, category, created_at, status, sender:created_by(full_name))')
+    .eq('profile_id', id).order('id'));
+  const signedDocs = (signR.data ?? []).filter((x) => x.sign_requests).sort((a, b) => a.sign_requests.created_at.localeCompare(b.sign_requests.created_at));
   const prob = probR.data, reviews = revR.data ?? [], badges = badgesR.data ?? [], promos = promosR.data ?? [];
   const ps = prescreenR.data?.[0] ?? null;
   let ladder = {};
@@ -364,6 +369,26 @@ export default async function StaffFile({ params, searchParams }) {
                     <td className="small">{a.policy_versions?.version_label ?? ''}</td>
                     <td className="small">{fmtDateTime(a.signed_at)}</td>
                     <td className="small">“{a.signed_name}”</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
+
+      {chosen.has('signed') && (
+        <section className="card">
+          <h2>8b. Documents sent for signature</h2>
+          {signR.error ? <Empty>Sending documents for signature isn’t switched on yet.</Empty> : !signedDocs.length ? <Empty>No documents sent to this person for signature.</Empty> : (
+            <table>
+              <thead><tr><th>Document</th><th>Sent</th><th>Answer</th></tr></thead>
+              <tbody>
+                {signedDocs.map((d) => (
+                  <tr key={d.id}>
+                    <td className="small">{d.sign_requests.title}<br /><span className="muted">{d.sign_requests.category}</span></td>
+                    <td className="small">{fmtDateTime(d.sign_requests.created_at)}{d.sign_requests.sender?.full_name ? <><br />by {d.sign_requests.sender.full_name}</> : null}</td>
+                    <td className="small">{d.status === 'Signed' ? `Signed ${fmtDateTime(d.signed_at)} as “${d.signed_name}”` : d.status === 'Declined' ? `Declined ${fmtDateTime(d.declined_at)}: ${d.decline_reason ?? ''}` : d.sign_requests.status === 'Cancelled' ? 'Request cancelled' : 'Not signed yet'}</td>
                   </tr>
                 ))}
               </tbody>
