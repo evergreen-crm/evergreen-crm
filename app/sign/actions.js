@@ -26,6 +26,13 @@ export async function sendForSignature(p) {
   const external = Array.isArray(p?.external) ? p.external.slice(0, 25).map((e) => ({
     name: str(e?.name, 120), email: str(e?.email, 160).toLowerCase(), role: str(e?.role, 120), org: str(e?.org, 160), phone: str(e?.phone, 40), notes: str(e?.notes, 1000),
   })) : [];
+  // On a PDF, everyone signing must have a Signature box, so they know exactly where to sign.
+  const fields = cleanFields(p?.fields);
+  if (/\.pdf$/i.test(String(p?.file_name ?? '')) || /pdf/i.test(String(p?.file_type ?? ''))) {
+    const keys = [...signers.map((x) => `p:${x}`), ...external.map((e) => `e:${e.email}`)];
+    const missing = keys.filter((k) => !fields.some((f) => f.who === k && f.type === 'signature'));
+    if (missing.length) return { error: 'Mark where each person signs: every person needs a ✍️ Signature box on the document.' };
+  }
   if (external.length && !outsideReady()) return { error: 'Email isn’t set up yet, so documents can’t be sent to outside people. Ask the administrator (RESEND_API_KEY and the Supabase secret key in Vercel).' };
   const { data, error } = await supabase.rpc('sign_send', {
     p_title: str(p?.title, 200), p_category: str(p?.category, 80) || 'Other',
@@ -33,7 +40,7 @@ export async function sendForSignature(p) {
     p_file_path: p?.file_path, p_file_name: String(p?.file_name ?? '').slice(0, 200), p_file_type: p?.file_type ?? null,
     p_file_size: Number(p?.file_size) || null, p_doc_hash: p?.doc_hash ?? null,
     p_due: /^\d{4}-\d{2}-\d{2}$/.test(p?.due ?? '') ? p.due : null, p_signers: signers,
-    p_external: external, p_fields: cleanFields(p?.fields), p_home: /^[0-9a-f-]{36}$/i.test(p?.home ?? '') ? p.home : null,
+    p_external: external, p_fields: fields, p_home: /^[0-9a-f-]{36}$/i.test(p?.home ?? '') ? p.home : null,
   });
   if (error) return err(error);
   const failed = await emailInvites(data?.invites ?? [], { title: str(p?.title, 200), sender: data?.sender, due: p?.due || null, message: p?.message ? String(p.message).slice(0, 4000) : null });
