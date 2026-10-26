@@ -71,8 +71,20 @@ export default function AskBox({ onCall = null }) {
       {res && !res.error && (
         <div className="ask-answer">
           <p className="muted small" style={{ margin: 0 }}>You asked: “{asked}”</p>
-          <Answer text={res.answer} />
-          {res.sources?.length > 0 && (
+          {res.mode === 'search' && res.excerpts?.length > 0 ? (
+            <>
+              <p style={{ margin: '6px 0' }}><strong>Here is what Evergreen’s policies say</strong> <span className="muted small">— best match first. Tap a policy to read the whole page.</span></p>
+              <ol className="ask-excerpts">
+                {res.excerpts.map((x) => (
+                  <li key={x.n}>
+                    <Link href={x.link ?? '/policies'}><strong>{x.title}</strong></Link>{x.page ? <span className="muted small"> · page {x.page}</span> : null}
+                    <blockquote>{x.text}</blockquote>
+                  </li>
+                ))}
+              </ol>
+            </>
+          ) : <Answer text={res.answer ?? ''} />}
+          {res.mode !== 'search' && res.sources?.length > 0 && (
             <>
               <h3 className="more-h" style={{ marginTop: 12 }}>From</h3>
               <ol className="ask-sources">
@@ -82,7 +94,7 @@ export default function AskBox({ onCall = null }) {
               </ol>
             </>
           )}
-          <p className="muted small">Ask Evergreen can make mistakes. The policy itself is what counts — open it to check, and ask your Program Coordinator if you’re unsure.</p>
+          <p className="muted small">{res.mode === 'search' ? 'These are the closest matches found. The full policy is what counts — open it to check, and ask your Program Coordinator if you’re unsure.' : 'Ask Evergreen can make mistakes. The policy itself is what counts — open it to check, and ask your Program Coordinator if you’re unsure.'}</p>
           <div className="row" style={{ alignItems: 'center', gap: 8 }}>
             <span className="small">Was this helpful?</span>
             <button type="button" className={rated === true ? '' : 'secondary'} onClick={() => rate(true)}>👍 Yes</button>

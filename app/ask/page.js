@@ -33,9 +33,9 @@ export default async function AskPage() {
       <h1>🤖 Ask Evergreen</h1>
       <p className="small">Ask how to do something or what a policy says. Answers come only from Evergreen’s own policies and the CRM help, with the policy name and page so you can check. {ASK_DAILY_LIMIT} questions a day.</p>
       {notReady && <p className="message">Ask Evergreen isn’t set up yet (setup file: ask-evergreen.sql).</p>}
-      {!askReady() && <p className="message">Ask Evergreen isn’t switched on yet — the AI key still needs to be added. Until then, see <Link href="/policies">📘 Policies</Link> or <Link href="/help">❓ Help</Link>.</p>}
+      {!askReady() && <p className="muted small">Ask Evergreen shows you the parts of Evergreen’s policies that match your question. Also see <Link href="/policies">📘 Policies</Link> and <Link href="/help">❓ Help</Link>.</p>}
       <AskBox onCall={home.data?.on_call_phone ?? null} />
-      <p className="muted small">🔒 Privacy: your question and the matching policy text are sent to the AI service (Anthropic) to write the answer. No youth or resident records are sent, and questions with a resident’s name are stopped. Questions are kept 90 days; directors can see them to improve the policies.</p>
+      <p className="muted small">🔒 Privacy: {askReady() ? 'your question and the matching policy text are sent to the AI service (Anthropic) to write the answer. No youth or resident records are sent, and questions with a resident’s name are stopped.' : 'your question stays in the CRM. Questions with a resident’s name are stopped.'} Questions are kept 90 days; directors can see them to improve the policies.</p>
 
       {(mine.data ?? []).length > 0 && (
         <section className="card">
