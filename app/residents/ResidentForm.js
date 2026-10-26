@@ -51,6 +51,7 @@ export default function ResidentForm({ action, resident = {}, homes, homeId, can
         <legend>Checklist settings</legend>
         <p className="muted small">These switch on extra MCFD / CLBC requirement items.</p>
         <label className="check"><input type="checkbox" name="is_indigenous" defaultChecked={!!resident.is_indigenous} /> Indigenous (Cultural Plan and Nation notification required)</label>
+        <label>Indigenous agency, authority or community connected (if any)<input name="indigenous_agency" defaultValue={v('indigenous_agency')} placeholder="e.g. Nation, ICFS agency" /></label>
         <label className="check"><input type="checkbox" name="has_bsp" defaultChecked={!!resident.has_bsp} /> Has a Behaviour Support / Safety Plan</label>
         <label className="check"><input type="checkbox" name="on_medication" defaultChecked={!!resident.on_medication} /> Takes medication (MAR required)</label>
       </fieldset>
@@ -75,6 +76,10 @@ export default function ResidentForm({ action, resident = {}, homes, homeId, can
         <div className="row">
           <label>Funder contact (e.g. CLBC facilitator, MCFD resource worker)<input name="funder_contact_name" defaultValue={v('funder_contact_name')} /></label>
           <label>Funder contact email<input type="email" name="funder_contact_email" defaultValue={v('funder_contact_email')} /></label>
+        </div>
+        <div className="row">
+          <label>MCFD resource worker (goes on the incident form CF4179)<input name="resource_worker_name" defaultValue={v('resource_worker_name')} /></label>
+          <label>Resource worker email<input type="email" name="resource_worker_email" defaultValue={v('resource_worker_email')} /></label>
         </div>
         <p className="muted small" style={{ margin: 0 }}>The social worker and funder contact get a short satisfaction survey by email at 3 and 6 months, then every 6 months and at discharge.</p>
       </fieldset>

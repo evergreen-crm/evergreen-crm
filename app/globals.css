@@ -896,3 +896,23 @@ form:has(select[name="incident_type"] option:checked[value^="Physical interventi
 .qa-audit-opts label { display: inline-flex; align-items: center; gap: 4px; margin: 0; font-weight: 400; }
 .qa-audit-opts input { width: auto; margin: 0; }
 @media print { details.print-open > *:not(summary) { display: block; } }
+/* 📄 Official incident forms (app/incidents/[id]/form) */
+.incform { background: #fff; color: #111; border: 1px solid #222; padding: 18px 22px; margin: 16px 0; font-size: 13px; }
+.incform header { border-bottom: 2px solid #111; margin-bottom: 10px; padding-bottom: 6px; }
+.incform h2 { margin: 2px 0; font-size: 19px; }
+.incform-sub, .incform-no { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: #333; }
+.incform-note { margin: 4px 0 0; font-size: 12px; font-style: italic; }
+.incform-sec { break-inside: avoid; margin-top: 12px; }
+.incform-sec h3 { background: #e9ecea; margin: 0; padding: 4px 8px; font-size: 13px; text-transform: uppercase; border: 1px solid #222; border-bottom: 0; }
+.incform-hint { margin: 0; padding: 3px 8px; font-size: 11px; border: 1px solid #222; border-bottom: 0; color: #333; }
+.incform table { width: 100% !important; display: table !important; border-collapse: collapse; table-layout: auto; }
+.incform th, .incform td { border: 1px solid #222; padding: 5px 8px; text-align: left; vertical-align: top; white-space: pre-wrap; }
+.incform th { width: 34%; font-weight: 600; background: #fafafa; font-size: 12px; }
+.incform-grid th { width: auto; }
+.incform-grid td { height: 22px; }
+.incform-sign td { height: 30px; }
+.incform-line { color: #888; font-size: 11px; width: 18%; vertical-align: bottom !important; }
+.incform-blank { display: inline-block; min-width: 60%; border-bottom: 1px dotted #999; height: 1em; }
+.incform-foot { font-size: 10px; color: #555; margin: 12px 0 0; }
+.incform-countdown { font-size: 16px; }
+@media print { .incform { border: 0; padding: 0; margin: 0; font-size: 11.5px; } .incform-page > .no-print { display: none; } }

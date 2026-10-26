@@ -1,4 +1,6 @@
 'use server';
+import { after } from 'next/server';
+import { flushOutbox } from '@/lib/emailOutbox';
 // Requirements checklist and incident reports: saving.
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -62,6 +64,7 @@ export async function addIncident(formData) {
     } : {}),
   });
   if (error) throw new Error('Could not save incident: ' + error.message);
+  if (cls === 'Critical') after(() => flushOutbox('urgent').catch(() => null)); // "📝 Incident form due by …" (supabase/incident-forms.sql)
   revalidatePath(`/residents/${residentId}`);
 }
 

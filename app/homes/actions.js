@@ -49,6 +49,7 @@ const RESIDENT_FIELDS = [
   'status', 'admission_date', 'discharge_date', 'funder', 'file_number',
   'case_worker_name', 'case_worker_phone', 'case_worker_email',
   'guardian_name', 'guardian_relationship', 'guardian_phone', 'guardian_email', 'funder_contact_name', 'funder_contact_email',
+  'resource_worker_name', 'resource_worker_email', 'indigenous_agency',
   'emergency_contact_name', 'emergency_contact_phone',
   'phn', 'doctor_name', 'doctor_phone', 'allergies', 'diagnoses', 'medications_summary',
   'dietary_needs', 'behaviour_support_notes', 'school_or_day_program',

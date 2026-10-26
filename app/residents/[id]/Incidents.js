@@ -2,7 +2,7 @@
 import { INCIDENT_TYPES } from '@/lib/requirements';
 import { fmtDate, fmtTime, todayISO, TZ } from '@/lib/options';
 import { addIncident, updateIncident } from '@/app/residents/actions';
-import { writtenDue, reviewDue, INCIDENT_CLASSES } from '@/lib/incidents';
+import { writtenDue, reviewDue, INCIDENT_CLASSES, countdown, FORM_NAME } from '@/lib/incidents';
 import Link from 'next/link';
 import { plainError } from '@/lib/plain';
 
@@ -124,9 +124,11 @@ export default async function Incidents({ supabase, resident, program, cls, open
                 </li>
                 <li className={inc.written_report_sent_on ? 'done' : late(wDue, false) ? 'overdue' : ''}>
                   <div className="req-text"><span className="tick">{inc.written_report_sent_on ? '✓' : '○'}</span>
-                    <span>Written report sent to {program === 'clbc' ? 'CLBC' : 'MCFD'}
-                      <div className="muted small">{inc.written_report_sent_on ? `Sent ${fmtDate(inc.written_report_sent_on)}` : `Due ${fmtDate(wDue)}`}
-                        {late(wDue, inc.written_report_sent_on) && <span className="badge bad">Overdue</span>}</div>
+                    <span>Written report sent to {program === 'clbc' ? 'CLBC' : 'MCFD'} — <Link href={`/incidents/${inc.id}/form`}>📄 {FORM_NAME[inc.form_program ?? program]}</Link>
+                      <div className="muted small">{inc.written_report_sent_on ? `Sent ${fmtDate(inc.written_report_sent_on)}${inc.form_sent_to ? ` to ${inc.form_sent_to}` : ''}` : (() => {
+                        const cd = countdown(inc.form_due_at);
+                        return cd ? <span className={`badge ${cd.tone}`}>⏳ {cd.text}</span> : <>Due {fmtDate(wDue)}{late(wDue, false) && <span className="badge bad"> Overdue</span>}</>;
+                      })()}</div>
                     </span></div>
                   {!inc.written_report_sent_on && (
                     <form action={updateIncident} className="req-form no-print">
