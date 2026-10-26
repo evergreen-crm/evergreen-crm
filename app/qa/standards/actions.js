@@ -8,7 +8,7 @@ import { canSeeQa } from '@/lib/qa';
 const t = (f, k, n = 2000) => { const v = f.get(k); return typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null; };
 const STATUSES = ['Not started', 'In progress', 'Met', 'Partially met', 'Not met', 'N/A'];
 async function gate() { const r = await requireUser(['admin', 'manager']); if (!canSeeQa(r.profile)) redirect('/'); return r; }
-const back = (msg, bad, id) => redirect(`/qa/standards?${bad ? 'error' : 'ok'}=${encodeURIComponent(msg)}${id ? `#s-${id}` : ''}`);
+const back = (msg, bad, id, area) => redirect(`/qa/standards?${area && /^[A-Z]{2,4}$/.test(area) ? `area=${area}&` : ''}${bad ? 'error' : 'ok'}=${encodeURIComponent(msg)}${id ? `#s-${id}` : ''}`);
 
 export async function addStandard(formData) {
   const { supabase } = await gate();
@@ -16,7 +16,7 @@ export async function addStandard(formData) {
   if (!area || !code || !title) back('Enter the standard number and its title.', true);
   const { error } = await supabase.from('qa_standards').insert({ area, code, title, due_date: t(formData, 'due_date', 10), owner_id: t(formData, 'owner_id', 40) });
   if (error) back(/duplicate/i.test(error.message) ? `${code} is already in the list.` : error.message, true);
-  revalidatePath('/qa/standards'); back(`Added ${code}.`);
+  revalidatePath('/qa/standards'); back(`Added ${code}.`, false, null, area);
 }
 
 export async function updateStandard(formData) {
@@ -27,8 +27,9 @@ export async function updateStandard(formData) {
     status, owner_id: t(formData, 'owner_id', 40), due_date: t(formData, 'due_date', 10), notes: t(formData, 'notes', 4000),
     updated_by: user.id, updated_at: new Date().toISOString(),
   }).eq('id', id);
-  if (error) back(error.message, true, id);
-  revalidatePath('/qa/standards'); back('Saved.', false, id);
+  const area = t(formData, 'area_filter', 10);
+  if (error) back(error.message, true, id, area);
+  revalidatePath('/qa/standards'); back('Saved.', false, id, area);
 }
 
 export async function addEvidence(p) {

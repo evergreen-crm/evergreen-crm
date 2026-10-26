@@ -44,7 +44,9 @@ export default async function QaStandards({ searchParams }) {
     const { data } = await supabase.storage.from('qa-evidence').createSignedUrls(files.map((f) => f.file_path), 3600);
     for (const [i, f] of files.entries()) signed[f.id] = data?.[i]?.signedUrl ?? null;
   }
-  const areas = [...new Set(list.map((s) => s.area))];
+  const allAreas = [...new Set(list.map((s) => s.area))];
+  const areas = allAreas.includes(sp.area) ? [sp.area] : allAreas;
+  const items = list.filter((s) => s.code !== s.area);
   const counted = list.filter((s) => s.status !== 'N/A');
   const met = counted.filter((s) => s.status === 'Met').length;
   const late = counted.filter((s) => s.status !== 'Met' && s.due_date && s.due_date < today).length;
@@ -52,7 +54,7 @@ export default async function QaStandards({ searchParams }) {
 
   return (
     <QaShell active="/qa/standards" title="Quality assurance — COA standards" printedBy={profile.full_name}
-      intro="Track every COA standard you are accredited against. COA's standards are free on the COA website: add each numbered standard under its section (e.g. PQI 2), set the owner and due date, and attach the evidence the surveyors will ask for.">
+      intro="Work through the checklist under each COA section: set the status, owner and due date, write what is in place, press Save, then attach the evidence (a CRM page or a file). Add COA's own numbered standards (e.g. PQI 2) with + Add a standard.">
       {sp.ok && <p className="message ok no-print">{sp.ok}</p>}
       {sp.error && <p className="message error no-print">{plainError(sp.error)}</p>}
       <section className="qa-summary">
@@ -65,7 +67,7 @@ export default async function QaStandards({ searchParams }) {
         <summary><strong>+ Add a standard</strong></summary>
         <form action={addStandard}>
           <div className="row">
-            <label>COA section<select name="area" defaultValue="PQI">{areas.map((a) => <option key={a}>{a}</option>)}</select></label>
+            <label>COA section<select name="area" defaultValue={sp.area ?? 'PQI'}>{allAreas.map((a) => <option key={a}>{a}</option>)}</select></label>
             <label>Standard number<input name="code" required maxLength={30} placeholder="e.g. PQI 2" /></label>
             <label>Due date<input type="date" name="due_date" /></label>
             <label>Owner<select name="owner_id" defaultValue=""><option value="">—</option>{(people ?? []).map((p) => <option key={p.id} value={p.id}>{p.full_name} ({personLabel(p)})</option>)}</select></label>
@@ -74,6 +76,16 @@ export default async function QaStandards({ searchParams }) {
           <button>Add standard</button>
         </form>
       </details>
+
+      {!items.length && <p className="message no-print">Only the 10 section headings are here. Run supabase/qa-records.sql in Supabase to load the starting checklist under each section, or add standards yourself below.</p>}
+      <nav className="qa-tabs no-print" aria-label="COA sections">
+        <Link href="/qa/standards" className={!sp.area ? 'on' : ''}>All sections</Link>
+        {allAreas.map((a) => {
+          const sub = list.filter((s) => s.area === a && s.status !== 'N/A');
+          const m = sub.filter((s) => s.status === 'Met').length;
+          return <Link key={a} href={`/qa/standards?area=${a}`} className={sp.area === a ? 'on' : ''}>{a} {m}/{sub.length}</Link>;
+        })}
+      </nav>
 
       {areas.map((a) => (
         <section key={a} className="card qa-area">
@@ -96,18 +108,19 @@ export default async function QaStandards({ searchParams }) {
                   ))}
                   {!evid.length && <li className="muted">No evidence yet.</li>}
                 </ul>
-                <details className="no-print">
-                  <summary className="small">Update / add evidence</summary>
-                  <form action={updateStandard}>
-                    <input type="hidden" name="id" value={s.id} />
-                    <div className="row">
-                      <label>Status<select name="status" defaultValue={s.status}>{STATUSES.map((x) => <option key={x}>{x}</option>)}</select></label>
-                      <label>Owner<select name="owner_id" defaultValue={s.owner_id ?? ''}><option value="">—</option>{(people ?? []).map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}</select></label>
-                      <label>Due date<input type="date" name="due_date" defaultValue={s.due_date ?? ''} /></label>
-                    </div>
-                    <label>Notes (what's in place, what's missing)<textarea name="notes" rows={2} defaultValue={s.notes ?? ''} /></label>
-                    <button>Save</button>
-                  </form>
+                <form action={updateStandard} className="qa-std-form no-print">
+                  <input type="hidden" name="id" value={s.id} />
+                  {sp.area && <input type="hidden" name="area_filter" value={sp.area} />}
+                  <div className="row">
+                    <label>Status<select name="status" defaultValue={s.status}>{STATUSES.map((x) => <option key={x}>{x}</option>)}</select></label>
+                    <label>Owner<select name="owner_id" defaultValue={s.owner_id ?? ''}><option value="">—</option>{(people ?? []).map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}</select></label>
+                    <label>Due date<input type="date" name="due_date" defaultValue={s.due_date ?? ''} /></label>
+                  </div>
+                  <label>Notes (what's in place, what's missing)<textarea name="notes" rows={2} maxLength={4000} defaultValue={s.notes ?? ''} /></label>
+                  <button>Save</button>
+                </form>
+                <details className="no-print" open={!evid.length}>
+                  <summary className="small"><strong>📎 Attach evidence</strong> (a CRM page, web link or file)</summary>
                   <EvidenceForm standardId={s.id} suggestions={SUGGEST[a] ?? []} />
                 </details>
               </div>

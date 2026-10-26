@@ -893,6 +893,23 @@ form:has(select[name="incident_type"] option:checked[value^="Physical interventi
 .qa-audit-item { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .qa-audit-item:last-child { border-bottom: 0; }
 .qa-audit-opts { display: flex; gap: 12px; white-space: nowrap; }
+/* QA portal: records you enter and save */
+.qa-entry-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin: 12px 0; }
+.qa-entry-grid .qa-entry-card { margin: 0; display: flex; flex-direction: column; }
+.qa-entry-card .row { margin-top: auto; }
+.qa-record-form textarea { min-height: 70px; }
+.qa-make-action { border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; margin: 10px 0; display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.qa-make-action label.inline, .qa-std-form label.inline { display: flex; align-items: center; gap: 6px; flex-direction: row; font-weight: 600; }
+.qa-make-action label.inline input { width: auto; min-height: 0; }
+.qa-rec-details { margin-top: 2px; }
+.qa-rec-details dl { margin: 6px 0; display: grid; gap: 4px; }
+.qa-rec-details dt { font-weight: 600; color: var(--muted, #556); }
+.qa-rec-details dd { margin: 0 0 4px; }
+.qa-other-list { margin: 0; padding-left: 18px; } .qa-other-list li { margin: 6px 0; }
+.qa-quickbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 14px; }
+.qa-quickbar a.button { padding: 8px 12px; font-size: 14px; }
+.qa-std-form { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.qa-std-form .row label { flex: 1 1 160px; }
 .qa-audit-opts label { display: inline-flex; align-items: center; gap: 4px; margin: 0; font-weight: 400; }
 .qa-audit-opts input { width: auto; margin: 0; }
 @media print { details.print-open > *:not(summary) { display: block; } }

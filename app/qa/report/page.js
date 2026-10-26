@@ -1,7 +1,9 @@
 // 📄 Quarterly QA report (COA PQI): one printable page for the Board, the leadership team and the
 // accreditation binder — readiness by COA area, incidents, surveys, file audits, standards and actions.
 import { loadKpiData, computeKpis } from '@/lib/kpis';
-import { COA_AREAS, areaScore, scoreColor } from '@/lib/qa';
+import { COA_AREAS, areaScore, scoreColor, QA_DIVISION, QA_QUARTER_SIGNOFF } from '@/lib/qa';
+import { plainError } from '@/lib/plain';
+import QaRecordForm from '../records/QaRecordForm';
 import { SURVEYS, SURVEY_KEYS } from '@/lib/surveys';
 import { fmtDate } from '@/lib/options';
 import { requireQa } from '../guard';
@@ -35,14 +37,17 @@ export default async function QaReport({ searchParams }) {
   const Q = quarter(sp.q, today);
   const quarters = Array.from({ length: 6 }, (_, i) => { const y = Number(today.slice(0, 4)), q0 = Math.floor((Number(today.slice(5, 7)) - 1) / 3); const n = y * 4 + q0 - i; return `${Math.floor(n / 4)}-Q${(n % 4) + 1}`; });
 
-  const [{ data: inc }, { data: surveys }, { data: audits }, { data: stds }, { data: acts }, { data: reviews }] = await Promise.all([
+  const [{ data: inc }, { data: surveys }, { data: audits }, { data: stds }, { data: acts }, { data: reviews }, { data: signoffs }] = await Promise.all([
     supabase.from('incidents').select('id, occurred_on, incident_type, is_critical, physical_intervention, written_report_sent_on, internal_review_on').gte('occurred_on', Q.prevStart).lte('occurred_on', Q.end),
     supabase.from('survey_sends').select('survey_key, status, score, concern, created_at, completed_at').gte('created_at', Q.start).lte('created_at', Q.end + 'T23:59:59'),
     supabase.from('qa_file_audits').select('score, audit_date').gte('audit_date', Q.start).lte('audit_date', Q.end),
     supabase.from('qa_standards').select('area, code, status, due_date'),
     supabase.from('action_items').select('id, title, status, due_date, closed_at, created_at, category').eq('category', 'qa'),
     supabase.from('qa_monthly_reviews').select('month, concerns, actions').gte('month', Q.start).lte('month', Q.end),
+    supabase.from('records').select('id, title, record_type, record_date, status, data, updated_at, author:created_by(full_name)').eq('division', QA_DIVISION).eq('area', 'quarterly').eq('record_type', Q.key).order('created_at', { ascending: false }).limit(1),
   ]);
+  const signoff = signoffs?.[0] ?? null;
+  const so = signoff?.data ?? {};
 
   const org = Object.fromEntries(computeKpis(d).map((k) => [k.key, k]));
   const areaRows = COA_AREAS.map((a) => ({ a, score: areaScore(a.kpis.map((k) => org[k]).filter(Boolean)) }));
@@ -68,7 +73,9 @@ export default async function QaReport({ searchParams }) {
 
   return (
     <QaShell active="/qa/report" title={`Quality assurance — quarterly report, ${Q.label}`} printedBy={profile.full_name}
-      intro={`${fmtDate(Q.start)} to ${fmtDate(Q.end)}. For the Board, the leadership team and the COA evidence binder (PQI). Readiness scores are live as of today.`}>
+      intro={`${fmtDate(Q.start)} to ${fmtDate(Q.end)}. For the Board, the leadership team and the COA evidence binder (PQI). Readiness scores are live as of today. Write the summary and sign-off at the bottom and press Save.`}>
+      {sp.ok && <p className="message ok no-print">{sp.ok}</p>}
+      {sp.error && <p className="message error no-print">{plainError(sp.error)}</p>}
       <form className="row no-print" style={{ alignItems: 'end' }}>
         <label style={{ maxWidth: 200 }}>Quarter<select name="q" defaultValue={Q.key}>{quarters.map((q) => <option key={q}>{q}</option>)}</select></label>
         <button>Show</button>
@@ -131,9 +138,23 @@ export default async function QaReport({ searchParams }) {
         )}
       </section>
 
-      <section className="card">
-        <h2 style={{ marginTop: 0 }}>Sign-off</h2>
-        <p className="small">Reviewed by the Executive Director: ____________________ Date: __________ &nbsp; Presented to the Board: __________</p>
+      <section className="card" id="signoff">
+        <h2 style={{ marginTop: 0 }}>8. Summary and sign-off</h2>
+        {signoff ? (
+          <div className="small">
+            {so.summary && <><h3>Summary and highlights</h3><p style={{ whiteSpace: 'pre-wrap' }}>{so.summary}</p></>}
+            {so.concerns && <><h3>Main concerns</h3><p style={{ whiteSpace: 'pre-wrap' }}>{so.concerns}</p></>}
+            {so.priorities && <><h3>Priorities for next quarter</h3><p style={{ whiteSpace: 'pre-wrap' }}>{so.priorities}</p></>}
+            <p>Reviewed by the Executive Director: <strong>{so.ed_name || '____________________'}</strong> · Date: <strong>{so.ed_date ? fmtDate(so.ed_date) : '__________'}</strong>
+              {' '}· Presented to the Board: <strong>{so.board_date ? fmtDate(so.board_date) : '__________'}</strong>{so.board_ref ? ` (${so.board_ref})` : ''}</p>
+            <p className="muted">Status: {signoff.status} · saved by {signoff.author?.full_name ?? '—'}{signoff.updated_at ? `, last edited ${fmtDate(signoff.updated_at.slice(0, 10))}` : ''}</p>
+          </div>
+        ) : <p className="small print-only">Reviewed by the Executive Director: ____________________ Date: __________ &nbsp; Presented to the Board: __________</p>}
+        <details className="no-print" open={!signoff || sp.edit === 'signoff'}>
+          <summary className="small"><strong>{signoff ? '✏️ Edit the summary and sign-off' : 'Write the summary and sign-off'}</strong></summary>
+          <QaRecordForm type={QA_QUARTER_SIGNOFF} record={signoff} fixedTitle={`QA report ${Q.label}`} fixedType={Q.key}
+            back={`/qa/report?q=${Q.key}#signoff`} showAction={false} submitLabel="Save summary and sign-off" />
+        </details>
       </section>
     </QaShell>
   );

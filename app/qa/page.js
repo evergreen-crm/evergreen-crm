@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { loadKpiData, computeKpis, STATUS } from '@/lib/kpis';
 import { filterForHome, houseValue } from '@/lib/houseKpis';
-import { COA_AREAS, areaScore, scoreColor } from '@/lib/qa';
+import { COA_AREAS, areaScore, scoreColor, QA_RECORD_TYPES } from '@/lib/qa';
 import { requireQa } from './guard';
 import QaShell from './QaShell';
 import Cell from './Cell';
@@ -32,6 +32,13 @@ export default async function QaDashboard() {
   return (
     <QaShell active="/qa" title="Quality assurance — dashboard" printedBy={profile.full_name}
       intro="Live from the CRM. Each row is evidence for a COA standard area; the score is the share of measures on target (yellow counts half). Aim for 90% or more in every area before the accreditation survey.">
+      <nav className="qa-quickbar no-print" aria-label="Enter a QA record">
+        <strong className="small" style={{ alignSelf: 'center' }}>Enter &amp; save:</strong>
+        {QA_RECORD_TYPES.map((t) => <Link key={t.key} className="button secondary" href={`/qa/records/${t.key}#new`}>{t.icon} {t.title}</Link>)}
+        <Link className="button secondary" href="/qa/standards">📚 COA checklist</Link>
+        <Link className="button secondary" href="/qa/audits">🗂 File audit</Link>
+        <Link className="button secondary" href="/qa/actions?new=1">🛠 Improvement action</Link>
+      </nav>
       <section className="qa-summary">
         {cols.map((c) => {
           const v = readiness(c.by);
@@ -86,7 +93,7 @@ export default async function QaDashboard() {
           </div>
         </section>
       ))}
-      <p className="muted small">{STATUS.green.dot} On target · {STATUS.yellow.dot} Attention required · {STATUS.red.dot} Immediate action · ⚪ No data yet. Coming next (Phase 2): COA standards tracker with evidence binder, resident file audits and the quarterly QA report.</p>
+      <p className="muted small">{STATUS.green.dot} On target · {STATUS.yellow.dot} Attention required · {STATUS.red.dot} Immediate action · ⚪ No data yet.</p>
     </QaShell>
   );
 }
