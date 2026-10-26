@@ -3,8 +3,9 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import FindBox from '@/app/components/FindBox';
 
-export default function NavMenu({ groups }) {
+export default function NavMenu({ groups, find = null }) {
   const ref = useRef(null);
   const path = usePathname();
   useEffect(() => { if (ref.current) ref.current.open = false; }, [path]);
@@ -19,12 +20,13 @@ export default function NavMenu({ groups }) {
     <details className="navmenu" ref={ref}>
       <summary aria-label="Open menu"><span className="nm-icon">☰</span><span>Menu</span></summary>
       <div className="nm-panel">
+        {find && <FindBox items={find} onPick={() => { if (ref.current) ref.current.open = false; }} />}
         {groups.map((g) => (
           <section key={g.title}>
             <h3>{g.title}</h3>
             <div className="nm-grid">
               {g.items.map((it) => (
-                <Link key={it.href} href={it.href} className={`nm-tile${path === it.href || (it.href !== '/' && path.startsWith(it.href + '/')) ? ' on' : ''}${it.alert ? ' alert' : ''}`}
+                <Link key={it.href + it.label} href={it.href} className={`nm-tile${path === it.href || (it.href !== '/' && path.startsWith(it.href + '/')) ? ' on' : ''}${it.alert ? ' alert' : ''}`}
                   style={{ '--tile': it.color }}>
                   <span className="nm-emoji">{it.icon}</span>
                   <span className="nm-label">{it.label}</span>

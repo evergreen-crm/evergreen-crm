@@ -940,3 +940,31 @@ form:has(select[name="incident_type"] option:checked[value^="Physical interventi
 .abs-form > summary { cursor: pointer; padding: 6px 0; }
 .abs-kinds { border: 0; padding: 0; margin: 6px 0; display: flex; flex-wrap: wrap; gap: 12px; }
 button.danger-soft { background: #b3261e; color: #fff; }
+/* Simple menu (lib/menu.js): home tiles, hubs, More, Find */
+.mtiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 12px 0 16px; }
+.mtile { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; min-height: 118px; border-radius: 16px; background: #fff; border: 1px solid #d5ddd9; color: inherit; text-decoration: none; }
+.mtile:hover { border-color: var(--green); box-shadow: 0 6px 16px rgba(11,90,52,.10); }
+.mtile strong { font-size: 1.02rem; line-height: 1.2; }
+.mtile-icon { width: 44px; height: 44px; border-radius: 12px; background: #e3f1e8; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 4px; }
+.mtile-sub { font-size: .8rem; color: #4d5a53; line-height: 1.3; }
+.mtile.red { background: #fdecea; border-color: #f1b8b3; }
+.mtile.red .mtile-icon { background: #b3261e; }
+.mtile-badge { position: absolute; top: 10px; right: 10px; min-width: 22px; height: 22px; border-radius: 11px; background: var(--red); color: #fff; font-size: .75rem; font-weight: 800; display: flex; align-items: center; justify-content: center; padding: 0 6px; }
+@media (max-width: 900px) { .mtiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.findbox { position: relative; margin: 8px 0; }
+.findbox-input { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #d5ddd9; border-radius: 12px; padding: 0 14px; min-height: 46px; }
+.findbox-input input { border: 0; outline: none; background: transparent; flex: 1; font-size: 1rem; padding: 10px 0; min-height: 0; box-shadow: none; }
+.findbox-hits { list-style: none; margin: 6px 0 0; padding: 6px; background: #fff; border: 1px solid #d5ddd9; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+.findbox-hits a { display: block; padding: 10px; border-radius: 8px; color: inherit; text-decoration: none; }
+.findbox-hits a:hover { background: #eef6f1; }
+.findbox-hits small { color: #5b6660; }
+.hub-list { list-style: none; padding: 0; margin: 12px 0; background: #fff; border: 1px solid #d5ddd9; border-radius: 14px; overflow: hidden; max-width: 640px; }
+.hub-list li + li { border-top: 1px solid #e6ece9; }
+.hub-list a { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 16px; color: inherit; text-decoration: none; }
+.hub-list a:hover { background: #f3f8f5; }
+.hub-list a > span:nth-child(2) { flex: 1; }
+.hub-icon { font-size: 1.3rem; width: 28px; text-align: center; }
+.more-h { font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: #4d5a53; margin: 18px 0 8px; }
+.more-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.more-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; background: #fff; border: 1px solid #d5ddd9; border-radius: 22px; color: inherit; text-decoration: none; font-weight: 600; }
+.more-chip:hover { border-color: var(--green); }

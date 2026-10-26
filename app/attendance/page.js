@@ -30,7 +30,7 @@ export default async function Attendance({ searchParams }) {
       .gte('shift_date', addDaysISO(today, -1)).lte('shift_date', today).order('start_time')),
     byHouse(supabase.from('time_entries').select('id, profile_id, home_id, shift_id, clock_in, clock_out, late_minutes, late_reason, overtime_minutes, unscheduled, who:profile_id(full_name)')
       .gte('clock_in', new Date(Date.now() - 3 * 864e5).toISOString())),
-    byHouse(supabase.from('shift_absences').select('id, shift_id, profile_id, home_id, shift_date, shift_label, starts_at, kind, status, hours_notice, eta_minutes, note, reported_at, decision_note, who:profile_id(full_name)')
+    byHouse(supabase.from('shift_absences').select('id, shift_id, profile_id, home_id, shift_date, shift_label, starts_at, kind, status, hours_notice, eta_minutes, note, reported_at, decision_note, pay_type, who:profile_id(full_name)')
       .gte('shift_date', yearStart).order('reported_at', { ascending: false }).limit(2000)),
     byHouse(supabase.from('shifts').select('id, shift_date, start_time, end_time, label, home_id, open_reason, cover_needed_at, cover_all_at, cover_pm_at')
       .is('profile_id', null).not('cover_needed_at', 'is', null).gte('shift_date', addDaysISO(today, -1)).order('shift_date').order('start_time')),
@@ -86,8 +86,14 @@ export default async function Attendance({ searchParams }) {
     if (a.status === 'No-show') bump(a.profile_id, 'noshow');
     if (a.status === 'Called in') bump(a.profile_id, a.kind === 'Sick' ? 'sick' : 'other');
   }
+  // 🤒 This year, per person, by how it's paid (sick-pay.sql). Days, not shifts. Older sick calls without a pay type count as BC paid.
   const sickYear = {};
-  for (const a of abs) if (a.kind === 'Sick' && a.status === 'Called in') (sickYear[a.profile_id] ??= new Set()).add(a.shift_date);
+  for (const a of abs) {
+    if (a.status !== 'Called in') continue;
+    const pay = a.pay_type ?? (a.kind === 'Sick' ? 'BC paid sick' : 'Unpaid');
+    const y = (sickYear[a.profile_id] ??= { 'BC paid sick': new Set(), 'Unpaid sick': new Set(), Vacation: new Set(), 'Banked time': new Set(), Unpaid: new Set() });
+    y[pay]?.add(a.shift_date);
+  }
   const people = (peopleR.data ?? []).filter((p) => !house || p.home_id === house);
   const nameOf = Object.fromEntries((peopleR.data ?? []).map((p) => [p.id, p.full_name]));
 
@@ -168,20 +174,23 @@ export default async function Attendance({ searchParams }) {
       )}
 
       <section className="card">
-        <h2 style={{ marginTop: 0 }}>{payroll ? 'Sick days this year' : 'This month, per person'}</h2>
+        <h2 style={{ marginTop: 0 }}>{payroll ? 'Sick days & time off this year' : 'Per person — this month and this year'}</h2>
         <div className="table-wrap">
           <table className="qa-table">
-            <thead><tr><th>Staff</th>{!payroll && <><th>Late arrivals</th><th>No-shows</th></>}<th>Sick calls{payroll ? '' : ' (month)'}</th><th>Sick days this year</th></tr></thead>
+            <thead><tr><th>Staff</th>{!payroll && <><th>Late arrivals</th><th>No-shows</th></>}{!payroll && <th>Call-ins (month)</th>}<th>🤒 BC paid sick (year)</th><th>Unpaid sick</th><th>🌴 Vacation</th><th>🏦 Banked</th><th>Other unpaid</th></tr></thead>
             <tbody>{people.filter((p) => month[p.id] || sickYear[p.id]).map((p) => {
               const m = month[p.id] ?? { late: 0, noshow: 0, sick: 0, other: 0 };
-              const sy = sickYear[p.id]?.size ?? 0;
+              const y = sickYear[p.id] ?? {};
+              const n = (k) => y[k]?.size ?? 0;
+              const sy = n('BC paid sick');
               return (
                 <tr key={p.id}>
                   <td>{p.full_name}</td>
                   {!payroll && <><td className={`qa-cell qa-${m.late >= 4 ? 'red' : m.late >= 2 ? 'yellow' : 'none'}`}>{m.late}</td>
                     <td className={`qa-cell qa-${m.noshow ? 'red' : 'none'}`}>{m.noshow}</td></>}
-                  <td>{payroll ? sy : m.sick + m.other}</td>
-                  <td className={sy > PAID_SICK_DAYS ? 'bad-text' : ''}>{sy} / {PAID_SICK_DAYS} paid</td>
+                  {!payroll && <td>{m.sick + m.other}</td>}
+                  <td className={sy >= PAID_SICK_DAYS ? 'bad-text' : ''}>{sy} of {PAID_SICK_DAYS}</td>
+                  <td>{n('Unpaid sick')}</td><td>{n('Vacation')}</td><td>{n('Banked time')}</td><td>{n('Unpaid')}</td>
                 </tr>
               );
             })}</tbody>
@@ -189,6 +198,7 @@ export default async function Attendance({ searchParams }) {
         </div>
         {!people.some((p) => month[p.id] || sickYear[p.id]) && <p className="muted small">Nothing recorded yet.</p>}
         {!payroll && <p className="muted small">For the monthly badge: 2–3 late arrivals = 🟡, 4 or more or any confirmed no-show = 🔴. Sick calls never count. <Link href="/badges">Set badges →</Link></p>}
+        <p className="muted small">BC: 5 paid sick days a year after 90 days of work, reset January 1. Days are counted once per date, however many shifts.</p>
       </section>
 
       {!payroll && (
@@ -196,7 +206,7 @@ export default async function Attendance({ searchParams }) {
           <h2 style={{ marginTop: 0 }}>Recent call-ins and late notices</h2>
           {!abs.length ? <p className="muted small">None yet.</p> : (
             <ul className="list compact">{abs.slice(0, 40).map((a) => (
-              <li key={a.id}><span className="small">{fmtDate(a.shift_date)} · {a.shift_label ?? ''} · {homeName[a.home_id] ?? ''} — <strong>{a.who?.full_name ?? nameOf[a.profile_id] ?? ''}</strong>: {a.kind}{a.eta_minutes ? ` (~${a.eta_minutes} min)` : ''}{a.hours_notice !== null && a.hours_notice !== undefined && ['Sick', 'Family emergency', 'Other'].includes(a.kind) ? ` · ${a.hours_notice < 4 ? '⚠️ ' : ''}${a.hours_notice} h notice` : ''}{a.note ? ` · “${a.note}”` : ''}</span>
+              <li key={a.id}><span className="small">{fmtDate(a.shift_date)} · {a.shift_label ?? ''} · {homeName[a.home_id] ?? ''} — <strong>{a.who?.full_name ?? nameOf[a.profile_id] ?? ''}</strong>: {a.kind}{a.pay_type ? ` · ${a.pay_type}` : ''}{a.eta_minutes ? ` (~${a.eta_minutes} min)` : ''}{a.hours_notice !== null && a.hours_notice !== undefined && ['Sick', 'Family emergency', 'Other'].includes(a.kind) ? ` · ${a.hours_notice < 4 ? '⚠️ ' : ''}${a.hours_notice} h notice` : ''}{a.note ? ` · “${a.note}”` : ''}</span>
                 <span className={`badge ${ABSENCE_TONE[a.status] ?? ''}`}>{a.status}</span></li>
             ))}</ul>
           )}

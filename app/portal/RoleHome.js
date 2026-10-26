@@ -12,16 +12,6 @@ const rows = (res) => (res && !res.error ? res.data ?? [] : []);
 const cnt = (res) => (res && !res.error ? res.count ?? 0 : 0);
 const name = (r) => r.preferred_name || r.first_name;
 
-function Big({ href, icon, label, hint }) {
-  return (
-    <Link href={href} className="rh-big">
-      <span className="rh-big-icon">{icon}</span>
-      <strong>{label}</strong>
-      {hint && <span className="small muted">{hint}</span>}
-    </Link>
-  );
-}
-
 function Line({ href, n, label, bad }) {
   return (
     <li><Link href={href}><span>{label}</span><span className={`badge ${n ? (bad ? 'bad' : 'warn') : ''}`}>{n || '✓'}</span></Link></li>
@@ -111,19 +101,12 @@ export default async function RoleHome({ supabase, profile, userId }) {
             </div>
             <Link href="/id#checkin" className={`button ${shift.open ? 'secondary' : ''} rh-clock`}>{shift.open ? '⏰ Clock Out (or check in)' : '⏰ Clock In'}</Link>
           </div>
-          {!shift.open && <p className="small" style={{ margin: '6px 0 0' }}><Link href="/absence">📞 Can’t make my shift</Link> · <Link href="/absence">⏰ Running late</Link></p>}
+          {!shift.open && <p className="small" style={{ margin: '6px 0 0' }}><Link href="/go/sick">🤒 Sick</Link> · <Link href="/absence">📞 Can’t make my shift</Link> · <Link href="/absence">🏃 Running late</Link></p>}
 
           {shift.out?.on_shift && shift.out.window_open && (
             <Link href="/id#checkin" className="rh-leave">🛡 <strong>Before you leave is open</strong> — finish your checklist and notes, then clock out at the house →</Link>
           )}
 
-          <div className="rh-bigs">
-            <Big href="/checklist" icon="📋" label="Shift checklist" hint="Tick & sign every shift" />
-            <Big href="/notes" icon="📝" label="Daily notes" hint="Everyone, one screen" />
-            <Big href="#my-youth" icon="💊" label="Medication" hint="Record each dose" />
-            <Big href="#my-youth" icon="⚠️" label="Report an incident" hint="Tell on-call first" />
-            <Big href={shift.home ? `/homes/${shift.home.id}?tab=commbook` : '/homes'} icon="📒" label="Shift log" hint="Handover & comm book" />
-          </div>
 
           <h3 id="my-youth">My youth today</h3>
           {!shift.youth.length && <p className="muted small">No one is living at your house right now.</p>}
