@@ -72,6 +72,11 @@ export default function ResidentForm({ action, resident = {}, homes, homeId, can
           <label>Phone<input type="tel" name="case_worker_phone" defaultValue={v('case_worker_phone')} /></label>
           <label>Email<input type="email" name="case_worker_email" defaultValue={v('case_worker_email')} /></label>
         </div>
+        <div className="row">
+          <label>Funder contact (e.g. CLBC facilitator, MCFD resource worker)<input name="funder_contact_name" defaultValue={v('funder_contact_name')} /></label>
+          <label>Funder contact email<input type="email" name="funder_contact_email" defaultValue={v('funder_contact_email')} /></label>
+        </div>
+        <p className="muted small" style={{ margin: 0 }}>The social worker and funder contact get a short satisfaction survey by email at 3 and 6 months, then every 6 months and at discharge.</p>
       </fieldset>
 
       <fieldset className="card">
@@ -80,6 +85,7 @@ export default function ResidentForm({ action, resident = {}, homes, homeId, can
           <label>Guardian / representative<input name="guardian_name" defaultValue={v('guardian_name')} /></label>
           <label>Relationship<input name="guardian_relationship" defaultValue={v('guardian_relationship')} placeholder="e.g., parent, MCFD, rep agreement" /></label>
           <label>Phone<input type="tel" name="guardian_phone" defaultValue={v('guardian_phone')} /></label>
+          <label>Email<input type="email" name="guardian_email" defaultValue={v('guardian_email')} /></label>
         </div>
         <div className="row">
           <label>Emergency contact<input name="emergency_contact_name" defaultValue={v('emergency_contact_name')} /></label>

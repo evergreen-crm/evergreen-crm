@@ -132,7 +132,8 @@ export default async function ResidentPage({ params, searchParams }) {
               <dl className="facts">
                 <Fact label="Funder" value={[resident.funder, resident.file_number && `File ${resident.file_number}`].filter(Boolean).join(' · ')} />
                 <Fact label="Social worker / facilitator" value={[resident.case_worker_name, resident.case_worker_phone, resident.case_worker_email].filter(Boolean).join(' · ')} />
-                <Fact label="Guardian" value={[resident.guardian_name, resident.guardian_relationship, resident.guardian_phone].filter(Boolean).join(' · ')} />
+                <Fact label="Guardian" value={[resident.guardian_name, resident.guardian_relationship, resident.guardian_phone, resident.guardian_email].filter(Boolean).join(' · ')} />
+                <Fact label="Funder contact" value={[resident.funder_contact_name, resident.funder_contact_email].filter(Boolean).join(' · ')} />
                 <Fact label="Emergency contact" value={[resident.emergency_contact_name, resident.emergency_contact_phone].filter(Boolean).join(' · ')} />
                 <Fact label="PHN" value={resident.phn} />
                 <Fact label="Family doctor" value={[resident.doctor_name, resident.doctor_phone].filter(Boolean).join(' · ')} />
