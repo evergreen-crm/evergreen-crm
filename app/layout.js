@@ -82,6 +82,7 @@ export default async function RootLayout({ children }) {
                   ] },
                   { title: 'Me', items: [
                     { href: '/todo', label: 'My to-do', icon: '✅', color: todo.overdue ? '#b3261e' : '#0b5a34', badge: todo.total || null, alert: todo.overdue > 0 },
+                    { href: '/id#checkin', label: 'Clock In – Clock Out', icon: '⏰', color: '#0b5a34' },
                     { href: '/id', label: 'My ID card', icon: '🪪', color: '#0b5a34' },
                     ...(profile.role !== 'family' ? [{ href: '/absence', label: 'Can’t make my shift', icon: '📞', color: '#b3261e' }] : []),
                     ...(onb && onb.status !== 'Complete' ? [{ href: '/onboarding', label: 'My onboarding', icon: '✅', color: '#d4a72c', alert: true }] : []),

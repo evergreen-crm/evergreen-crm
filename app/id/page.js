@@ -115,7 +115,7 @@ export default async function IdPage({ searchParams }) {
 
       {isSelf && (
         <section className="card no-print" id="checkin">
-          <h2>Shift check-in</h2>
+          <h2>⏰ Clock In – Clock Out</h2>
           {!card?.location_ack_at ? (
             <form action={ackLocationNotice}>
               <p className="small"><strong>About location.</strong> When you tap <em>Clock in</em>, <em>Check in</em> or <em>Clock out</em>, your phone shares its location once so we can confirm you are at your house during your shift. Clock in and clock out only work at the house (or with your manager’s OK). Location is <strong>not</strong> tracked in the background or when you are off shift. Your manager sees the time, the distance from the house and a map link. Records are kept with timesheets.</p>
