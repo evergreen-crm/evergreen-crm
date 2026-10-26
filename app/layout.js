@@ -101,6 +101,7 @@ export default async function RootLayout({ children }) {
                     ...(canHR(profile) ? [{ href: '/hr', label: 'HR & staff', icon: '👥', color: '#5a3d8a' }] : []),
                     ...(levelOf(profile) >= 2 || canHR(profile) ? [{ href: '/records', label: 'Missing details', icon: '🧩', color: '#5a3d8a' }] : []),
                     ...(levelOf(profile) >= 3 || (levelOf(profile) === 2 && !groupOf(profile)) ? [{ href: '/reports/daily', label: 'Print documentation', icon: '🖨', color: '#0f3059' }] : []),
+                    ...(levelOf(profile) >= 4 ? [{ href: '/qa', label: 'Quality assurance (COA)', icon: '🏅', color: '#00687a' }] : []),
                     ...(canPayroll(profile) && !isMgr ? [{ href: '/timesheet', label: 'Payroll — staff hours', icon: '💵', color: '#8a5a00' }] : []),
                     ...(psRole ? [{ href: '/hr/prescreen', label: 'Job applicants', icon: '🧾', color: '#0b5a34' }] : []),
                     ...(isMgr ? [{ href: '/checkins', label: 'Staff on shift', icon: '📍', color: '#b3261e' }] : []),
