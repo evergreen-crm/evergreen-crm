@@ -55,6 +55,13 @@ export default async function QaStaff() {
   return (
     <QaShell active="/qa/staff" title="Quality assurance — staff compliance" printedBy={profile.full_name}
       intro="COA HR (Human Resources) and TS (Training and Supervision). Anyone not cleared to work can't be scheduled. Fix records in HR.">
+      <nav className="qa-quickbar no-print" aria-label="Enter">
+        <strong className="small" style={{ alignSelf: 'center' }}>Enter &amp; save:</strong>
+        <Link className="button secondary" href="/hr">🪪 Certificates & training (HR files)</Link>
+        <Link className="button secondary" href="/probation">📝 Probation reviews</Link>
+        <Link className="button secondary" href="/qa/records/inspections#new">🔎 Outside review (e.g. MCFD screening audit)</Link>
+        <Link className="button secondary" href="/qa/actions?new=1&std=HR">🛠 Improvement action</Link>
+      </nav>
       <section className="qa-summary">
         <div className={`qa-score kpi-${notCleared ? 'red' : 'green'}`}><span className="small muted">Not cleared to work</span><strong>{notCleared}</strong><span className="small">of {staff.length} house staff</span></div>
         <div className={`qa-score kpi-${orgBy.training?.status ?? 'none'}`}><span className="small muted">Mandatory training</span><strong>{orgBy.training?.value ?? '—'}</strong><span className="small">all houses</span></div>

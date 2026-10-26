@@ -5,6 +5,7 @@ import { fmtDate, todayISO } from '@/lib/options';
 import { lastMonths, monthLabel } from '@/lib/qa';
 import { requireQa } from '../guard';
 import QaShell from '../QaShell';
+import EntryForm from '@/app/components/EntryForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +49,7 @@ export default async function QaSafety() {
 
   return (
     <QaShell active="/qa/safety" title="Quality assurance — health & safety" printedBy={profile.full_name}
-      intro="COA ASE (Administrative and Service Environment). Every house needs a fire drill, a safety check and a facility inspection every month. ✓ done · ⚠️ done with Priority 1 deficiencies · … due this month · ✗ missed.">
+      intro="COA ASE (Administrative and Service Environment). Every house needs a fire drill, a safety check and a facility inspection every month — record them right here under each house. ✓ done · ⚠️ done with Priority 1 deficiencies · … due this month · ✗ missed.">
       {!(homes ?? []).length ? <p className="card muted">No houses yet.</p> : (homes ?? []).map((h) => (
         <section key={h.id} className="card">
           <h2 style={{ marginTop: 0 }}>🏡 {h.name}</h2>
@@ -71,6 +72,11 @@ export default async function QaSafety() {
             const last = (inspections ?? []).filter((r) => r.home_id === h.id).sort((a, b) => b.record_date.localeCompare(a.record_date))[0];
             return <p className="small muted" style={{ marginBottom: 0 }}>Last inspection: {last ? <><Link href={`/portal/record/${last.id}`}>{fmtDate(last.record_date)}</Link> — {last.data?.result ?? last.status}{last.data?.pm_signed === 'yes' || last.data?.pm_signed === true ? ' · PM signed off' : ''}</> : 'none on file'}</p>;
           })()}
+          <div className="qa-safety-entry no-print">
+            <EntryForm kind="fire_drill" homeId={h.id} path="/qa/safety" title={`Record a fire drill — ${h.name}`} />
+            <EntryForm kind="safety_check" homeId={h.id} path="/qa/safety" title={`Record a safety check — ${h.name}`} />
+            <p className="small" style={{ margin: '4px 0 0' }}><Link href="/portal/qa/tool-b">+ Monthly facility inspection (Tool B) →</Link> · <Link href="/qa/records/inspections#new">+ Outside inspection (fire, licensing, WorkSafeBC) →</Link></p>
+          </div>
         </section>
       ))}
     </QaShell>

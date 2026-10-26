@@ -24,10 +24,11 @@ export default async function QaIncidents({ searchParams }) {
   let incQ = supabase.from('incidents').select('id, home_id, resident_id, occurred_on, incident_type, is_critical, is_urgent, physical_intervention, written_report_sent_on, internal_review_on, status, residents(first_name, last_name, preferred_name, funder, care_type)').gte('occurred_on', from);
   let misQ = supabase.from('missing_episodes').select('id, home_id, resident_id, started_at, police_called_at, found_at, status').gte('started_at', from);
   if (house) { incQ = incQ.eq('home_id', house); misQ = misQ.eq('home_id', house); }
-  const [homes, incidents, missing, medErr] = await Promise.all([
+  const [homes, incidents, missing, medErr, residents] = await Promise.all([
     rows(supabase.from('homes').select('id, name').order('name')),
     rows(incQ), rows(misQ),
     rows(supabase.from('med_administrations').select('id, resident_id, admin_date, residents(home_id)').eq('status', 'Error').gte('admin_date', from)),
+    rows(supabase.from('residents').select('id, first_name, last_name, preferred_name, home_id').neq('status', 'discharged').order('first_name')),
   ]);
   const meds = house ? medErr.filter((m) => m.residents?.home_id === house) : medErr;
   const ym = (s) => String(s).slice(0, 7);
@@ -69,6 +70,20 @@ export default async function QaIncidents({ searchParams }) {
   return (
     <QaShell active="/qa/incidents" title="Quality assurance — incidents & risk" printedBy={profile.full_name}
       intro="COA RPM (Risk Prevention and Management) and BSM (Behavior Support and Management): look for patterns every quarter and add improvement actions for anything rising.">
+      <section className="card no-print">
+        <h2 style={{ marginTop: 0 }}>Enter</h2>
+        <div className="qa-quickbar">
+          <Link className="button secondary" href="/qa/records/rca#new">🧩 Root cause analysis</Link>
+          <Link className="button secondary" href="/qa/records/risks#new">⚠️ Add to the risk register</Link>
+          <Link className="button secondary" href="/qa/actions?new=1&std=RPM">🛠 Improvement action</Link>
+        </div>
+        <details>
+          <summary className="small"><strong>+ Report a new incident</strong> (incidents are filed on the resident’s page)</summary>
+          {!residents.length ? <p className="muted small">No current residents.</p> : (
+            <ul className="small">{residents.map((r) => <li key={r.id}><Link href={`/residents/${r.id}?tab=incidents`}>{r.preferred_name || r.first_name} {r.last_name ? r.last_name[0] + '.' : ''}</Link> <span className="muted">— {homes.find((h) => h.id === r.home_id)?.name ?? ''}</span></li>)}</ul>
+          )}
+        </details>
+      </section>
       <form className="row no-print" style={{ alignItems: 'end' }}>
         <label style={{ maxWidth: 320 }}>House<select name="house" defaultValue={house ?? ''}><option value="">All houses</option>{homes.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}</select></label>
         <button>Show</button>

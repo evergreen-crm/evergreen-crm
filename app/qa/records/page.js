@@ -14,6 +14,10 @@ const OTHER = [
   { href: '/qa/audits', icon: '🗂', title: 'Resident file audit', what: 'Pick a resident and answer the 14-item file checklist.' },
   { href: '/qa/actions?new=1', icon: '🛠', title: 'Improvement action', what: 'Something to fix: root cause, the fix, owner and due date.' },
   { href: '/qa/report#signoff', icon: '📄', title: 'Quarterly report sign-off', what: 'Summary, concerns, priorities, ED review and Board date.' },
+  { href: '/qa/surveys?send=1#enter', icon: '📨', title: 'Send a survey now', what: 'Email a survey to a family, social worker, funder or staff member, or do a youth survey in person.' },
+  { href: '/qa/surveys?enter=family#enter', icon: '📋', title: 'Type in a paper or phone survey', what: 'Enter the answers from a paper form or a phone call.' },
+  { href: '/qa/suggestions', icon: '💡', title: 'Answer staff suggestions', what: 'Ideas, concerns and compliments sent with the 💡 Suggest button.' },
+  { href: '/qa/safety', icon: '🔥', title: 'Fire drill or safety check', what: 'Record it under the house on the Health & safety tab.' },
   { href: '/review', icon: '🗓', title: 'My monthly QA review', what: 'What went well, concerns and actions for last month.' },
 ];
 
