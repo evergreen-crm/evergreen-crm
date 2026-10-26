@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { fmtDate, todayISO, addDaysISO } from '@/lib/options';
 import { plainError } from '@/lib/plain';
-import { shiftTimes, hoursUntil, clock, ABSENCE_KINDS, ABSENCE_TONE, PAID_SICK_DAYS, PAY_TYPES } from '@/lib/attendance';
+import { shiftTimes, hoursUntil, clock, ABSENCE_KINDS, ABSENCE_TONE } from '@/lib/attendance';
 import { cantMakeShift, runningLate } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -22,22 +22,16 @@ export default async function Absence({ searchParams }) {
     supabase.from('shifts').select('id, shift_date, start_time, end_time, label, home_id, homes(name, on_call_phone)')
       .eq('profile_id', user.id).gte('shift_date', addDaysISO(today, -1)).lte('shift_date', addDaysISO(today, 14)).order('shift_date').order('start_time'),
     supabase.from('time_entries').select('shift_id').eq('profile_id', user.id).not('shift_id', 'is', null).gte('clock_in', addDaysISO(today, -2)),
-    supabase.from('shift_absences').select('id, shift_date, shift_label, kind, status, hours_notice, eta_minutes, reported_at, decision_note, pay_type, homes:home_id(name)')
+    supabase.from('shift_absences').select('id, shift_date, shift_label, kind, status, hours_notice, eta_minutes, reported_at, decision_note, homes:home_id(name)')
       .eq('profile_id', user.id).gte('shift_date', yearStart).order('shift_date', { ascending: false }),
     profile.home_id ? supabase.from('homes').select('name, on_call_phone').eq('id', profile.home_id).maybeSingle() : { data: null },
   ]);
   const notReady = error && /relation|schema|column/i.test(error.message);
   const clockedIn = new Set((entries ?? []).map((e) => e.shift_id));
   const upcoming = (shifts ?? []).map((s) => ({ ...s, ...shiftTimes(s) })).filter((s) => s.end > new Date() && !clockedIn.has(s.id));
-  // 🤒 BC paid sick days (supabase/sick-pay.sql): used, left, and when I'm eligible (90 days after hire).
-  const { data: bal } = await supabase.rpc('sick_balance', {});
-  const days = (pay) => new Set((mine ?? []).filter((a) => a.status === 'Called in' && a.pay_type === pay).map((a) => a.shift_date)).size;
-  const paidUsed = bal?.paid_used ?? days('BC paid sick');
-  const paidLeft = bal?.paid_left ?? Math.max(0, PAID_SICK_DAYS - paidUsed);
-  const eligible = bal ? bal.eligible : true;
-  const canPaid = eligible && paidLeft > 0;
+  // 🤒 Sick-day balances (BC paid / unpaid) are for directors and Payroll only (Melvin, Oct 26) — never shown here.
   const wantKind = ABSENCE_KINDS.includes(sp.kind) ? sp.kind : 'Sick';
-  const wantPay = wantKind !== 'Sick' ? 'Unpaid sick' : sp.pay === 'other' ? 'Unpaid sick' : canPaid ? 'BC paid sick' : 'Unpaid sick';
+  const wantPay = wantKind === 'Sick' && sp.pay !== 'other' ? 'BC paid sick' : 'Unpaid sick';
   const openFirst = !!sp.kind || !!sp.pay;
   const onCall = myHome?.on_call_phone;
 
@@ -87,12 +81,12 @@ export default async function Absence({ searchParams }) {
                     {ABSENCE_KINDS.map((k, i) => <label key={k} className="check"><input type="radio" name="kind" value={k} required defaultChecked={k === wantKind} /> {k === 'Sick' ? '🤒 Sick' : k === 'Family emergency' ? '🏠 Family emergency' : '📝 Other'}</label>)}
                   </fieldset>
                   <fieldset className="abs-kinds abs-pay">
-                    <legend className="small">How should this be paid?</legend>
-                    <label className="check"><input type="radio" name="pay" value="BC paid sick" defaultChecked={wantPay === 'BC paid sick'} disabled={!canPaid} /> 🤒 BC paid sick day <span className="muted small">— {eligible ? `${paidLeft} of ${PAID_SICK_DAYS} left this year` : `starts ${bal?.eligible_from ? fmtDate(bal.eligible_from) : 'after 90 days of work'}`}</span></label>
+                    <legend className="small">What kind of day off?</legend>
+                    <label className="check"><input type="radio" name="pay" value="BC paid sick" defaultChecked={wantPay === 'BC paid sick'} /> 🤒 Sick day</label>
                     <label className="check"><input type="radio" name="pay" value="Unpaid sick" defaultChecked={wantPay === 'Unpaid sick'} /> Unpaid day off</label>
                     <label className="check"><input type="radio" name="pay" value="Vacation" /> 🌴 Use vacation</label>
                     <label className="check"><input type="radio" name="pay" value="Banked time" /> 🏦 Use banked time</label>
-                    <p className="small muted" style={{ margin: '4px 0 0' }}>BC paid sick days are only for when you are sick. Several shifts on one day count as one day.</p>
+                    <p className="small muted" style={{ margin: '4px 0 0' }}>“Sick day” is only for when you are sick. Payroll works out the pay.</p>
                   </fieldset>
                   <div className="row">
                     <label>Note for your Program Coordinator (optional)<input name="note" maxLength={300} placeholder="e.g. back on Thursday" /></label>
@@ -108,20 +102,15 @@ export default async function Absence({ searchParams }) {
       </section>
 
       <section className="card" id="year">
-        <h2 style={{ marginTop: 0 }}>🤒 My sick days this year</h2>
-        {!eligible && <p className="message">Your BC paid sick days start on {bal?.eligible_from ? fmtDate(bal.eligible_from) : 'your 90th day of work'}. Until then, sick days are unpaid (or use vacation or banked time).</p>}
+        <h2 style={{ marginTop: 0 }}>My call-ins this year</h2>
         <div className="stats">
-          <div className="stat"><strong>{paidLeft} left</strong><span>BC paid sick days ({paidUsed} of {PAID_SICK_DAYS} used)</span></div>
-          <div className="stat"><strong>{bal?.unpaid_sick ?? days('Unpaid sick')}</strong><span>unpaid sick days</span></div>
-          <div className="stat"><strong>{days('Vacation')}</strong><span>vacation days used</span></div>
-          <div className="stat"><strong>{days('Banked time')}</strong><span>banked-time days used</span></div>
           <div className="stat"><strong>{(mine ?? []).filter((a) => a.status === 'Late arrival').length}</strong><span>late arrivals reported</span></div>
           <div className="stat"><strong>{(mine ?? []).filter((a) => a.status === 'No-show').length}</strong><span>no-shows</span></div>
         </div>
-        <p className="muted small">In BC, after 90 days of work you have {PAID_SICK_DAYS} paid sick days a year (plus 3 unpaid). They reset on January 1, don’t carry over and aren’t paid out. <strong>Calling in sick never counts against your 🟢🟡🔴 badge.</strong> Late arrivals and confirmed no-shows do.</p>
+        <p className="muted small"><strong>Calling in sick never counts against your 🟢🟡🔴 badge.</strong> Late arrivals and confirmed no-shows do. Questions about sick pay? Ask Payroll.</p>
         {(mine ?? []).length > 0 && (
           <ul className="list compact">{(mine ?? []).map((a) => (
-            <li key={a.id}><span>{fmtDate(a.shift_date)} · {a.shift_label ?? ''} · {a.homes?.name ?? ''} — {a.kind}{a.pay_type ? <span className="muted"> · {PAY_TYPES[a.pay_type] ?? a.pay_type}</span> : null}{a.eta_minutes ? ` (~${a.eta_minutes} min)` : ''}{a.decision_note ? <span className="muted"> · {a.decision_note}</span> : null}</span>
+            <li key={a.id}><span>{fmtDate(a.shift_date)} · {a.shift_label ?? ''} · {a.homes?.name ?? ''} — {a.kind}{a.eta_minutes ? ` (~${a.eta_minutes} min)` : ''}{a.decision_note ? <span className="muted"> · {a.decision_note}</span> : null}</span>
               <span className={`badge ${ABSENCE_TONE[a.status] ?? ''}`}>{a.status}</span></li>
           ))}</ul>
         )}

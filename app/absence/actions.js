@@ -22,10 +22,9 @@ export async function cantMakeShift(fd) {
   after(() => flushOutbox('urgent').catch(() => null));
   revalidatePath('/absence'); revalidatePath('/schedule'); revalidatePath('/portal');
   const soon = data?.hours_notice !== null && data?.hours_notice !== undefined && Number(data.hours_notice) < 4;
-  const b = data?.balance;
-  const payWords = data?.pay === 'Vacation' ? ' It will be paid as vacation.' : data?.pay === 'Banked time' ? ' It will come out of your banked time.'
-    : data?.paid_days ? ` ${data.paid_days === 1 ? 'One BC paid sick day was' : `${data.paid_days} BC paid sick days were`} used${b ? ` — ${b.paid_left} of ${b.paid_total} left this year` : ''}.` : '';
-  const unpaidWords = data?.made_unpaid ? ` ${data.made_unpaid === 1 ? 'One day is' : `${data.made_unpaid} days are`} unpaid because ${data.why_unpaid}.` : '';
+  // Sick-day balances and paid / unpaid are for directors and Payroll only — not shown to staff.
+  const payWords = data?.pay === 'Vacation' ? ' It will be recorded as vacation.' : data?.pay === 'Banked time' ? ' It will be recorded as banked time.' : '';
+  const unpaidWords = '';
   const msg = `Done. ${data?.shifts > 1 ? `${data.shifts} shifts are` : 'Your shift is'} open now and your Program Coordinator and Program Manager were told.${payWords}${unpaidWords} Feel better soon.`;
   go('ok=' + encodeURIComponent(msg) + (soon ? `&call=${encodeURIComponent(data?.on_call_phone ?? '')}` : ''));
 }

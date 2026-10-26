@@ -9,7 +9,7 @@
 --    "Other": unpaid sick day, vacation or banked time. Family emergency / other reasons: unpaid, vacation or banked.
 --  · Several shifts on the same date count as ONE sick day.
 --  · If the 5 paid days are used up, or the person hasn't worked 90 days yet, the day is recorded as an unpaid
---    sick day and they are told why.
+--    sick day. Staff are NOT shown balances or paid/unpaid: only directors (level 4+) and Payroll (Oct 26).
 --  · Payroll and leaders see paid / unpaid sick days, vacation and banked time per person on the Attendance page.
 -- =====================================================================
 
@@ -26,8 +26,8 @@ language plpgsql stable security definer set search_path = public as $$
 declare pid uuid := coalesce(p_profile, auth.uid()); y int := coalesce(p_year, extract(year from (now() at time zone evg_tz()))::int);
   used int; hire date; elig date;
 begin
-  if pid is distinct from auth.uid() and not (coalesce(app_level(), 0) >= 3 and app_group() is null) and coalesce(app_group(), '') <> 'payroll'
-     and not (coalesce(app_level(), 0) = 2 and app_group() is null and (select home_id from profiles where id = pid) = app_home()) then
+  -- Directors (level 4+) and Payroll only — not Youth Workers, Program Coordinators or Program Managers, and not for yourself (Melvin, Oct 26).
+  if not ((coalesce(app_level(), 0) >= 4 and app_group() is null) or coalesce(app_group(), '') = 'payroll') then
     raise exception 'Not allowed.';
   end if;
   select count(distinct shift_date) into used from shift_absences
@@ -52,7 +52,7 @@ begin
   if p_kind not in ('Sick', 'Family emergency', 'Other') then raise exception 'Choose a reason: sick, family emergency or other.'; end if;
   want := coalesce(p_pay, case when p_kind = 'Sick' then 'BC paid sick' else 'Unpaid' end);
   if want not in ('BC paid sick', 'Unpaid sick', 'Vacation', 'Banked time', 'Unpaid') then raise exception 'Choose how this is paid.'; end if;
-  if want = 'BC paid sick' and p_kind <> 'Sick' then raise exception 'BC paid sick days are only for when you are sick. Choose unpaid, vacation or banked time.'; end if;
+  if want = 'BC paid sick' and p_kind <> 'Sick' then raise exception '“Sick day” is only for when you are sick. Choose unpaid, vacation or banked time.'; end if;
   if want = 'Unpaid sick' and p_kind <> 'Sick' then want := 'Unpaid'; end if;
   select * into first from shifts where id = p_shift and profile_id = me.id;
   if first.id is null then raise exception 'That shift is not yours (it may already have been covered).'; end if;
@@ -92,8 +92,8 @@ begin
     n := n + 1;
   end loop;
   if n = 0 then raise exception 'That shift has already started or ended. Phone the on-call supervisor.'; end if;
-  return jsonb_build_object('shifts', n, 'hours_notice', min_hrs, 'pay', want, 'paid_days', paid, 'made_unpaid', converted, 'why_unpaid', why_unpaid,
-    'balance', sick_balance(me.id, null),
+  -- Staff are not told their balance or whether the day was paid (directors and Payroll see it on Attendance).
+  return jsonb_build_object('shifts', n, 'hours_notice', min_hrs, 'pay', case when want in ('Vacation', 'Banked time') then want end,
     'on_call_phone', (select on_call_phone from homes where id = first.home_id),
     'house', (select name from homes where id = first.home_id));
 end $$;

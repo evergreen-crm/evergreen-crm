@@ -19,6 +19,8 @@ export default async function Attendance({ searchParams }) {
   const lvl = levelOf(profile), grp = groupOf(profile);
   const payroll = grp === 'payroll';
   const pc = lvl === 2 && !grp;
+  // Sick-day balances (BC paid, unpaid, vacation, banked): directors (level 4+) and Payroll only — not PCs or PMs (Melvin, Oct 26).
+  const seeSick = (lvl >= 4 && !grp) || payroll;
   if (!(lvl >= 3 && !grp) && !pc && !payroll) redirect('/absence');
   const today = todayISO(), monthStart = today.slice(0, 7) + '-01', yearStart = today.slice(0, 4) + '-01-01';
   const house = pc ? profile.home_id : null;
@@ -174,11 +176,11 @@ export default async function Attendance({ searchParams }) {
       )}
 
       <section className="card">
-        <h2 style={{ marginTop: 0 }}>{payroll ? 'Sick days & time off this year' : 'Per person — this month and this year'}</h2>
+        <h2 style={{ marginTop: 0 }}>{payroll ? 'Sick days & time off this year' : seeSick ? 'Per person — this month and this year' : 'This month, per person'}</h2>
         <div className="table-wrap">
           <table className="qa-table">
-            <thead><tr><th>Staff</th>{!payroll && <><th>Late arrivals</th><th>No-shows</th></>}{!payroll && <th>Call-ins (month)</th>}<th>🤒 BC paid sick (year)</th><th>Unpaid sick</th><th>🌴 Vacation</th><th>🏦 Banked</th><th>Other unpaid</th></tr></thead>
-            <tbody>{people.filter((p) => month[p.id] || sickYear[p.id]).map((p) => {
+            <thead><tr><th>Staff</th>{!payroll && <><th>Late arrivals</th><th>No-shows</th></>}{!payroll && <th>Call-ins (month)</th>}{seeSick && <><th>🤒 BC paid sick (year)</th><th>Unpaid sick</th><th>🌴 Vacation</th><th>🏦 Banked</th><th>Other unpaid</th></>}</tr></thead>
+            <tbody>{people.filter((p) => month[p.id] || (seeSick && sickYear[p.id])).map((p) => {
               const m = month[p.id] ?? { late: 0, noshow: 0, sick: 0, other: 0 };
               const y = sickYear[p.id] ?? {};
               const n = (k) => y[k]?.size ?? 0;
@@ -189,16 +191,16 @@ export default async function Attendance({ searchParams }) {
                   {!payroll && <><td className={`qa-cell qa-${m.late >= 4 ? 'red' : m.late >= 2 ? 'yellow' : 'none'}`}>{m.late}</td>
                     <td className={`qa-cell qa-${m.noshow ? 'red' : 'none'}`}>{m.noshow}</td></>}
                   {!payroll && <td>{m.sick + m.other}</td>}
-                  <td className={sy >= PAID_SICK_DAYS ? 'bad-text' : ''}>{sy} of {PAID_SICK_DAYS}</td>
-                  <td>{n('Unpaid sick')}</td><td>{n('Vacation')}</td><td>{n('Banked time')}</td><td>{n('Unpaid')}</td>
+                  {seeSick && <><td className={sy >= PAID_SICK_DAYS ? 'bad-text' : ''}>{sy} of {PAID_SICK_DAYS}</td>
+                  <td>{n('Unpaid sick')}</td><td>{n('Vacation')}</td><td>{n('Banked time')}</td><td>{n('Unpaid')}</td></>}
                 </tr>
               );
             })}</tbody>
           </table>
         </div>
-        {!people.some((p) => month[p.id] || sickYear[p.id]) && <p className="muted small">Nothing recorded yet.</p>}
+        {!people.some((p) => month[p.id] || (seeSick && sickYear[p.id])) && <p className="muted small">Nothing recorded yet.</p>}
         {!payroll && <p className="muted small">For the monthly badge: 2–3 late arrivals = 🟡, 4 or more or any confirmed no-show = 🔴. Sick calls never count. <Link href="/badges">Set badges →</Link></p>}
-        <p className="muted small">BC: 5 paid sick days a year after 90 days of work, reset January 1. Days are counted once per date, however many shifts.</p>
+        {seeSick && <p className="muted small">BC: 5 paid sick days a year after 90 days of work, reset January 1. Days are counted once per date, however many shifts. Only directors and Payroll see these columns.</p>}
       </section>
 
       {!payroll && (
@@ -206,7 +208,7 @@ export default async function Attendance({ searchParams }) {
           <h2 style={{ marginTop: 0 }}>Recent call-ins and late notices</h2>
           {!abs.length ? <p className="muted small">None yet.</p> : (
             <ul className="list compact">{abs.slice(0, 40).map((a) => (
-              <li key={a.id}><span className="small">{fmtDate(a.shift_date)} · {a.shift_label ?? ''} · {homeName[a.home_id] ?? ''} — <strong>{a.who?.full_name ?? nameOf[a.profile_id] ?? ''}</strong>: {a.kind}{a.pay_type ? ` · ${a.pay_type}` : ''}{a.eta_minutes ? ` (~${a.eta_minutes} min)` : ''}{a.hours_notice !== null && a.hours_notice !== undefined && ['Sick', 'Family emergency', 'Other'].includes(a.kind) ? ` · ${a.hours_notice < 4 ? '⚠️ ' : ''}${a.hours_notice} h notice` : ''}{a.note ? ` · “${a.note}”` : ''}</span>
+              <li key={a.id}><span className="small">{fmtDate(a.shift_date)} · {a.shift_label ?? ''} · {homeName[a.home_id] ?? ''} — <strong>{a.who?.full_name ?? nameOf[a.profile_id] ?? ''}</strong>: {a.kind}{seeSick && a.pay_type ? ` · ${a.pay_type}` : ''}{a.eta_minutes ? ` (~${a.eta_minutes} min)` : ''}{a.hours_notice !== null && a.hours_notice !== undefined && ['Sick', 'Family emergency', 'Other'].includes(a.kind) ? ` · ${a.hours_notice < 4 ? '⚠️ ' : ''}${a.hours_notice} h notice` : ''}{a.note ? ` · “${a.note}”` : ''}</span>
                 <span className={`badge ${ABSENCE_TONE[a.status] ?? ''}`}>{a.status}</span></li>
             ))}</ul>
           )}
