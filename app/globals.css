@@ -413,7 +413,7 @@ table.matrix .prog-row th span.prog-dot { writing-mode: horizontal-tb; transform
 /* ---------- Phone app (PWA) ---------- */
 .mtabs { display: none; }
 @media (max-width: 720px) {
-  .mtabs { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  .mtabs { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
     background: #fff; border-top: 1px solid var(--line); box-shadow: 0 -4px 16px rgba(15,48,89,.08);
     padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
   .mtabs a { display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--muted); font-size: .7rem; font-weight: 600; padding: 4px 0; border-radius: 10px; }
@@ -971,7 +971,8 @@ button.danger-soft { background: #b3261e; color: #fff; }
 /* 🤖 Ask Evergreen */
 .ask-box textarea { width: 100%; font-size: 1rem; }
 .ask-examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.ask-examples .chip { cursor: pointer; border: 1px solid #d5ddd9; background: #f3f8f5; }
+.ask-examples .chip { cursor: pointer; border: 1px solid #b9d3c3; background: #f3f8f5; color: #14532d; font-weight: 600; font-size: .92rem; padding: 8px 14px; border-radius: 999px; text-align: left; box-shadow: none; }
+.ask-examples .chip:hover { background: #e3f1e8; border-color: var(--green); color: #0b3d22; }
 .ask-answer { margin-top: 12px; padding-top: 10px; border-top: 1px solid #e6ece9; }
 .ask-cite { display: inline-block; min-width: 18px; padding: 0 4px; margin-left: 2px; border-radius: 9px; background: #e3f1e8; color: var(--green); font-size: .72rem; font-weight: 700; text-align: center; text-decoration: none; vertical-align: super; line-height: 1.4; }
 .ask-sources { margin: 4px 0 8px; padding-left: 22px; }
@@ -981,3 +982,12 @@ button.danger-soft { background: #b3261e; color: #fff; }
 .ask-excerpts { margin: 6px 0 10px; padding-left: 22px; }
 .ask-excerpts li { margin: 10px 0; }
 .ask-excerpts blockquote { margin: 6px 0 0; padding: 8px 12px; border-left: 3px solid var(--green); background: #f3f8f5; border-radius: 0 8px 8px 0; font-size: .95rem; line-height: 1.5; white-space: pre-wrap; }
+/* 🤖 Ask Evergreen side button + panel (every page, all staff) */
+.ask-fab { position: fixed; right: 16px; bottom: 96px; z-index: 45; width: 58px; height: 58px; border-radius: 50%; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; font-size: 1.5rem; line-height: 1; background: #0b5a34; color: #fff; border: 2px solid #fff; box-shadow: 0 6px 18px rgba(11,90,52,.35); }
+.ask-fab span { font-size: .62rem; font-weight: 800; letter-spacing: .04em; margin-top: 2px; }
+.ask-fab:hover { background: #094a2b; }
+.ask-side-wrap { position: fixed; inset: 0; z-index: 70; background: rgba(15,20,25,.35); display: flex; justify-content: flex-end; }
+.ask-side { width: min(460px, 100%); height: 100%; overflow-y: auto; background: var(--bg, #f6f5f0); padding: 18px 18px 40px; box-shadow: -8px 0 24px rgba(0,0,0,.18); }
+.ask-side .ask-box textarea { background: #fff; }
+@media (max-width: 720px) { .ask-fab { bottom: calc(150px + env(safe-area-inset-bottom)); right: 12px; width: 54px; height: 54px; } .ask-side { padding: 14px 14px calc(90px + env(safe-area-inset-bottom)); } }
+@media print { .ask-fab, .ask-side-wrap { display: none !important; } }

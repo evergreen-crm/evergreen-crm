@@ -1,6 +1,6 @@
 'use client';
 // 🤖 Ask Evergreen: type a question, get a short answer with the policy and page it came from.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { askQuestion, rateAnswer } from './actions';
 
@@ -25,8 +25,9 @@ function Answer({ text }) {
   ));
 }
 
-export default function AskBox({ onCall = null }) {
-  const [q, setQ] = useState('');
+export default function AskBox({ onCall = null, compact = false, initialQ = '' }) {
+  const [q, setQ] = useState(initialQ);
+  const started = useRef(false);
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState(null);
   const [asked, setAsked] = useState('');
@@ -40,10 +41,12 @@ export default function AskBox({ onCall = null }) {
     catch { setRes({ error: 'Something went wrong. Please try again.' }); }
     setBusy(false);
   }
+  // Came from 🔍 Find with a question: ask it straight away (once).
+  useEffect(() => { if (initialQ && !started.current) { started.current = true; ask(initialQ); } }, [initialQ]); // eslint-disable-line react-hooks/exhaustive-deps
   async function rate(helpful) { if (!res?.id) return; setRated(helpful); await rateAnswer({ id: res.id, helpful }); }
 
   return (
-    <section className="card ask-box">
+    <section className={compact ? 'ask-box' : 'card ask-box'}>
       <form onSubmit={(e) => { e.preventDefault(); ask(); }}>
         <label className="sr-only" htmlFor="ask-q">Your question</label>
         <textarea id="ask-q" rows={3} maxLength={1000} value={q} onChange={(e) => setQ(e.target.value)}
@@ -56,7 +59,7 @@ export default function AskBox({ onCall = null }) {
       </form>
       {!res && !busy && (
         <div className="ask-examples">
-          {EXAMPLES.map((e) => <button key={e} type="button" className="chip" onClick={() => { setQ(e); ask(e); }}>{e}</button>)}
+          {(compact ? EXAMPLES.slice(0, 4) : EXAMPLES).map((e) => <button key={e} type="button" className="chip" onClick={() => { setQ(e); ask(e); }}>{e}</button>)}
         </div>
       )}
 

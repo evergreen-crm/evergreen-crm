@@ -15,13 +15,14 @@ export default function FindBox({ items = [], autoFocus = false, onPick }) {
     <div className="findbox">
       <label className="findbox-input">
         <span aria-hidden="true">🔍</span>
-        <input type="search" value={q} autoFocus={autoFocus} onChange={(e) => setQ(e.target.value)} placeholder="Find a page — e.g. fire drill, sick, timesheet" aria-label="Find a page" />
+        <input type="search" value={q} autoFocus={autoFocus} onChange={(e) => setQ(e.target.value)} placeholder="Find a page or ask a question — e.g. fire drill, sick, curfew" aria-label="Find a page" />
       </label>
       {q.trim().length >= 2 && (
         <ul className="findbox-hits">
           {hits.length ? hits.map((h) => (
             <li key={h.href + h.label}><Link href={h.href} onClick={onPick}><span>{h.icon}</span> {h.label}<small> · {h.where}</small></Link></li>
-          )) : <li className="muted small">Nothing found. Try another word, or tap ❓ Help.</li>}
+          )) : <li className="muted small">No page with that name.</li>}
+          <li><Link href={`/ask?q=${encodeURIComponent(q.trim())}`} onClick={onPick}><span>🤖</span> Ask Evergreen: “{q.trim()}”<small> · what the policies say</small></Link></li>
         </ul>
       )}
     </div>

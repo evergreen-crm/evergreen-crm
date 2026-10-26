@@ -14,6 +14,7 @@ import { after } from 'next/server';
 import { maybeFlushUrgent } from '@/lib/emailOutbox';
 import HelpButton from '@/app/components/HelpButton';
 import SuggestButton from '@/app/components/SuggestButton';
+import AskSide from '@/app/components/AskSide';
 import { getMyTodos, todoCount } from '@/lib/todos';
 import { personLabel } from '@/lib/levels';
 import { buildMenu } from '@/lib/menu';
@@ -102,6 +103,7 @@ export default async function RootLayout({ children }) {
         <div className="print-only print-head"><img src="/logo.png" alt="Evergreen Community Care" className="print-logo" /></div>
         <div className={`page${profile && profile.role !== 'family' ? ' has-tabs' : ''}`}>{children}</div>
         {profile && profile.role !== 'family' && <MobileTabs unread={unread} todo={todo} />}
+        {profile && profile.role !== 'family' && <AskSide onCall={sosHome?.on_call_phone ?? null} />}
         {profile && profile.role !== 'family' && <EmergencyButton onCall={sosHome?.on_call_phone ?? null} housePhone={sosHome?.phone ?? null} homeName={sosHome?.name ?? null} homeId={sosHome?.id ?? null} />}
         {profile && <IdleLogout />}
         <Suspense fallback={null}><PhoneHelpers /></Suspense>
