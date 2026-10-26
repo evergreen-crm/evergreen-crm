@@ -67,7 +67,7 @@ export async function rateAnswer({ id, helpful }) {
 export async function readPoliciesNow() {
   const { profile } = await requireUser(['admin', 'manager', 'staff']);
   if (!(levelOf(profile) >= 4 || profile.role === 'admin')) return { error: 'Directors only.' };
-  const r = await indexPolicies({ budgetMs: 45000 });
+  const r = await indexPolicies({ budgetMs: 45000, retryFailed: true });
   revalidatePath('/ask');
   return r;
 }

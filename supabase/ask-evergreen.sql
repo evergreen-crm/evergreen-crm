@@ -104,3 +104,29 @@ grant execute on function ask_finish(uuid, text, jsonb, boolean) to authenticate
 
 -- Check
 select 'ask evergreen ready' as result, (select count(*) from ask_chunks) as chunks;
+
+-- ---------- Read policies in automatically ----------
+-- Every 10 minutes, if a policy's newest version isn't read in yet (or the help tips are missing), ask the site to
+-- read them (/api/cron/ask-index, same Vault key as the urgent emails in attendance.sql). Does nothing otherwise.
+create or replace function ping_ask_index() returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if exists (select 1 from policies p where p.active and p.current_version_id is not null
+               and not exists (select 1 from ask_indexed i where i.version_id = p.current_version_id))
+     or not exists (select 1 from ask_chunks where source = 'help') then
+    perform net.http_post(
+      url := 'https://evergreen-crm-azure.vercel.app/api/cron/ask-index',
+      headers := jsonb_build_object('Content-Type', 'application/json',
+                                    'x-flush-key', (select decrypted_secret from vault.decrypted_secrets where name = 'urgent_flush_key')),
+      body := '{}'::jsonb, timeout_milliseconds := 60000);
+  end if;
+end $$;
+revoke execute on function ping_ask_index() from public, anon, authenticated;
+
+do $$
+begin
+  perform cron.unschedule('evergreen-ask-index') where exists (select 1 from cron.job where jobname = 'evergreen-ask-index');
+  perform cron.schedule('evergreen-ask-index', '*/10 * * * *', $c$select public.ping_ask_index()$c$);
+exception when others then
+  raise notice 'Scheduler not available here (%).', sqlerrm;
+end $$;
