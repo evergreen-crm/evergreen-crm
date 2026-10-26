@@ -68,7 +68,7 @@ export default function PrescreenFill({ token, start }) {
   if (done) return (
     <div className="card if-done">
       <h2>✓ Thank you, your prescreen was sent</h2>
-      <p>Evergreen Community Care received it on {new Date().toLocaleString('en-CA', { timeZone: 'America/Vancouver' })} (Pacific time). We’ll contact you about next steps. You can close this page.</p>
+      <p>Evergreen Community Care received it on {new Date().toLocaleString('en-CA', { timeZone: 'Etc/GMT+7' })} (Pacific time). We’ll contact you about next steps. You can close this page.</p>
     </div>
   );
 

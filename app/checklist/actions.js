@@ -49,7 +49,7 @@ export async function logBedCheck(fd) {
   const { error } = await supabase.rpc('log_bed_check', { p_id: id });
   if (error) redirect(`/checklist?id=${id}&error=${encodeURIComponent(clean(error))}`);
   revalidatePath('/checklist');
-  redirect(`/checklist?id=${id}&ok=${encodeURIComponent('Bed check logged at ' + new Date().toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Vancouver' }))}#bedchecks`);
+  redirect(`/checklist?id=${id}&ok=${encodeURIComponent('Bed check logged at ' + new Date().toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: 'Etc/GMT+7' }))}#bedchecks`);
 }
 
 export async function signChecklist(fd) {

@@ -144,9 +144,9 @@ create or replace function scan_record_gaps(p_trigger text default 'auto') retur
 language plpgsql security definer set search_path = public as $$
 declare
   last record_gap_runs; new_ids uuid[]; up2 uuid[]; up3 uuid[]; n_fixed int; n_open int;
-  r record; today date := (now() at time zone 'America/Vancouver')::date;
-  wk text := to_char((now() at time zone 'America/Vancouver')::date, 'IYYY-IW');
-  monday boolean := extract(isodow from (now() at time zone 'America/Vancouver')) = 1;
+  r record; today date := (now() at time zone 'Etc/GMT+7')::date;
+  wk text := to_char((now() at time zone 'Etc/GMT+7')::date, 'IYYY-IW');
+  monday boolean := extract(isodow from (now() at time zone 'Etc/GMT+7')) = 1;
 begin
   if auth.uid() is not null and not (app_level() >= 2 or coalesce(app_group(), '') = 'hr') then
     raise exception 'Only Program Coordinators and above can run the missing-details check.';
@@ -293,7 +293,7 @@ end $$;
 revoke execute on function fill_staff_blanks(uuid, jsonb) from public, anon;
 grant execute on function fill_staff_blanks(uuid, jsonb) to authenticated;
 
--- 6. Every morning at 6:40 am Vancouver time (13:40 UTC; 5:40 am in winter), before the 7 am email.
+-- 6. Every morning at 6:40 am B.C. time (13:40 UTC — B.C. is UTC−7 all year since 2026), before the 7 am email.
 do $$
 begin
   create extension if not exists pg_cron;

@@ -72,7 +72,7 @@ export default function IntakeFormFill({ token, form, recipientName, recipientRo
   if (done) return (
     <div className="card if-done">
       <h2>✓ Thank you — signed and sent</h2>
-      <p>Your form was received by Evergreen Community Care on {new Date().toLocaleString('en-CA', { timeZone: 'America/Vancouver' })} (Pacific time). You can close this page.</p>
+      <p>Your form was received by Evergreen Community Care on {new Date().toLocaleString('en-CA', { timeZone: 'Etc/GMT+7' })} (Pacific time). You can close this page.</p>
     </div>
   );
 

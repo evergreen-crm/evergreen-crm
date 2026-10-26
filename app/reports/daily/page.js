@@ -43,7 +43,7 @@ const lateBy = (aboutDate, createdTs) => {
 function vanMidnight(iso) {
   const noon = new Date(iso + 'T12:00:00Z');
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: TZ, timeZoneName: 'shortOffset' }).formatToParts(noon);
-  const off = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT-8';
+  const off = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT-7';
   const m = off.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
   const mins = m ? (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] ?? 0)) : -480;
   return new Date(Date.parse(iso + 'T00:00:00Z') - mins * 60000).toISOString();

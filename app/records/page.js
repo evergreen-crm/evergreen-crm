@@ -161,7 +161,7 @@ export default async function Records({ searchParams }) {
           <div className="row" style={{ alignItems: 'center', gap: 10 }}>
             <form action={checkNow}><button className="secondary">🔄 Check now</button></form>
             {(stageF || homeF) && <Link href="/records" className="small">Show everything</Link>}
-            {last && <span className="muted small">Last checked {new Date(last.ran_at).toLocaleString('en-CA', { timeZone: 'America/Vancouver', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>}
+            {last && <span className="muted small">Last checked {new Date(last.ran_at).toLocaleString('en-CA', { timeZone: 'Etc/GMT+7', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>}
           </div>
         </>
       )}

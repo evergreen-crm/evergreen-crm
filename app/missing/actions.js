@@ -17,7 +17,7 @@ function lastSeen(fd) {
   const d = s(fd, 'seen_date'); const t = s(fd, 'seen_time');
   if (!d || !t) return null;
   const guess = new Date(`${d}T${t}:00Z`);
-  const local = new Date(guess.toLocaleString('en-US', { timeZone: 'America/Vancouver' }));
+  const local = new Date(guess.toLocaleString('en-US', { timeZone: 'Etc/GMT+7' }));
   const offset = guess.getTime() - local.getTime();
   return new Date(guess.getTime() + offset).toISOString();
 }

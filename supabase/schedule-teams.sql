@@ -254,8 +254,8 @@ declare s shifts; st schedule_settings; a timestamptz; b timestamptz; wk0 date; 
 begin
   select * into s from shifts where id = p_shift;
   select * into st from schedule_settings where id = 1;
-  a := (s.shift_date + s.start_time) at time zone 'America/Vancouver';
-  b := (s.shift_date + s.end_time + case when s.end_time <= s.start_time then interval '1 day' else interval '0' end) at time zone 'America/Vancouver';
+  a := (s.shift_date + s.start_time) at time zone 'Etc/GMT+7';
+  b := (s.shift_date + s.end_time + case when s.end_time <= s.start_time then interval '1 day' else interval '0' end) at time zone 'Etc/GMT+7';
   if exists (select 1 from protected_days where profile_id = p_profile and day = s.shift_date) and p_profile <> auth.uid() then
     return 'This is one of their protected days.';
   end if;
@@ -265,8 +265,8 @@ begin
   if exists (
     select 1 from shifts x
      where x.profile_id = p_profile and x.id <> s.id and x.shift_date between s.shift_date - 1 and s.shift_date + 1
-       and ((x.shift_date + x.start_time) at time zone 'America/Vancouver') < b + make_interval(hours => st.min_rest_hours)
-       and ((x.shift_date + x.end_time + case when x.end_time <= x.start_time then interval '1 day' else interval '0' end) at time zone 'America/Vancouver')
+       and ((x.shift_date + x.start_time) at time zone 'Etc/GMT+7') < b + make_interval(hours => st.min_rest_hours)
+       and ((x.shift_date + x.end_time + case when x.end_time <= x.start_time then interval '1 day' else interval '0' end) at time zone 'Etc/GMT+7')
            > a - make_interval(hours => st.min_rest_hours)) then
     return 'Too close to another shift: at least ' || st.min_rest_hours || ' hours of rest are needed between shifts.';
   end if;
@@ -415,11 +415,11 @@ begin
        and coalesce(d.employment_type, 'Casual') in ('Part-time', 'Casual')
        and not exists (select 1 from protected_days x where x.profile_id = p.id and x.day = s.shift_date)
        and not exists (select 1 from time_off_requests t where t.profile_id = p.id and t.status = 'Approved' and s.shift_date between t.start_date and t.end_date);
-    if (s.shift_date + s.start_time) at time zone 'America/Vancouver' < now() + interval '72 hours' then
+    if (s.shift_date + s.start_time) at time zone 'Etc/GMT+7' < now() + interval '72 hours' then
       perform notify(l, '⚠️ Open shift in 3 days or less: ' || whenx, 'Still nobody on it.', '/schedule?tab=open', 'os72:' || s.id || ':' || l)
         from house_leaders(s.home_id) l;
     end if;
-    if (s.shift_date + s.start_time) at time zone 'America/Vancouver' < now() + interval '24 hours' then
+    if (s.shift_date + s.start_time) at time zone 'Etc/GMT+7' < now() + interval '24 hours' then
       perform notify(p.id, '🔴 Open shift within 24 hours: ' || whenx, 'Still nobody on it.', '/schedule?tab=open', 'os24:' || s.id || ':' || p.id)
         from profiles p where p.active and p.staff_group is null and p.level = 4;
     end if;

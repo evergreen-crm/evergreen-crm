@@ -10,7 +10,7 @@ import { signDocument, declineDocument } from '@/app/sign/actions';
 import { signOutside, declineOutside } from '@/app/f/sign/actions';
 
 const initialsOf = (n) => String(n).trim().split(/\s+/).filter(Boolean).map((w) => w[0].toUpperCase()).join('').slice(0, 4);
-const todayText = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+const todayText = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Etc/GMT+7', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
 // A drawing pad. Calls onChange(image) after each stroke (or null when cleared).
 function SigPad({ onChange, clearRef }) {

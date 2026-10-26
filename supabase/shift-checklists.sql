@@ -204,7 +204,7 @@ create index if not exists shift_checklist_ticks_list on shift_checklist_ticks (
 create or replace function house_shift_at(p_home uuid, p_at timestamptz default now(),
   out shift text, out shift_date date, out starts_at timestamptz, out ends_at timestamptz)
 language plpgsql stable security definer set search_path = public as $$
-declare h homes; lt timestamp := p_at at time zone 'America/Vancouver';
+declare h homes; lt timestamp := p_at at time zone 'Etc/GMT+7';
   ev interval; ni interval; rel interval; op timestamp;
 begin
   select * into h from homes where id = p_home;
@@ -214,11 +214,11 @@ begin
   shift_date := op::date;
   rel := lt - op;
   if rel < ev then
-    shift := 'Day'; starts_at := op at time zone 'America/Vancouver'; ends_at := (op + ev) at time zone 'America/Vancouver';
+    shift := 'Day'; starts_at := op at time zone 'Etc/GMT+7'; ends_at := (op + ev) at time zone 'Etc/GMT+7';
   elsif rel < ni then
-    shift := 'Evening'; starts_at := (op + ev) at time zone 'America/Vancouver'; ends_at := (op + ni) at time zone 'America/Vancouver';
+    shift := 'Evening'; starts_at := (op + ev) at time zone 'Etc/GMT+7'; ends_at := (op + ni) at time zone 'Etc/GMT+7';
   else
-    shift := 'Night'; starts_at := (op + ni) at time zone 'America/Vancouver'; ends_at := (op + interval '24 hours') at time zone 'America/Vancouver';
+    shift := 'Night'; starts_at := (op + ni) at time zone 'Etc/GMT+7'; ends_at := (op + interval '24 hours') at time zone 'Etc/GMT+7';
   end if;
 end $$;
 grant execute on function house_shift_at(uuid, timestamptz) to authenticated;

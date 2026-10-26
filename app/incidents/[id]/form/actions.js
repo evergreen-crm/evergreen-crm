@@ -12,7 +12,7 @@ const back = (id, msg, bad) => redirect(`/incidents/${id}/form?${bad ? 'error' :
 function localToIso(date, time) {
   if (!date) return null;
   const guess = new Date(`${date}T${time || '12:00'}:00Z`);
-  const local = new Date(guess.toLocaleString('en-US', { timeZone: 'America/Vancouver' }));
+  const local = new Date(guess.toLocaleString('en-US', { timeZone: 'Etc/GMT+7' }));
   return new Date(guess.getTime() + (guess.getTime() - local.getTime())).toISOString();
 }
 

@@ -58,13 +58,13 @@ begin
   new.form_program := coalesce(incident_form_program(new.resident_id), 'mcfd');
   -- Clock starts at the time of the incident (or when it was reported, if no time was given).
   base := case when new.occurred_time is not null
-               then (new.occurred_on + new.occurred_time) at time zone 'America/Vancouver'
+               then (new.occurred_on + new.occurred_time) at time zone 'Etc/GMT+7'
                else coalesce(new.created_at, now()) end;
   if base > now() then base := now(); end if;
   if new.form_program = 'clbc' and not new.is_urgent then
-    d := (base at time zone 'America/Vancouver')::date;               -- 5 working days, end of that day
+    d := (base at time zone 'Etc/GMT+7')::date;               -- 5 working days, end of that day
     while n < 5 loop d := d + 1; if extract(isodow from d) < 6 then n := n + 1; end if; end loop;
-    new.form_due_at := (d + time '23:59') at time zone 'America/Vancouver';
+    new.form_due_at := (d + time '23:59') at time zone 'Etc/GMT+7';
   else
     new.form_due_at := base + interval '24 hours';
   end if;
@@ -82,7 +82,7 @@ begin
     new.form_sent_at := now(); new.form_sent_by := coalesce(new.form_sent_by, auth.uid());
   end if;
   if new.form_sent_at is not null and new.written_report_sent_on is null then
-    new.written_report_sent_on := (new.form_sent_at at time zone 'America/Vancouver')::date;
+    new.written_report_sent_on := (new.form_sent_at at time zone 'Etc/GMT+7')::date;
   end if;
   return new;
 end $$;
@@ -116,7 +116,7 @@ begin
     left_ := i.form_due_at - now();
     nm := coalesce(i.rname, 'a resident') || coalesce(' (' || i.hname || ')', '');
     form := case when i.form_program = 'clbc' then 'CLBC Critical Incident Report' else 'MCFD form CF4179' end;
-    due_txt := to_char(i.form_due_at at time zone 'America/Vancouver', 'Dy Mon DD, HH12:MI AM');
+    due_txt := to_char(i.form_due_at at time zone 'Etc/GMT+7', 'Dy Mon DD, HH12:MI AM');
     link := '/incidents/' || i.id || '/form';
 
     -- 1. Saved: Program Coordinator(s) and Program Manager.
@@ -166,7 +166,7 @@ create trigger incidents_form_kick after insert on incidents for each row execut
 -- (so switching this on doesn't send a flood of "overdue" alerts); the countdown is for new incidents.
 update incidents set is_critical = is_critical where is_critical and form_number is null;
 update incidents set form_due_at = null where created_at < now() - interval '5 minutes' and form_sent_at is null;
-update incidents set form_sent_at = coalesce(form_sent_at, (written_report_sent_on + time '12:00') at time zone 'America/Vancouver')
+update incidents set form_sent_at = coalesce(form_sent_at, (written_report_sent_on + time '12:00') at time zone 'Etc/GMT+7')
  where written_report_sent_on is not null and form_sent_at is null;
 
 -- Every 15 minutes.

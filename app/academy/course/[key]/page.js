@@ -41,7 +41,7 @@ export default async function CoursePage({ params, searchParams }) {
   const { data: rec } = await supabase.from('trainings').select('completed_on, expires_on, verified_by')
     .eq('profile_id', user.id).eq('title', course.trainingTitle).order('completed_on', { ascending: false }).limit(1).maybeSingle();
   const renew = renewMonthsFor(course.trainingTitle);
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Vancouver' });
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Etc/GMT+7' });
   const due = rec?.expires_on && rec.expires_on < today;
   const soon = rec?.expires_on && !due && (new Date(rec.expires_on) - new Date(today)) / 86400000 <= 30;
   const grade = gradeCourse.bind(null, key);

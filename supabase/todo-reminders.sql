@@ -20,7 +20,7 @@ begin
   insert into notifications (profile_id, title, body, link, dedupe_key)
   values (p_profile, 'Reminder: you have tasks to finish',
           coalesce(nullif(trim(p_body), ''), 'Please open My to-do and finish the items that are due.') || ' — ' || me.full_name,
-          '/todo', 'todo-rem:' || p_profile || ':' || (now() at time zone 'America/Vancouver')::date)
+          '/todo', 'todo-rem:' || p_profile || ':' || (now() at time zone 'Etc/GMT+7')::date)
   on conflict (dedupe_key) do nothing;
   get diagnostics n = row_count;
   return n > 0;

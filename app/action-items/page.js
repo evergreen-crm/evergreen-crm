@@ -99,7 +99,7 @@ export default async function ActionItems({ searchParams }) {
               <tbody>
                 {runs.map((r) => (
                   <tr key={r.ran_at}>
-                    <td className="small">{new Date(r.ran_at).toLocaleString('en-CA', { timeZone: 'America/Vancouver', dateStyle: 'medium', timeStyle: 'short' })}</td>
+                    <td className="small">{new Date(r.ran_at).toLocaleString('en-CA', { timeZone: 'Etc/GMT+7', dateStyle: 'medium', timeStyle: 'short' })}</td>
                     <td className="small">{r.trigger === 'cron' ? 'Automatic' : 'By hand'}</td>
                     <td className="small">{r.ok ? '✅' : '⚠️'} {r.summary?.text ?? r.summary?.error ?? ''}{r.summary?.emailErrors?.length ? <><br /><span className="bad-text">{r.summary.emailErrors.join(' · ')}</span></> : null}</td>
                   </tr>

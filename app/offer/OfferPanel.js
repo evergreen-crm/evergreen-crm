@@ -5,7 +5,7 @@ import { plainStatus } from '@/lib/plain';
 import NotReady from '@/app/components/NotReady';
 
 const STATUS = { Draft: 'warn', Sent: 'warn', Accepted: '', Declined: 'bad', Withdrawn: 'bad' };
-const fmt = (ts) => (ts ? new Date(ts).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'America/Vancouver' }) : '');
+const fmt = (ts) => (ts ? new Date(ts).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Etc/GMT+7' }) : '');
 
 export default async function OfferPanel({ supabase, person, details, canEdit, isSelf }) {
   const { data: offers, error } = await supabase.from('offer_letters')

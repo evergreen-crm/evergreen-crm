@@ -117,8 +117,8 @@ begin
   select full_name into who from profiles where id = auth.uid();
 
   insert into incidents (resident_id, home_id, occurred_on, occurred_time, incident_type, is_critical, is_urgent, description, actions_taken)
-  values (p_resident, r.home_id, (coalesce(p_last_seen_at, now()) at time zone 'America/Vancouver')::date,
-          (coalesce(p_last_seen_at, now()) at time zone 'America/Vancouver')::time,
+  values (p_resident, r.home_id, (coalesce(p_last_seen_at, now()) at time zone 'Etc/GMT+7')::date,
+          (coalesce(p_last_seen_at, now()) at time zone 'Etc/GMT+7')::time,
           'Unauthorized absence / missing', true, true,
           'Reported missing by ' || coalesce(who, 'staff') || '. Last seen ' || coalesce(p_where, '(place not given)')
             || coalesce(' with ' || nullif(p_with, ''), '') || '. Wearing: ' || coalesce(nullif(p_clothing, ''), '(not given)') || '.',

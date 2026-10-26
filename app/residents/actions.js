@@ -17,7 +17,7 @@ export async function saveRequirement(formData) {
   const status = text(formData, 'status') ?? 'Not started';
   let completedOn = text(formData, 'completed_on');
   if (status === 'Complete' && !completedOn) {
-    completedOn = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Vancouver' }).format(new Date());
+    completedOn = new Intl.DateTimeFormat('en-CA', { timeZone: 'Etc/GMT+7' }).format(new Date());
   }
   const { error } = await supabase.from('resident_requirements').upsert({
     resident_id: residentId,

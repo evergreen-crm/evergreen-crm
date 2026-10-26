@@ -39,7 +39,7 @@ export async function addTime(formData) {
   const toTs = (d, t) => {
     // Interpret as Vancouver local time.
     const guess = new Date(`${d}T${t}:00Z`);
-    const local = new Date(guess.toLocaleString('en-US', { timeZone: 'America/Vancouver' }));
+    const local = new Date(guess.toLocaleString('en-US', { timeZone: 'Etc/GMT+7' }));
     const utc = new Date(guess.toLocaleString('en-US', { timeZone: 'UTC' }));
     return new Date(guess.getTime() + (utc - local)).toISOString();
   };

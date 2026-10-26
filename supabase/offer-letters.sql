@@ -123,7 +123,7 @@ begin
   select * into o from offer_letters where id = p_id;
   if o.id is null or o.profile_id <> auth.uid() then raise exception 'This is not your offer letter.'; end if;
   if o.status <> 'Sent' then raise exception 'This offer is %; it can no longer be accepted.', lower(o.status); end if;
-  if o.respond_by is not null and o.respond_by < (now() at time zone 'America/Vancouver')::date then
+  if o.respond_by is not null and o.respond_by < (now() at time zone 'Etc/GMT+7')::date then
     raise exception 'This offer expired on %. Please contact HR.', o.respond_by;
   end if;
   select * into me from profiles where id = auth.uid();
@@ -149,7 +149,7 @@ begin
     employment_type = coalesce(employment_type, case when o.employment_type in ('Full-time','Part-time','Casual') then o.employment_type end),
     hire_date = coalesce(hire_date, o.start_date)
   where profile_id = auth.uid();
-  perform notify(o.issued_by, me.full_name || ' accepted the offer', o.position || ' — signed ' || to_char(now() at time zone 'America/Vancouver', 'Mon DD, YYYY HH24:MI'),
+  perform notify(o.issued_by, me.full_name || ' accepted the offer', o.position || ' — signed ' || to_char(now() at time zone 'Etc/GMT+7', 'Mon DD, YYYY HH24:MI'),
     '/offer/' || p_id, 'offer-acc:' || p_id);
   return h;
 end $$;
