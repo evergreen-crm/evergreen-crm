@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { recordShiftEvent, clockInSafe, clockOutSafe, askShiftPermission } from '@/app/id/actions';
+import { recordShiftEvent, clockInSafe, clockOutSafe, askShiftPermission, setLateReason } from '@/app/id/actions';
 import { getLocation, fmtDist } from '@/lib/getLocation';
 import { TZ } from '@/lib/options';
 
@@ -100,7 +100,7 @@ function BeforeYouLeave({ status, houseName, staffOnShift }) {
         <label className="check"><input type="checkbox" checked={a.safe_home} onChange={(e) => set({ safe_home: e.target.checked })} /> I’m OK to get home safely (fit to drive, or I have a ride)</label>
         <div className="row">
           <label>Unpaid break (minutes)<input type="number" inputMode="numeric" min="0" value={brk} onChange={(e) => setBrk(e.target.value)} /></label>
-          <label>Note (optional)<input value={note} onChange={(e) => setNote(e.target.value)} /></label>
+          <label>Note (needed if you stayed more than 15 min past the end)<input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Stayed with a youth in crisis, PM OK'd" /></label>
         </div>
       </div>
       <div className="row sticky-actions">
@@ -113,11 +113,36 @@ function BeforeYouLeave({ status, houseName, staffOnShift }) {
   );
 }
 
-export default function CheckInPanel({ onShift, homes, defaultHome, houseName, status, staffOnShift }) {
+function LateReason({ entry, minutes, onDone }) {
+  const [why, setWhy] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  async function save() {
+    setBusy(true); setErr(null);
+    const r = await setLateReason({ entry, reason: why });
+    setBusy(false);
+    if (r?.error) { setErr(r.error); return; }
+    onDone();
+  }
+  return (
+    <div className="card ask-perm">
+      <p style={{ margin: '0 0 6px' }}><strong>You clocked in {minutes} minutes after your shift started.</strong> What happened?</p>
+      <div className="row">
+        <input value={why} maxLength={300} onChange={(e) => setWhy(e.target.value)} placeholder="e.g. Bus was late, I texted on-call" />
+        <button type="button" disabled={busy || !why.trim()} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
+      </div>
+      {err && <p className="message error small">{err}</p>}
+      <p className="muted small" style={{ marginBottom: 0 }}>Your Program Coordinator sees this. Next time, tap ⏰ Running late before the shift starts.</p>
+    </div>
+  );
+}
+
+export default function CheckInPanel({ onShift, homes, defaultHome, houseName, status, staffOnShift, nextShift }) {
   const [busy, setBusy] = useState(null);
   const [msg, setMsg] = useState(null);
   const [asking, setAsking] = useState(null);
-  const [home, setHome] = useState(defaultHome ?? '');
+  const [late, setLate] = useState(null);
+  const [home, setHome] = useState(nextShift?.home_id ?? defaultHome ?? '');
   const router = useRouter();
   useEffect(() => { setAsking(null); }, [onShift]);
 
@@ -132,7 +157,8 @@ export default function CheckInPanel({ onShift, homes, defaultHome, houseName, s
       setAsking({ reasons: [loc ? `Not at ${name} (${fmtDist(r.distance_m)} away)` : why], loc });
       return;
     }
-    setMsg({ bad: false, text: `Clocked in${r.on_site ? ' at the house ✓' : r.approved ? ' with your manager’s OK' : !r.home_set ? ' — the house location isn’t set yet, please tell your Program Coordinator' : ''}.` });
+    setMsg({ bad: false, text: `Clocked in${r.shift ? ` for ${r.shift}` : ''}${r.on_site ? ' at the house ✓' : r.approved ? ' with your manager’s OK' : !r.home_set ? ' — the house location isn’t set yet, please tell your Program Coordinator' : ''}.${r.unscheduled ? ' (No scheduled shift found — your Program Coordinator was told.)' : ''}` });
+    if (r.late) setLate({ entry: r.entry, minutes: r.late });
     router.refresh();
   }
 
@@ -156,8 +182,10 @@ export default function CheckInPanel({ onShift, homes, defaultHome, houseName, s
               {homes.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
             </select>
           </label>
+          {nextShift && <p className="small" style={{ margin: '6px 0' }}>🗓 <strong>Your shift: {nextShift.text}</strong>{nextShift.from ? <span className="muted"> · clock in from {nextShift.from}</span> : null}</p>}
           <button type="button" className="big go" disabled={!!busy || !home} onClick={clockIn}>{busy ? 'Checking location…' : '▶ Clock in'}</button>
-          <p className="muted small">You can clock in only at the house. Away from the house (for example at the hospital with a youth)? You’ll be asked for a reason, and your manager approves it.</p>
+          <p className="muted small">You can clock in only at the house, up to 15 minutes before your shift. Away from the house (for example at the hospital with a youth)? You’ll be asked for a reason, and your manager approves it.</p>
+          <p className="small"><Link href="/absence">📞 Can’t make my shift</Link> · <Link href="/absence">⏰ Running late</Link></p>
           {asking && <AskPermission kind="Clock in" homeId={home} reasons={asking.reasons} loc={asking.loc} onSent={() => { setAsking(null); setMsg({ bad: false, text: '🙋 Request sent. You’ll get an alert when it’s approved — then tap Clock in again.' }); }} />}
         </div>
       ) : (
@@ -168,6 +196,7 @@ export default function CheckInPanel({ onShift, homes, defaultHome, houseName, s
         </>
       )}
       {msg && <p className={`message ${msg.bad ? '' : 'ok'}`}>{msg.text}</p>}
+      {late && <LateReason entry={late.entry} minutes={late.minutes} onDone={() => { setLate(null); setMsg({ bad: false, text: 'Thanks — your reason was saved.' }); }} />}
     </div>
   );
 }

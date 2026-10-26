@@ -83,6 +83,7 @@ export default async function RootLayout({ children }) {
                   { title: 'Me', items: [
                     { href: '/todo', label: 'My to-do', icon: '✅', color: todo.overdue ? '#b3261e' : '#0b5a34', badge: todo.total || null, alert: todo.overdue > 0 },
                     { href: '/id', label: 'My ID card', icon: '🪪', color: '#0b5a34' },
+                    ...(profile.role !== 'family' ? [{ href: '/absence', label: 'Can’t make my shift', icon: '📞', color: '#b3261e' }] : []),
                     ...(onb && onb.status !== 'Complete' ? [{ href: '/onboarding', label: 'My onboarding', icon: '✅', color: '#d4a72c', alert: true }] : []),
                     ...(profile.role === 'staff' && !canHR(profile) ? [{ href: `/hr/${profile.id}`, label: 'My HR', icon: '📁', color: '#5a3d8a' }] : []),
                     { href: '/academy', label: 'Evergreen Academy', icon: '🎓', color: '#1f6fb2' },
@@ -107,6 +108,7 @@ export default async function RootLayout({ children }) {
                     ...(canPayroll(profile) && !isMgr ? [{ href: '/timesheet', label: 'Payroll — staff hours', icon: '💵', color: '#8a5a00' }] : []),
                     ...(psRole ? [{ href: '/hr/prescreen', label: 'Job applicants', icon: '🧾', color: '#0b5a34' }] : []),
                     ...(isMgr ? [{ href: '/checkins', label: 'Staff on shift', icon: '📍', color: '#b3261e' }] : []),
+                    ...((levelOf(profile) >= 2 && !groupOf(profile)) || canPayroll(profile) ? [{ href: '/attendance', label: 'Attendance', icon: '⏰', color: '#b3261e' }] : []),
                     ...(profile.role === 'admin' ? [{ href: '/admin', label: 'Admin', icon: '⚙️', color: '#3d4a44' }] : []),
                   ] }] : []),
                 ];

@@ -8,6 +8,7 @@ import { ackLocationNotice } from '@/app/id/actions';
 import { IdCardFront, IdCardBack } from './IdCard';
 import IdPhotoUpload from './IdPhotoUpload';
 import CheckInPanel from './CheckInPanel';
+import { shiftTimes, clock } from '@/lib/attendance';
 import PrintButton from '@/app/PrintButton';
 
 export const metadata = { title: 'My ID card · Evergreen' };
@@ -48,7 +49,7 @@ export default async function IdPage({ searchParams }) {
   const emergency = emergencyFor(details, onb);
 
   // Shift and check-ins (own card only)
-  let openEntry = null, checks = [], homes = [], outStatus = null, staffOnShift = [];
+  let openEntry = null, checks = [], homes = [], outStatus = null, staffOnShift = [], nextShift = null;
   if (isSelf) {
     ({ data: openEntry } = await supabase.from('time_entries').select('id, clock_in, home_id, homes(name)')
       .eq('profile_id', user.id).is('clock_out', null).maybeSingle());
@@ -57,6 +58,13 @@ export default async function IdPage({ searchParams }) {
         .eq('time_entry_id', openEntry.id).order('at', { ascending: false }));
     }
     ({ data: homes } = await supabase.from('homes').select('id, name').order('name'));
+    if (!openEntry) {
+      // My next shift today (or one that started already) for the clock-in screen.
+      const { data: soon } = await supabase.from('shifts').select('id, shift_date, start_time, end_time, label, home_id, homes(name)')
+        .eq('profile_id', user.id).gte('shift_date', addDaysISO(today, -1)).lte('shift_date', addDaysISO(today, 1)).order('shift_date').order('start_time');
+      const n = (soon ?? []).map((x) => ({ ...x, ...shiftTimes(x) })).find((x) => x.end > new Date() && x.start < new Date(Date.now() + 18 * 3600000));
+      if (n) nextShift = { home_id: n.home_id, text: `${n.label ?? 'Shift'} ${clock(n.start)}–${clock(n.end)} · ${n.homes?.name ?? ''}`, from: n.start > new Date() ? clock(new Date(n.start.getTime() - 15 * 60000)) : null };
+    }
     if (openEntry) {
       const [st, sched] = await Promise.all([
         supabase.rpc('clock_out_status'),
@@ -122,7 +130,7 @@ export default async function IdPage({ searchParams }) {
                   {nextDue && <span className={overdue ? 'badge bad' : 'badge'}>{overdue ? 'Check-in due now' : `Next check-in by ${fmtDateTime(nextDue.toISOString()).split(', ').pop()}`}</span>}
                 </p>
               ) : <p className="muted small">You are not clocked in.</p>}
-              <CheckInPanel onShift={!!openEntry} homes={homes ?? []} defaultHome={profile.home_id} houseName={openEntry?.homes?.name} status={outStatus} staffOnShift={staffOnShift} />
+              <CheckInPanel onShift={!!openEntry} homes={homes ?? []} defaultHome={profile.home_id} houseName={openEntry?.homes?.name} status={outStatus} staffOnShift={staffOnShift} nextShift={nextShift} />
               {checks?.length > 0 && (
                 <ul className="list compact">
                   {checks.map((c, i) => (

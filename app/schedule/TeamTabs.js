@@ -47,17 +47,18 @@ export async function MyTab({ supabase, profile }) {
         <ul className="list compact">
           {(shifts.data ?? []).map((x) => (
             <li key={x.id}>
-              <span><strong>{when(x)}</strong> · {x.label} · {x.homes?.name}{x.offered && <span className="badge warn"> Offered</span>}</span>
+              <span>{x.cover_needed_at && <span className="badge bad">🚨 Cover needed</span>} <strong>{when(x)}</strong> · {x.label} · {x.homes?.name}{x.offered && <span className="badge warn"> Offered</span>}</span>
               <form action={offerShift} className="row" style={{ gap: 6 }}>
                 <input type="hidden" name="shift_id" value={x.id} />
                 {x.offered
                   ? <button name="offer" value="0" className="link small">Keep it</button>
                   : <><input name="note" placeholder="Why (optional)" className="small" style={{ maxWidth: 160 }} /><button name="offer" value="1" className="link small">Offer to a coworker</button></>}
               </form>
+              <Link href="/absence" className="small">📞 Can’t make it</Link>
             </li>
           ))}
         </ul>
-        <p className="muted small">Offering a shift doesn’t give it away: you keep it until a coworker asks for it and the Program Coordinator approves the swap.</p>
+        <p className="muted small">Offering a shift doesn’t give it away: you keep it until a coworker asks for it and the Program Coordinator approves the swap. Sick, a family emergency or running late? Use <Link href="/absence">📞 Can’t make my shift</Link> — the shift opens right away and your Program Coordinator is told.</p>
       </section>
       <section className="card">
         <h2 style={{ marginTop: 0 }}>My protected days</h2>
@@ -91,7 +92,7 @@ export async function OpenTab({ supabase, profile }) {
   const today = todayISO();
   const lead = levelOf(profile) >= 2;
   const [open, pick] = await Promise.all([
-    supabase.from('shifts').select('id, shift_date, start_time, end_time, label, open_reason, offered, offered_note, profile_id, homes(name), owner:profile_id(full_name)')
+    supabase.from('shifts').select('id, shift_date, start_time, end_time, label, open_reason, offered, offered_note, profile_id, cover_needed_at, homes(name), owner:profile_id(full_name)')
       .gte('shift_date', today).lte('shift_date', addDaysISO(today, 30)).or('profile_id.is.null,offered.eq.true').order('shift_date').order('start_time').limit(200),
     supabase.from('shift_pickups').select('id, status, created_at, shifts(shift_date, start_time, end_time, label, homes(name)), asker:to_profile(full_name), owner:from_profile(full_name)').eq('status', 'Pending'),
   ]);

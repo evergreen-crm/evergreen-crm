@@ -156,6 +156,14 @@ export async function clockInSafe({ homeId, loc, note }) {
   return data;
 }
 
+export async function setLateReason({ entry, reason }) {
+  const { supabase, user } = await requireUser(['admin', 'manager', 'staff']);
+  const { error } = await supabase.rpc('set_late_reason', { p_entry: entry, p_reason: String(reason ?? '').slice(0, 300) });
+  if (error) return { error: clean(error) };
+  refresh(user.id);
+  return { ok: true };
+}
+
 export async function clockOutSafe({ loc, answers, breakMinutes, note }) {
   const { supabase, user } = await requireUser(['admin', 'manager', 'staff']);
   after(() => flushOutbox('urgent').catch(() => null)); // injury / permission emails (Step 7)

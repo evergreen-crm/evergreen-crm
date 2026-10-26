@@ -43,6 +43,21 @@ export default async function Badges({ searchParams }) {
   const formMonth = sp?.month ? monthStart(sp.month) : thisMonth;
   const existing = person ? (byPerson[person.id] ?? []).find((b) => b.month === formMonth) : null;
   const groups = [...new Set(REASONS.map((r) => r.group))];
+  // Attendance from the CRM for this person and month (supabase/attendance.sql): suggests the Attendance reason.
+  let att = null;
+  if (person) {
+    const next = new Date(formMonth + 'T12:00:00Z'); next.setUTCMonth(next.getUTCMonth() + 1);
+    const end = next.toISOString().slice(0, 10);
+    const [l, a] = await Promise.all([
+      supabase.from('time_entries').select('id', { count: 'exact', head: true }).eq('profile_id', person.id).not('late_minutes', 'is', null).gte('clock_in', formMonth).lt('clock_in', end),
+      supabase.from('shift_absences').select('kind, status').eq('profile_id', person.id).gte('shift_date', formMonth).lt('shift_date', end),
+    ]);
+    if (!l.error && !a.error) {
+      const rows = a.data ?? [];
+      att = { late: l.count ?? 0, noshow: rows.filter((x) => x.status === 'No-show').length, sick: rows.filter((x) => x.status === 'Called in').length };
+      att.suggest = att.noshow > 0 || att.late >= 4 ? 'noshow' : att.late >= 2 ? 'late_some' : null;
+    }
+  }
 
   return (
     <main>
@@ -124,9 +139,12 @@ export default async function Badges({ searchParams }) {
             {groups.map((g) => (
               <fieldset key={g} style={{ marginTop: 8 }}>
                 <legend className="small"><strong>{g}</strong></legend>
+                {g === 'Attendance' && att && (
+                  <p className="small muted" style={{ margin: '2px 0 4px' }}>From the CRM this month: {att.late} late arrival{att.late === 1 ? '' : 's'} · {att.noshow} confirmed no-show{att.noshow === 1 ? '' : 's'} · {att.sick} call-in{att.sick === 1 ? '' : 's'} (call-ins never count). <Link href="/attendance">Attendance →</Link></p>
+                )}
                 {REASONS.filter((r) => r.group === g).map((r) => (
                   <label key={r.key} className="small" style={{ display: 'block', fontWeight: 400 }}>
-                    <input type="checkbox" name="reasons" value={r.key} defaultChecked={existing?.reasons?.includes(r.key)} /> {BADGE[r.color].icon} {r.label}{r.restart && r.color !== 'red' ? ' (restarts bonus count)' : ''}
+                    <input type="checkbox" name="reasons" value={r.key} defaultChecked={existing ? existing.reasons?.includes(r.key) : att?.suggest === r.key} /> {BADGE[r.color].icon} {r.label}{r.restart && r.color !== 'red' ? ' (restarts bonus count)' : ''}
                   </label>
                 ))}
               </fieldset>

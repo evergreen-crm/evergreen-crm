@@ -61,12 +61,13 @@ export default async function RoleHome({ supabase, profile, userId }) {
   // ---------- Level 2: waiting for me (my house) ----------
   let pc = null;
   if (lvl === 2 && homeId && !groupOf(profile)) {
-    const [drafts, incidents, gaps] = await Promise.all([
+    const [drafts, incidents, gaps, noshows] = await Promise.all([
       supabase.from('shift_notes').select('id, residents!inner(home_id)', { count: 'exact', head: true }).is('signed_at', null).lt('note_date', today).eq('residents.home_id', homeId),
       supabase.from('incidents').select('id', { count: 'exact', head: true }).eq('home_id', homeId).eq('status', 'Open'),
       supabase.from('shifts').select('id', { count: 'exact', head: true }).eq('home_id', homeId).is('profile_id', null).gte('shift_date', today).lte('shift_date', in7),
+      supabase.from('shift_absences').select('id', { count: 'exact', head: true }).eq('home_id', homeId).eq('status', 'Possible no-show'),
     ]);
-    pc = { drafts: cnt(drafts), incidents: cnt(incidents), gaps: cnt(gaps) };
+    pc = { drafts: cnt(drafts), incidents: cnt(incidents), gaps: cnt(gaps), noshows: cnt(noshows) };
   }
 
   // ---------- Level 3+: urgent, approvals, my houses ----------
@@ -110,6 +111,7 @@ export default async function RoleHome({ supabase, profile, userId }) {
             </div>
             <Link href="/id#checkin" className={`button ${shift.open ? 'secondary' : ''} rh-clock`}>{shift.open ? '🪪 Check in / Clock out' : '🪪 Clock in'}</Link>
           </div>
+          {!shift.open && <p className="small" style={{ margin: '6px 0 0' }}><Link href="/absence">📞 Can’t make my shift</Link> · <Link href="/absence">⏰ Running late</Link></p>}
 
           {shift.out?.on_shift && shift.out.window_open && (
             <Link href="/id#checkin" className="rh-leave">🛡 <strong>Before you leave is open</strong> — finish your checklist and notes, then clock out at the house →</Link>
@@ -180,6 +182,7 @@ export default async function RoleHome({ supabase, profile, userId }) {
             <Line href={shift?.home ? `/homes/${shift.home.id}?tab=residents` : '/homes'} n={pc.drafts} label="Daily notes from past shifts still not signed" />
             <Line href={shift?.home ? `/homes/${shift.home.id}?tab=dashboard` : '/homes'} n={pc.incidents} label="Open incident reports to review" bad />
             <Line href="/schedule" n={pc.gaps} label="Open shifts in the next 7 days" bad />
+            <Line href="/attendance" n={pc.noshows} label="Possible no-shows to confirm" bad />
           </ul>
           <p className="small"><Link href="/badges">My house’s badges →</Link> · <Link href="/probation">Probation reviews →</Link></p>
         </div>
