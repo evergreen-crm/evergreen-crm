@@ -968,3 +968,13 @@ button.danger-soft { background: #b3261e; color: #fff; }
 .more-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .more-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; background: #fff; border: 1px solid #d5ddd9; border-radius: 22px; color: inherit; text-decoration: none; font-weight: 600; }
 .more-chip:hover { border-color: var(--green); }
+/* 🤖 Ask Evergreen */
+.ask-box textarea { width: 100%; font-size: 1rem; }
+.ask-examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.ask-examples .chip { cursor: pointer; border: 1px solid #d5ddd9; background: #f3f8f5; }
+.ask-answer { margin-top: 12px; padding-top: 10px; border-top: 1px solid #e6ece9; }
+.ask-cite { display: inline-block; min-width: 18px; padding: 0 4px; margin-left: 2px; border-radius: 9px; background: #e3f1e8; color: var(--green); font-size: .72rem; font-weight: 700; text-align: center; text-decoration: none; vertical-align: super; line-height: 1.4; }
+.ask-sources { margin: 4px 0 8px; padding-left: 22px; }
+.ask-sources li { margin: 4px 0; }
+.ask-safety p { line-height: 1.45; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

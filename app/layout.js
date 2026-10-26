@@ -85,6 +85,7 @@ export default async function RootLayout({ children }) {
                   {staffLike && <Link href="/todo" className={`navquick todo-count${todo.overdue ? ' late' : ''}`} title={todo.overdue ? `${todo.overdue} overdue` : 'My to-do'}>✅ <b>{todo.total}</b><span> To-do</span></Link>}
                   {staffLike && <Link href="/id" className="navquick">🪪 <span>My ID</span></Link>}
                   {onb && onb.status !== 'Complete' && <Link href="/onboarding" className="nav-alert">My onboarding</Link>}
+                  {staffLike && <Link href="/ask" className="help-btn" title="Ask Evergreen — policy and how-to questions">🤖<span> Ask</span></Link>}
                   {staffLike && <SuggestButton />}
                   {staffLike && <HelpButton />}
                   <Link href="/notifications" className="bell" title="Alerts">🔔{unread > 0 && <span className="bell-count">{unread > 99 ? '99+' : unread}</span>}</Link>
