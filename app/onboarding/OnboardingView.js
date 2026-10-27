@@ -334,7 +334,7 @@ export default async function OnboardingView({ supabase, onb, person, viewer, no
               return (
                 <details key={item.id} id={`item-${item.id}`} className={`onb-item s-${item.status.replace(/[^a-z]/gi, '')}`} open={open}>
                   <summary>
-                    <span className="onb-title">{tpl.program && <><ProgramBadge program={tpl.program} /> </>}{tpl.no ? `${tpl.no}. ` : ''}{item.title}{tpl.ifApplicable && <span className="muted small"> (if applicable)</span>}</span>
+                    <span className="onb-title">{tpl.program && <><ProgramBadge program={tpl.program} /> </>}{tpl.no ? `${tpl.no}. ` : ''}{tpl.title ?? item.title}{tpl.ifApplicable && <span className="muted small"> (if applicable)</span>}</span>
                     <span className="small">
                       {item.due_date && <span className={overdue ? 'badge bad' : 'muted'}>{overdue ? 'Overdue · ' : 'Due '}{fmtDate(item.due_date)}</span>}{' '}
                       <span className={`badge ${badge(item.status)}`}>{plainStatus(item.status)}</span>
