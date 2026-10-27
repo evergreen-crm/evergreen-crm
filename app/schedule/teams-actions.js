@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
+import { PRESETS } from '@/lib/staffing';
 
 const s = (fd, k) => { const v = fd.get(k); return typeof v === 'string' && v.trim() ? v.trim() : null; };
 const int = (fd, k) => Math.max(0, Math.min(4, Number(s(fd, k) ?? 0) || 0));
@@ -16,12 +17,18 @@ function back(tab, text, bad, extra = '') {
 export async function saveStaffing(fd) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);
   const home = s(fd, 'home_id');
+  const preset = PRESETS.find((p) => p.key === s(fd, 'preset'));
+  const v = preset ? preset.v : [int(fd, 'staff_day'), int(fd, 'staff_evening'), Math.min(2, int(fd, 'staff_night')), Math.min(2, int(fd, 'staff_peak'))];
   const { data, error } = await supabase.rpc('save_house_staffing', {
-    p_home: home, p_day: int(fd, 'staff_day'), p_evening: int(fd, 'staff_evening'), p_night: Math.min(2, int(fd, 'staff_night')),
-    p_peak: Math.min(2, int(fd, 'staff_peak')), p_from: s(fd, 'schedule_from'),
+    p_home: home, p_day: v[0], p_evening: v[1], p_night: v[2], p_peak: v[3],
+    p_from: s(fd, 'schedule_from'), p_change_from: s(fd, 'change_from'), p_note: s(fd, 'note'),
   });
   if (error) back('teams', msg(error), true, `&home=${home}`);
-  back('teams', `Saved. ${data ?? 0} new shifts posted for the next 6 months.`, false, `&home=${home}`);
+  const from = data?.from ? new Date(data.from + 'T12:00:00Z').toLocaleDateString('en-CA', { month: 'short', day: 'numeric', timeZone: 'UTC' }) : 'today';
+  const txt = `Saved. From ${from}: ${v[0]} on days, ${v[1]} on evenings, ${v[2]} on awake nights${v[3] ? `, ${v[3]} extra 3–7 pm` : ''}.`
+    + (data?.lines_added ? ` ${data.lines_added} new staff spots — assign people to them below (${data.new_shifts} shifts posted).` : '')
+    + (data?.lines_removed ? ` ${data.lines_removed} staff spots stop on that date.` : '');
+  back('teams', txt, false, `&home=${home}`);
 }
 
 export async function assignLine(fd) {

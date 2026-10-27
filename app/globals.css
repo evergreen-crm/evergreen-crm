@@ -995,3 +995,35 @@ button.danger-soft { background: #b3261e; color: #fff; }
 .ref-req { border-top: 1px solid #e6ece9; padding: 10px 0; }
 .ref-req.flag { background: #fdecea; border-radius: 8px; padding: 10px; margin: 6px 0; border-top: 0; }
 .ref-req table th { text-align: left; width: 45%; font-weight: 600; }
+/* 🗓 30-day calendar (Schedule opens on this) */
+.cal30-head, .cal30 { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal30-head { margin-top: 10px; font-size: .75rem; font-weight: 700; color: var(--muted); text-align: center; }
+.cal30 { margin: 4px 0 10px; }
+.cal30-day { background: var(--card, #fff); border: 1px solid var(--line, #dfe5e1); border-radius: 8px; padding: 4px; min-height: 92px; display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+.cal30-day.out { background: transparent; border-style: dashed; opacity: .45; }
+.cal30-day.today { border-color: var(--green); box-shadow: 0 0 0 1px var(--green); }
+.cal30-day.work { background: #eaf6ee; }
+.cal30-num { font-size: .78rem; font-weight: 700; color: var(--navy, #0f3059); }
+.cal30-chip { display: block; font-size: .72rem; line-height: 1.25; padding: 1px 4px; border-radius: 4px; background: #eef2ef; color: #33413a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal30-chip b { font-weight: 800; }
+.cal30-chip i { font-style: normal; color: #6a736d; }
+.cal30-chip.me { background: var(--green); color: #fff; font-weight: 700; display: inline-block; }
+.cal30-chip.open { background: #fff1d6; color: #7a4a00; display: inline-block; }
+.cal30-chip.urgent { background: #fdecea; color: #b3261e; }
+.cal30 .cal30-chip.me, .cal30 .cal30-chip.open { display: block; }
+@media (max-width: 600px) { .cal30-day { min-height: 70px; padding: 3px; } .cal30-chip { font-size: .62rem; padding: 0 2px; } .cal30-num { font-size: .7rem; } }
+/* 🗓 My 6 months */
+.six-months { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.mini-month h3 { margin: 0 0 4px; font-size: .95rem; }
+.mini-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.mini-grid span { display: grid; place-items: center; height: 28px; border-radius: 5px; font-size: .72rem; color: #4d5a53; }
+.mini-grid .hd { height: 18px; font-weight: 700; font-size: .62rem; }
+.mini-grid .w { background: var(--green); color: #fff; font-weight: 700; }
+.mini-grid .w small { font-size: .55rem; display: block; line-height: 1; }
+.mini-grid .t { outline: 2px solid var(--navy, #0f3059); }
+.mini-grid .off { background: #fbe9d2; color: #7a4a00; }
+/* 👥 Staffing box */
+.staffing-now { font-size: 1.05rem; background: #eaf6ee; border-radius: 8px; padding: 8px 12px; margin: 0 0 8px; }
+.staffing-presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.staffing-presets button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 10px 12px; min-height: 64px; }
+.staffing-presets button span { font-size: .78rem; font-weight: 400; color: #4d5a53; }

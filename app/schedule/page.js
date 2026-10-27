@@ -1,4 +1,4 @@
-// Shift schedule: one week at a time, by house.
+// Shift schedule. Opens on the 🗓 30-day calendar every time; Week is for adding / removing shifts by hand.
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { SHIFT_LABELS, shiftHours, addDaysISO, weekStart, todayISO, fmtDate, fmtTime } from '@/lib/options';
@@ -8,12 +8,13 @@ import { levelOf } from '@/lib/levels';
 import { plainError } from '@/lib/plain';
 import { TabBar, MyTab, OpenTab, TimeOffTab, TeamsTab } from './TeamTabs';
 import ShiftRules from '@/app/components/ShiftRules';
+import MonthTab from './MonthTab';
 
 export default async function SchedulePage({ searchParams }) {
   const sp = await searchParams;
   const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
   const canEdit = ['admin', 'manager'].includes(profile.role);
-  const tab = sp.tab ?? 'week';
+  const tab = sp.tab ?? 'month';
   const lead = levelOf(profile) >= 2 || profile.role === 'admin';
   const flash = (
     <>
@@ -21,6 +22,17 @@ export default async function SchedulePage({ searchParams }) {
       {sp.error && <p className="message error">{plainError(sp.error)}</p>}
     </>
   );
+  if (tab === 'month') {
+    return (
+      <main>
+        <div className="title-row"><h1>Schedule</h1></div>
+        <TabBar tab={tab} lead={lead} />
+        {flash}
+        <MonthTab supabase={supabase} profile={profile} homeId={sp.home} from={sp.from} />
+        <ShiftRules />
+      </main>
+    );
+  }
   if (tab !== 'week') {
     const T = { mine: MyTab, open: OpenTab, timeoff: TimeOffTab, teams: lead ? TeamsTab : MyTab }[tab] ?? MyTab;
     return (

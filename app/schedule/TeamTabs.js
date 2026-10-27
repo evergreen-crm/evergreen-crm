@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { addDaysISO, fmtDate, fmtTime, todayISO } from '@/lib/options';
 import { levelOf } from '@/lib/levels';
 import NotReady from '@/app/components/NotReady';
+import { PRESETS } from '@/lib/staffing';
 import { saveStaffing, assignLine, pickUp, offerShift, decidePickup, requestTimeOff, decideTimeOff, addProtectedDay, removeProtectedDay } from './teams-actions';
 
 const A = new Set([0, 1, 4, 5, 6, 8, 9, 10, 11]);
@@ -16,7 +17,7 @@ const notReady = (e) => e && /does not exist|schema cache|column/i.test(e.messag
 const when = (x) => `${new Date(x.shift_date + 'T12:00:00Z').toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })} · ${fmtTime(x.start_time)}–${fmtTime(x.end_time)}`;
 
 export function TabBar({ tab, lead }) {
-  const t = [['week', 'Week'], ['mine', 'My shifts'], ['open', 'Open shifts'], ['timeoff', 'Time off'], ...(lead ? [['teams', 'Teams & lines']] : [])];
+  const t = [['month', '🗓 30 days'], ['mine', 'My 6 months'], ['open', 'Open shifts'], ['timeoff', 'Time off'], ['week', 'Week'], ...(lead ? [['teams', '👥 Staffing & lines']] : [])];
   return <nav className="tabs-bar no-print">{t.map(([k, l]) => <Link key={k} href={`/schedule?tab=${k}`} className={tab === k ? 'on' : ''}>{l}</Link>)}</nav>;
 }
 
@@ -24,11 +25,12 @@ export function TabBar({ tab, lead }) {
 export async function MyTab({ supabase, profile }) {
   const today = todayISO();
   const [shifts, prot, line, settings] = await Promise.all([
-    supabase.from('shifts').select('id, shift_date, start_time, end_time, label, offered, homes(name)').eq('profile_id', profile.id).gte('shift_date', today).lte('shift_date', addDaysISO(today, 56)).order('shift_date'),
+    supabase.from('shifts').select('id, shift_date, start_time, end_time, label, offered, cover_needed_at, homes(name)').eq('profile_id', profile.id).gte('shift_date', today).lte('shift_date', addDaysISO(today, 183)).order('shift_date'),
     supabase.from('protected_days').select('day').eq('profile_id', profile.id).gte('day', today).order('day'),
     supabase.from('schedule_lines').select('shift, pair, slot, homes(name)').eq('profile_id', profile.id).eq('active', true).maybeSingle(),
     supabase.from('schedule_settings').select('pattern_anchor').maybeSingle(),
   ]);
+  const { data: offs } = await supabase.from('time_off_requests').select('start_date, end_date').eq('profile_id', profile.id).eq('status', 'Approved').gte('end_date', today);
   if (notReady(shifts.error) || notReady(prot.error)) return <NotReady what="The automatic schedule" file="schedule-teams.sql" />;
   const l = line.data; const anchor = settings.data?.pattern_anchor;
   const two = Array.from({ length: 14 }, (_, i) => addDaysISO(anchor ?? today, i));
@@ -42,10 +44,19 @@ export async function MyTab({ supabase, profile }) {
         </section>
       )}
       <section className="card">
-        <h2 style={{ marginTop: 0 }}>My next 8 weeks</h2>
+        <div className="title-row">
+          <h2 style={{ margin: 0 }}>My next 6 months</h2>
+          <a href="/schedule/my-shifts.ics" className="button secondary no-print" download>📅 Add to my phone calendar</a>
+        </div>
+        <p className="muted small">Green = you work (D day · E evening · N night). Orange = approved time off. {(shifts.data ?? []).length} shifts posted.</p>
+        <SixMonths shifts={shifts.data ?? []} offs={offs ?? []} today={today} />
+        <p className="muted small no-print">“Add to my phone calendar” downloads your next 6 months of shifts. Open the file on your phone to add them. If your schedule changes, download it again.</p>
+      </section>
+      <section className="card">
+        <h2 style={{ marginTop: 0 }}>My next 8 weeks — offer or call in</h2>
         {!(shifts.data ?? []).length && <p className="muted">No shifts posted yet.</p>}
         <ul className="list compact">
-          {(shifts.data ?? []).map((x) => (
+          {(shifts.data ?? []).filter((x) => x.shift_date <= addDaysISO(today, 56)).map((x) => (
             <li key={x.id}>
               <span>{x.cover_needed_at && <span className="badge bad">🚨 Cover needed</span>} <strong>{when(x)}</strong> · {x.label} · {x.homes?.name}{x.offered && <span className="badge warn"> Offered</span>}</span>
               <form action={offerShift} className="row" style={{ gap: 6 }}>
@@ -72,6 +83,39 @@ export async function MyTab({ supabase, profile }) {
         </form>
       </section>
     </>
+  );
+}
+
+// Six small month calendars: working days in green with the shift letter.
+const LTR = { Day: 'D', Evening: 'E', 'Awake night': 'N', 'Extra 3–7 pm': '3–7', 'Sleep night': 'SN' };
+function SixMonths({ shifts, offs, today }) {
+  const work = {};
+  for (const s of shifts) (work[s.shift_date] ??= []).push(LTR[s.label] ?? (s.label ?? '').slice(0, 1));
+  const isOff = (d) => offs.some((o) => d >= o.start_date && d <= o.end_date);
+  const months = Array.from({ length: 6 }, (_, i) => { const d = new Date(today.slice(0, 7) + '-15T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() + i); return d.toISOString().slice(0, 7); });
+  return (
+    <div className="six-months">
+      {months.map((m) => {
+        const first = m + '-01';
+        const lead = (new Date(first + 'T12:00:00Z').getUTCDay() + 6) % 7;
+        const len = new Date(Date.UTC(Number(m.slice(0, 4)), Number(m.slice(5, 7)), 0)).getUTCDate();
+        const n = Object.keys(work).filter((d) => d.startsWith(m)).length;
+        return (
+          <div key={m} className="mini-month">
+            <h3>{new Date(first + 'T12:00:00Z').toLocaleDateString('en-CA', { month: 'long', year: 'numeric', timeZone: 'UTC' })} <span className="muted small">· {n} shift{n === 1 ? '' : 's'}</span></h3>
+            <div className="mini-grid">
+              {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((x, i) => <span key={'h' + i} className="hd">{x}</span>)}
+              {Array.from({ length: lead }, (_, i) => <span key={'b' + i} />)}
+              {Array.from({ length: len }, (_, i) => {
+                const d = `${m}-${String(i + 1).padStart(2, '0')}`;
+                const w = work[d];
+                return <span key={d} className={`${w ? 'w' : isOff(d) ? 'off' : ''}${d === today ? ' t' : ''}`} title={fmtDate(d)}>{i + 1}{w && <small>{w.join('+')}</small>}</span>;
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -206,10 +250,11 @@ export async function TeamsTab({ supabase, profile, homeId }) {
   if (notReady(homes.error)) return <NotReady what="Teams & lines" file="schedule-teams.sql" />;
   const home = (homes.data ?? []).find((h) => h.id === homeId) ?? (homes.data ?? [])[0];
   if (!home) return <p className="muted">No house to set up.</p>;
-  const [lines, people, details] = await Promise.all([
+  const [lines, people, details, changes] = await Promise.all([
     supabase.from('schedule_lines').select('id, shift, pair, slot, profile_id, active').eq('home_id', home.id).eq('active', true),
     supabase.from('profiles').select('id, full_name, home_id, level').in('role', ['staff', 'manager']).eq('active', true).is('staff_group', null).order('full_name'),
     supabase.from('staff_details').select('profile_id, employment_type'),
+    supabase.from('staffing_changes').select('id, from_date, staff_day, staff_evening, staff_night, staff_peak, note, created_at, who:changed_by(full_name)').eq('home_id', home.id).order('created_at', { ascending: false }).limit(20),
   ]);
   const st = settings.data;
   const anchor = st?.pattern_anchor;
@@ -224,21 +269,37 @@ export async function TeamsTab({ supabase, profile, homeId }) {
       {(homes.data ?? []).length > 1 && (
         <nav className="tabs-bar">{(homes.data ?? []).map((h) => <Link key={h.id} href={`/schedule?tab=teams&home=${h.id}`} className={h.id === home.id ? 'on' : ''}>{h.name}</Link>)}</nav>
       )}
-      <section className="card">
-        <h2 style={{ marginTop: 0 }}>{home.name}: how many staff on each shift</h2>
-        <p className="small muted">Set this from the MCFD / CLBC contract for the youth or adults in this house. 1-bed homes are usually 1 / 1 / 1. A 2-bed home is 2 / 2 / 1, or 1 / 1 / 1 with the 3–7 pm extra.</p>
+      <section className="card staffing-card" id="staffing">
+        <h2 style={{ marginTop: 0 }}>👥 {home.name}: staffing</h2>
+        <p className="staffing-now">Now: <strong>{home.staff_day ?? 1}</strong> on days · <strong>{home.staff_evening ?? 1}</strong> on evenings · <strong>{home.staff_night ?? 1}</strong> on awake nights{(home.staff_peak ?? 0) > 0 ? <> · <strong>{home.staff_peak}</strong> extra 3–7 pm</> : ''}</p>
         <form action={saveStaffing}>
           <input type="hidden" name="home_id" value={home.id} />
           <div className="row">
-            <label>Day (7–3)<select name="staff_day" defaultValue={home.staff_day ?? 1}>{[0, 1, 2, 3].map((n) => <option key={n}>{n}</option>)}</select></label>
-            <label>Evening (3–11)<select name="staff_evening" defaultValue={home.staff_evening ?? 1}>{[0, 1, 2, 3].map((n) => <option key={n}>{n}</option>)}</select></label>
-            <label>Awake night (11–7)<select name="staff_night" defaultValue={home.staff_night ?? 1}>{[0, 1, 2].map((n) => <option key={n}>{n}</option>)}</select></label>
-            <label>Extra 3–7 pm<select name="staff_peak" defaultValue={home.staff_peak ?? 0}>{[0, 1, 2].map((n) => <option key={n}>{n}</option>)}</select></label>
-            <label>Pattern starts on<input type="date" name="schedule_from" required defaultValue={home.schedule_from ?? anchor ?? ''} /></label>
+            <label><strong>1. Starting on</strong><input type="date" name="change_from" defaultValue={todayISO()} min={todayISO()} max={addDaysISO(todayISO(), 183)} /></label>
+            <label>Why (optional)<input name="note" maxLength={300} placeholder="e.g. second youth moves in" /></label>
+            {!home.schedule_from && <label>Pattern starts on<input type="date" name="schedule_from" defaultValue={anchor ?? todayISO()} /></label>}
           </div>
-          <button>Save and post 6 months of shifts</button>
+          <p className="small" style={{ margin: '6px 0' }}><strong>2. Tap the staffing</strong> — it saves straight away. Or set each shift yourself.</p>
+          <div className="staffing-presets">
+            {PRESETS.map((p) => <button key={p.key} name="preset" value={p.key} className="secondary" title={p.hint}><strong>{p.label}</strong><span>{p.hint}</span></button>)}
+          </div>
+          <details className="small" style={{ margin: '8px 0' }}>
+            <summary>Set each shift myself</summary>
+            <div className="row">
+              <label>Day (7–3)<select name="staff_day" defaultValue={home.staff_day ?? 1}>{[0, 1, 2, 3].map((n) => <option key={n}>{n}</option>)}</select></label>
+              <label>Evening (3–11)<select name="staff_evening" defaultValue={home.staff_evening ?? 1}>{[0, 1, 2, 3].map((n) => <option key={n}>{n}</option>)}</select></label>
+              <label>Awake night (11–7)<select name="staff_night" defaultValue={home.staff_night ?? 1}>{[0, 1, 2].map((n) => <option key={n}>{n}</option>)}</select></label>
+              <label>Extra 3–7 pm<select name="staff_peak" defaultValue={home.staff_peak ?? 0}>{[0, 1, 2].map((n) => <option key={n}>{n}</option>)}</select></label>
+            </div>
+            <button name="preset" value="custom">Save these numbers</button>
+          </details>
+          <p className="muted small">More staff: new spots start that day, posted as open shifts, and the Program Coordinator and Program Manager are told to fill them below. Fewer staff: the extra spots stop that day. Shifts already changed by hand, swapped or picked up are never touched. Follow the MCFD / CLBC contract for each house.</p>
         </form>
-        <p className="muted small">Each staff on a shift = one weekend-partner pair: a full-time line (36 h a week) and a part-time line (20 h a week). Shifts already changed by hand, time off or a swap are never overwritten.</p>
+        {(changes.data ?? []).length > 0 && (
+          <details className="small"><summary>Staffing history</summary>
+            <ul className="list compact">{(changes.data ?? []).map((c) => <li key={c.id}><span>From {fmtDate(c.from_date)}: {c.staff_day} / {c.staff_evening} / {c.staff_night}{c.staff_peak ? ` + ${c.staff_peak} (3–7)` : ''}{c.note ? ` — ${c.note}` : ''}</span><span className="muted">{c.who?.full_name ?? ''} · {fmtDate(c.created_at.slice(0, 10))}</span></li>)}</ul>
+          </details>
+        )}
       </section>
 
       {home.schedule_from && (
