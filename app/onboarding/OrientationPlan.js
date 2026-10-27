@@ -1,3 +1,4 @@
+import { submitItem } from '@/app/onboarding/actions';
 // Six-day new staff orientation plan, read from the orientation_plan_items table.
 const KIND_LABEL = { training: 'Training', quiz: 'Quiz', practical: 'In person', shift: 'Shift', admin: 'Admin', lunch: 'Lunch', external: 'External cert' };
 
@@ -11,7 +12,7 @@ const CHECKLIST = [
   'Met with the Program Coordinator to review training records',
 ];
 
-export default function OrientationPlan({ items }) {
+export default function OrientationPlan({ items, sign, fullName }) {
   if (!items?.length) return null;
   const days = [...new Set(items.map((i) => i.day_number))].sort((a, b) => a - b);
   return (
@@ -49,6 +50,19 @@ export default function OrientationPlan({ items }) {
             </li>
           ))}
         </ul>
+        {sign?.signed_at ? (
+          <p className="small" style={{ marginTop: 12 }}>
+            Signed as <strong>{sign.signed_name}</strong> on {new Date(sign.signed_at).toLocaleDateString('en-CA', { timeZone: 'America/Vancouver', year: 'numeric', month: 'short', day: 'numeric' })}.
+          </p>
+        ) : sign ? (
+          <form action={submitItem} className="onb-form" style={{ marginTop: 12 }}>
+            <input type="hidden" name="id" value={sign.id} />
+            <p className="small" style={{ marginTop: 0 }}>Draw your signature at the top of your checklist first, then sign below. The date is recorded when you sign.</p>
+            <label className="check"><input type="checkbox" name="agree" required /> I completed orientation, including the items above.</label>
+            <label>Type your full name to sign — <strong>{fullName}</strong><input name="signed_name" required placeholder={fullName} autoComplete="off" /></label>
+            <button>Sign and date</button>
+          </form>
+        ) : null}
       </div>
     </section>
   );

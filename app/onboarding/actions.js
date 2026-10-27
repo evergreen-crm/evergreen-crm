@@ -93,6 +93,7 @@ export async function submitItem(formData) {
     }
     if (!item.onboardings?.signature_image) fail('Please draw your signature at the top of the page first.');
     patch.signed_name = typed;
+    patch.signed_at = new Date().toISOString();
   } else if (tpl.kind === 'refs') {
     // 3 supervisor references; each is emailed a reference form after saving (below).
     data.refs = cleanRefs([0, 1, 2].map((i) => ({ name: text(formData, `ref${i}_name`), title: text(formData, `ref${i}_title`), org: text(formData, `ref${i}_org`),
