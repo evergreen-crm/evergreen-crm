@@ -1,6 +1,16 @@
 // Six-day new staff orientation plan, read from the orientation_plan_items table.
 const KIND_LABEL = { training: 'Training', quiz: 'Quiz', practical: 'In person', shift: 'Shift', admin: 'Admin', lunch: 'Lunch', external: 'External cert' };
 
+
+const CHECKLIST = [
+  'Completed all training videos and passed each quiz (pass mark 80%)',
+  'Completed Naloxone, CPI Nonviolent Crisis Intervention, and First Aid / CPR',
+  'Signed the policies and the job description',
+  'Shadowed a day shift and an evening shift with a Shift Lead',
+  'Completed the awake-night shadow shift',
+  'Met with the Program Coordinator to review training records',
+];
+
 export default function OrientationPlan({ items }) {
   if (!items?.length) return null;
   const days = [...new Set(items.map((i) => i.day_number))].sort((a, b) => a - b);
@@ -26,6 +36,20 @@ export default function OrientationPlan({ items }) {
           </ol>
         </details>
       ))}
+      <div style={{ marginTop: 16, borderTop: '1px solid var(--line, #ddd)', paddingTop: 12 }}>
+        <h3 style={{ margin: '0 0 6px' }}>Orientation checklist</h3>
+        <p className="small muted">Tick each item as you finish it. Then sign the Orientation acknowledgement in your checklist below.</p>
+        <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0 }}>
+          {CHECKLIST.map((c, i) => (
+            <li key={i} style={{ padding: '4px 0' }}>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <input type="checkbox" id={`orient-check-${i}`} style={{ marginTop: 4 }} />
+                <span>{c}</span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }
