@@ -52,7 +52,7 @@ export default async function SchedulePage({ searchParams }) {
   const mine = sp.mine === '1';
 
   const [{ data: homes }, { data: people }] = await Promise.all([
-    supabase.from('homes').select('id, name').order('name'),
+    supabase.rpc('schedule_homes').then((r) => (r.error ? supabase.from('homes').select('id, name').order('name') : r)),
     supabase.from('profiles').select('id, full_name, role, home_id').in('role', ['staff', 'manager']).eq('active', true).order('full_name'),
   ]);
   let q = supabase.from('shifts').select('*, homes(name), profiles:profile_id(full_name)').gte('shift_date', week).lte('shift_date', end);

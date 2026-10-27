@@ -4,7 +4,7 @@ import { addDaysISO, fmtDate, fmtTime, todayISO } from '@/lib/options';
 import { levelOf } from '@/lib/levels';
 import NotReady from '@/app/components/NotReady';
 import { PRESETS } from '@/lib/staffing';
-import { saveStaffing, assignLine, pickUp, offerShift, decidePickup, requestTimeOff, decideTimeOff, addProtectedDay, removeProtectedDay } from './teams-actions';
+import { saveStaffing, setHouseManagers, assignLine, pickUp, offerShift, decidePickup, requestTimeOff, decideTimeOff, addProtectedDay, removeProtectedDay } from './teams-actions';
 
 const A = new Set([0, 1, 4, 5, 6, 8, 9, 10, 11]);
 const daysBetween = (a, b) => Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 864e5);
@@ -244,16 +244,23 @@ export async function TimeOffTab({ supabase, profile }) {
 // ---------- Teams & lines (Program Coordinator: own house; Program Manager and up: all) ----------
 export async function TeamsTab({ supabase, profile, homeId }) {
   const lvl = levelOf(profile);
-  let hq = supabase.from('homes').select('id, name, staff_day, staff_evening, staff_night, staff_peak, schedule_from').order('name');
-  if (lvl < 3 && profile.role !== 'admin') hq = hq.eq('id', profile.home_id ?? '00000000-0000-0000-0000-000000000000');
+  // Only the houses in my program: my own house, or the houses I'm assigned to as Program Manager (directors: all).
+  let hq = supabase.rpc('schedule_homes');
+  if ((await supabase.rpc('app_sees_home', { h: null })).error) {
+    hq = supabase.from('homes').select('id, name, staff_day, staff_evening, staff_night, staff_peak, schedule_from').order('name');
+    if (lvl < 3 && profile.role !== 'admin') hq = hq.eq('id', profile.home_id ?? '00000000-0000-0000-0000-000000000000');
+  }
   const [homes, settings] = await Promise.all([hq, supabase.from('schedule_settings').select('*').maybeSingle()]);
   if (notReady(homes.error)) return <NotReady what="Teams & lines" file="schedule-teams.sql" />;
   const home = (homes.data ?? []).find((h) => h.id === homeId) ?? (homes.data ?? [])[0];
-  if (!home) return <p className="muted">No house to set up.</p>;
-  const [lines, people, details, changes] = await Promise.all([
+  if (!home) return <p className="muted">{lvl === 3 ? 'You aren’t assigned to a house yet. Ask a director to add you under “Program Managers for this house”.' : 'No house to set up.'}</p>;
+  const director = lvl >= 4 || profile.role === 'admin';
+  const [lines, people, details, changes, pms, pmLinks] = await Promise.all([
     supabase.from('schedule_lines').select('id, shift, pair, slot, profile_id, active').eq('home_id', home.id).eq('active', true),
     supabase.from('profiles').select('id, full_name, home_id, level').in('role', ['staff', 'manager']).eq('active', true).is('staff_group', null).order('full_name'),
     supabase.from('staff_details').select('profile_id, employment_type'),
+    director ? supabase.from('profiles').select('id, full_name, home_id').eq('active', true).eq('level', 3).is('staff_group', null).order('full_name') : { data: [] },
+    director ? supabase.from('manager_homes').select('profile_id').eq('home_id', home.id) : { data: [] },
     supabase.from('staffing_changes').select('id, from_date, staff_day, staff_evening, staff_night, staff_peak, note, created_at, who:changed_by(full_name)').eq('home_id', home.id).order('created_at', { ascending: false }).limit(20),
   ]);
   const st = settings.data;
@@ -301,6 +308,21 @@ export async function TeamsTab({ supabase, profile, homeId }) {
           </details>
         )}
       </section>
+
+      {director && (
+        <section className="card" id="managers">
+          <h2 style={{ marginTop: 0 }}>🔒 Program Managers for {home.name}</h2>
+          <p className="small muted">Only this house’s staff, its Program Coordinator, the Program Managers ticked here and directors can see its schedule. Ticked PMs also get the house’s alerts (call-ins, no-shows, staffing).</p>
+          <form action={setHouseManagers}>
+            <input type="hidden" name="home_id" value={home.id} />
+            {!(pms.data ?? []).length && <p className="muted small">No Program Managers in the CRM yet.</p>}
+            <div className="row">{(pms.data ?? []).map((p) => (
+              <label key={p.id} className="check"><input type="checkbox" name="pm" value={p.id} defaultChecked={(pmLinks.data ?? []).some((m) => m.profile_id === p.id)} /> {p.full_name}</label>
+            ))}</div>
+            {(pms.data ?? []).length > 0 && <button className="secondary">Save Program Managers</button>}
+          </form>
+        </section>
+      )}
 
       {home.schedule_from && (
         <section className="card">

@@ -31,6 +31,15 @@ export async function saveStaffing(fd) {
   back('teams', txt, false, `&home=${home}`);
 }
 
+export async function setHouseManagers(fd) {
+  const { supabase } = await requireUser(['admin', 'manager']);
+  const home = s(fd, 'home_id');
+  const people = fd.getAll('pm').filter((x) => typeof x === 'string' && /^[0-9a-f-]{36}$/i.test(x));
+  const { data, error } = await supabase.rpc('set_house_managers', { p_home: home, p_people: people });
+  if (error) back('teams', msg(error), true, `&home=${home}`);
+  back('teams', `Saved. ${data ?? 0} Program Manager${data === 1 ? '' : 's'} can see this house’s schedule.`, false, `&home=${home}#managers`);
+}
+
 export async function assignLine(fd) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);
   const home = s(fd, 'home_id');

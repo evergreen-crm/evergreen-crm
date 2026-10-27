@@ -17,7 +17,9 @@ export default async function MonthTab({ supabase, profile, homeId: homeParam, f
   const lead = levelOf(profile) >= 2 || profile.role === 'admin';
   const homeId = homeParam ?? (profile.home_id && levelOf(profile) <= 2 ? profile.home_id : '');
 
-  const { data: homes } = await supabase.from('homes').select('id, name').order('name');
+  // Only the houses in my program (supabase/schedule-privacy.sql).
+  let { data: homes, error: hErr } = await supabase.rpc('schedule_homes');
+  if (hErr) ({ data: homes } = await supabase.from('homes').select('id, name').order('name'));
   let q = supabase.from('shifts').select('id, shift_date, start_time, end_time, label, profile_id, offered, cover_needed_at, home_id, who:profile_id(full_name)')
     .gte('shift_date', from).lte('shift_date', to);
   if (homeId) q = q.eq('home_id', homeId);
@@ -42,7 +44,7 @@ export default async function MonthTab({ supabase, profile, homeId: homeParam, f
       </div>
       <form className="row no-print" action="/schedule" style={{ alignItems: 'flex-end' }}>
         <input type="hidden" name="tab" value="month" /><input type="hidden" name="from" value={from} />
-        <label>House<select name="home" defaultValue={homeId}><option value="">All houses</option>{(homes ?? []).map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}</select></label>
+        <label>House<select name="home" defaultValue={homeId}><option value="">{(homes ?? []).length > 1 ? 'All my houses' : 'My house'}</option>{(homes ?? []).map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}</select></label>
         <button className="secondary">Show</button>
         <span className="small muted">You work <strong>{mineCount}</strong> shift{mineCount === 1 ? '' : 's'} in these 30 days{openCount ? <> · <strong>{openCount}</strong> open shift{openCount === 1 ? '' : 's'} — <Link href="/schedule?tab=open">pick one up</Link></> : ''}.</span>
       </form>

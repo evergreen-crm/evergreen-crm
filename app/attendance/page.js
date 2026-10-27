@@ -24,10 +24,17 @@ export default async function Attendance({ searchParams }) {
   if (!(lvl >= 3 && !grp) && !pc && !payroll) redirect('/absence');
   const today = todayISO(), monthStart = today.slice(0, 7) + '-01', yearStart = today.slice(0, 4) + '-01-01';
   const house = pc ? profile.home_id : null;
-  const byHouse = (q) => (house ? q.eq('home_id', house) : q);
+  // Program Managers: only the houses they're assigned to (supabase/schedule-privacy.sql). Directors and Payroll: all.
+  let mine = null;
+  if (lvl === 3 && !grp) {
+    const { data: hs, error: hErr } = await supabase.rpc('schedule_homes');
+    if (!hErr) mine = (hs ?? []).map((h) => h.id);
+  }
+  const NONE = '00000000-0000-0000-0000-000000000000';
+  const byHouse = (q) => (house ? q.eq('home_id', house) : mine ? q.in('home_id', mine.length ? mine : [NONE]) : q);
 
   const [homesR, shiftsR, entriesR, absR, coverR, openR, peopleR] = await Promise.all([
-    house ? supabase.from('homes').select('id, name, on_call_phone').eq('id', house) : supabase.from('homes').select('id, name, on_call_phone').order('name'),
+    house ? supabase.from('homes').select('id, name, on_call_phone').eq('id', house) : mine ? supabase.from('homes').select('id, name, on_call_phone').in('id', mine.length ? mine : [NONE]).order('name') : supabase.from('homes').select('id, name, on_call_phone').order('name'),
     byHouse(supabase.from('shifts').select('id, shift_date, start_time, end_time, label, home_id, profile_id, open_reason, cover_needed_at, who:profile_id(full_name)')
       .gte('shift_date', addDaysISO(today, -1)).lte('shift_date', today).order('start_time')),
     byHouse(supabase.from('time_entries').select('id, profile_id, home_id, shift_id, clock_in, clock_out, late_minutes, late_reason, overtime_minutes, unscheduled, who:profile_id(full_name)')
@@ -96,7 +103,7 @@ export default async function Attendance({ searchParams }) {
     const y = (sickYear[a.profile_id] ??= { 'BC paid sick': new Set(), 'Unpaid sick': new Set(), Vacation: new Set(), 'Banked time': new Set(), Unpaid: new Set() });
     y[pay]?.add(a.shift_date);
   }
-  const people = (peopleR.data ?? []).filter((p) => !house || p.home_id === house);
+  const people = (peopleR.data ?? []).filter((p) => (house ? p.home_id === house : mine ? mine.includes(p.home_id) : true));
   const nameOf = Object.fromEntries((peopleR.data ?? []).map((p) => [p.id, p.full_name]));
 
   return (
