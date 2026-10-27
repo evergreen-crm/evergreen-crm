@@ -166,21 +166,21 @@ export default function PrescreenFill({ token, start }) {
       </section>
 
       <section className="card">
-        <h2>5. Three references</h2>
-        <p className="small">Give three work references. <strong>At least one must be a current or past manager or supervisor.</strong> No family members or friends.</p>
+        <h2>5. Three supervisor references</h2>
+        <p className="small">Give three people who <strong>supervised or managed you</strong> at an agency or workplace (a manager, program coordinator, clinical or practicum supervisor). No co-workers, family or friends. <strong>Each one is emailed a short reference form as soon as you sign</strong>, so please check their email addresses.</p>
         {[0, 1, 2].map((i) => (
           <fieldset key={i} className="ps-job">
             <legend>Reference {i + 1}</legend>
             <div className="if-grid">
               {T('Full name *', `refs.${i}.name`)}
               {T('Their job title *', `refs.${i}.title`)}
-              {T('Organization *', `refs.${i}.org`)}
-              <label>Relationship to you *
+              {T('Agency / organization *', `refs.${i}.org`)}
+              <label>How they supervised you *
                 <select value={a.refs[i].rel ?? ''} onChange={(e) => set(`refs.${i}.rel`, e.target.value)}>
                   <option value="">Choose…</option>{REF_RELATIONS.map((r) => <option key={r}>{r}</option>)}
                 </select></label>
               {T('Phone *', `refs.${i}.phone`, { type: 'tel' })}
-              {T('Email', `refs.${i}.email`, { type: 'email' })}
+              {T('Email *', `refs.${i}.email`, { type: 'email' })}
               {T('How long have they known you?', `refs.${i}.years`, { placeholder: 'e.g. 2 years' })}
             </div>
           </fieldset>

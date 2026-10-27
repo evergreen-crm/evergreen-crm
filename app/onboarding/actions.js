@@ -1,4 +1,6 @@
 'use server';
+import { createAdminClient, adminKey } from '@/lib/supabase/admin';
+import { createReferenceRequests, cleanRefs, refErrors } from '@/lib/references';
 // Staff onboarding: sending the request, filling in, signing, reviewing, certificates.
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -92,8 +94,11 @@ export async function submitItem(formData) {
     if (!item.onboardings?.signature_image) fail('Please draw your signature at the top of the page first.');
     patch.signed_name = typed;
   } else if (tpl.kind === 'refs') {
-    for (const k of ['r1_name', 'r1_phone', 'r1_relationship', 'r2_name', 'r2_phone', 'r2_relationship']) data[k] = text(formData, k);
-    if (!data.r1_name || !data.r1_phone || !data.r2_name || !data.r2_phone) fail('Please give two references with phone numbers.');
+    // 3 supervisor references; each is emailed a reference form after saving (below).
+    data.refs = cleanRefs([0, 1, 2].map((i) => ({ name: text(formData, `ref${i}_name`), title: text(formData, `ref${i}_title`), org: text(formData, `ref${i}_org`),
+      rel: text(formData, `ref${i}_rel`), email: text(formData, `ref${i}_email`), phone: text(formData, `ref${i}_phone`) })));
+    const errs = refErrors(data.refs, user.email);
+    if (errs.length) fail(errs.join(' '));
   } else if (tpl.kind === 'declare') {
     data.fit = text(formData, 'fit');
     data.accommodations = text(formData, 'accommodations');
@@ -116,6 +121,11 @@ export async function submitItem(formData) {
   const { error } = await supabase.from('onboarding_items').update(patch).eq('id', id);
   if (error) fail('Could not save: ' + error.message);
   await supabase.from('onboardings').update({ status: 'In progress' }).eq('profile_id', user.id).eq('status', 'Sent');
+  if (tpl.kind === 'refs' && adminKey()) {
+    try {
+      await createReferenceRequests(createAdminClient(), { profileId: user.id, aboutName: profile.full_name, position: profile.position ?? profile.job_title ?? null, refs: data.refs, createdBy: user.id });
+    } catch {}
+  }
   refreshFor(user.id);
   redirect(`/onboarding?saved=1#item-${id}`);
 }

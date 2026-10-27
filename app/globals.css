@@ -991,3 +991,7 @@ button.danger-soft { background: #b3261e; color: #fff; }
 .ask-side .ask-box textarea { background: #fff; }
 @media (max-width: 720px) { .ask-fab { bottom: calc(150px + env(safe-area-inset-bottom)); right: 12px; width: 54px; height: 54px; } .ask-side { padding: 14px 14px calc(90px + env(safe-area-inset-bottom)); } }
 @media print { .ask-fab, .ask-side-wrap { display: none !important; } }
+/* 📨 Reference forms */
+.ref-req { border-top: 1px solid #e6ece9; padding: 10px 0; }
+.ref-req.flag { background: #fdecea; border-radius: 8px; padding: 10px; margin: 6px 0; border-top: 0; }
+.ref-req table th { text-align: left; width: 45%; font-weight: 600; }

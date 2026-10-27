@@ -8,15 +8,23 @@ import SignaturePad from './SignaturePad';
 import StaffFileUpload from './StaffFileUpload';
 import PrintButton from '@/app/PrintButton';
 import { plainStatus } from '@/lib/plain';
+import { REF_RELATIONS } from '@/lib/referenceForm';
+import RefRequests from '@/app/hr/references/RefRequests';
 
 const DONE = ['Verified', 'N/A'];
 const badge = (s) => ({ Verified: '', 'N/A': '', Submitted: 'warn', Returned: 'bad', 'To do': 'bad' }[s] ?? '');
 
-function Summary({ tpl, item, fileUrl, signature }) {
+function Summary({ tpl, item, fileUrl, signature, refStatus }) {
   const d = item.data ?? {};
   return (
     <div className="small onb-summary">
-      {tpl.kind === 'refs' && (d.r1_name || d.r2_name) && (
+      {tpl.kind === 'refs' && Array.isArray(d.refs) && (
+        <ol style={{ margin: '4px 0', paddingLeft: 18 }}>{d.refs.map((r, i) => {
+          const st = refStatus?.find((x) => x.idx === i);
+          return <li key={i}>{r.name} · {r.title} · {r.org}{st ? <span className={`badge ${st.status === 'Completed' ? '' : st.status === 'Waiting' ? 'warn' : 'bad'}`} style={{ marginLeft: 6 }}>{st.status === 'Completed' ? '✓ Answered' : st.status === 'Waiting' ? 'Emailed — waiting' : st.status === 'Expired' ? 'No reply' : st.status}</span> : null}</li>;
+        })}</ol>
+      )}
+      {tpl.kind === 'refs' && !Array.isArray(d.refs) && (d.r1_name || d.r2_name) && (
         <p>1. {d.r1_name} · {d.r1_phone} {d.r1_relationship && `· ${d.r1_relationship}`}<br />2. {d.r2_name} · {d.r2_phone} {d.r2_relationship && `· ${d.r2_relationship}`}</p>
       )}
       {tpl.kind === 'declare' && d.fit && <p>Fit for duty: <strong>{d.fit}</strong>{d.accommodations && ` · Accommodations: ${d.accommodations}`}</p>}
@@ -86,17 +94,26 @@ function StaffForm({ tpl, item, profileId, fullName }) {
       )}
       {tpl.kind === 'refs' && (
         <>
-          <div className="row">
-            <label>Reference 1 name<input name="r1_name" required defaultValue={d.r1_name ?? ''} /></label>
-            <label>Phone<input name="r1_phone" required defaultValue={d.r1_phone ?? ''} /></label>
-            <label>How you know them<input name="r1_relationship" defaultValue={d.r1_relationship ?? ''} /></label>
-          </div>
-          <div className="row">
-            <label>Reference 2 name<input name="r2_name" required defaultValue={d.r2_name ?? ''} /></label>
-            <label>Phone<input name="r2_phone" required defaultValue={d.r2_phone ?? ''} /></label>
-            <label>How you know them<input name="r2_relationship" defaultValue={d.r2_relationship ?? ''} /></label>
-          </div>
-          <button>Send to HR</button>
+          <p className="small" style={{ marginTop: 0 }}>Give three people who <strong>supervised or managed you</strong> at an agency or workplace. No co-workers, family or friends. Each one is emailed a short reference form as soon as you send this, so check the email addresses.</p>
+          {[0, 1, 2].map((i) => {
+            const r = (Array.isArray(d.refs) ? d.refs[i] : null) ?? {};
+            return (
+              <fieldset key={i} className="ps-job">
+                <legend>Reference {i + 1}</legend>
+                <div className="row">
+                  <label>Full name *<input name={`ref${i}_name`} required defaultValue={r.name ?? ''} /></label>
+                  <label>Their job title *<input name={`ref${i}_title`} required defaultValue={r.title ?? ''} /></label>
+                  <label>Agency / organization *<input name={`ref${i}_org`} required defaultValue={r.org ?? ''} /></label>
+                </div>
+                <div className="row">
+                  <label>How they supervised you *<select name={`ref${i}_rel`} required defaultValue={r.rel ?? ''}><option value="">Choose…</option>{REF_RELATIONS.map((x) => <option key={x}>{x}</option>)}</select></label>
+                  <label>Email *<input type="email" name={`ref${i}_email`} required defaultValue={r.email ?? ''} /></label>
+                  <label>Phone *<input type="tel" name={`ref${i}_phone`} required defaultValue={r.phone ?? ''} /></label>
+                </div>
+              </fieldset>
+            );
+          })}
+          <button>Send to HR and email my references</button>
         </>
       )}
       {tpl.kind === 'declare' && (
@@ -182,6 +199,14 @@ export default async function OnboardingView({ supabase, onb, person, viewer, no
   const waiting = all.filter((i) => i.status === 'Submitted').length;
   const pct = all.length ? Math.round((100 * done) / all.length) : 0;
   const isSelf = viewer.isSelf;
+  // 📨 Reference forms: staff see only whether each answered; HR sees the answers (database rules decide).
+  let refStatus = null, refRequests = [];
+  if (isSelf) refStatus = (await supabase.rpc('my_references')).data ?? null;
+  else {
+    refRequests = (await supabase.from('reference_requests').select('*').eq('profile_id', onb.profile_id)).data ?? [];
+    const latest = [0, 1, 2].map((i) => refRequests.filter((r) => r.idx === i && r.status !== 'Cancelled').sort((a, b) => b.created_at.localeCompare(a.created_at))[0]).filter(Boolean);
+    refStatus = latest.map((r) => ({ idx: r.idx, status: ['Sent', 'Opened'].includes(r.status) ? 'Waiting' : r.status }));
+  }
   const editable = isSelf && onb.status !== 'Complete';
   const p = onb.personal ?? {};
 
@@ -316,7 +341,8 @@ export default async function OnboardingView({ supabase, onb, person, viewer, no
                     </span>
                   </summary>
                   {(tpl.help || tpl.when) && <p className="muted small">{tpl.help ?? `${tpl.when} · ${tpl.provider}`}</p>}
-                  <Summary tpl={tpl} item={item} fileUrl={item.file_path && urls[item.file_path]} signature={item.signed_name && onb.signature_image} />
+                  <Summary tpl={tpl} item={item} fileUrl={item.file_path && urls[item.file_path]} signature={item.signed_name && onb.signature_image} refStatus={refStatus} />
+                  {tpl.kind === 'refs' && !isSelf && refRequests.length > 0 && <RefRequests requests={refRequests} back={`/hr/${onb.profile_id}/onboarding`} />}
                   {item.training_id && <p className="small"><Link href={`/hr/certificate/${item.training_id}`}>🏅 View / print certificate</Link></p>}
                   {editable && !DONE.includes(item.status) && <StaffForm tpl={tpl} item={item} profileId={onb.profile_id} fullName={person.full_name} />}
                   {viewer.isBoss && <ReviewForm tpl={tpl} item={item} />}

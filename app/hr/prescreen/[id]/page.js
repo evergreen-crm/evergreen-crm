@@ -1,5 +1,7 @@
 // One applicant's digital screening file: link, checklist, application, interview, references, clearance.
 import Link from 'next/link';
+import RefRequests from '@/app/hr/references/RefRequests';
+import { sendPrescreenRefs } from '@/app/hr/references/actions';
 import { notFound } from 'next/navigation';
 import { requirePrescreen } from '@/lib/prescreenAuth';
 import { fmtDate, fmtDateTime } from '@/lib/options';
@@ -37,6 +39,7 @@ export default async function PrescreenFile({ params, searchParams }) {
   const canHr = prescreenRole === 'admin' || prescreenRole === 'hr';
   const tabs = [['link', 'Applicant link'], ['checklist', 'Screening checklist'], ['application', 'Application'], ['interview', 'Interview'], ['references', 'References'], ['clearance', 'Clearance']];
   const tab = tabs.some(([k]) => k === sp.tab) ? sp.tab : submitted ? 'checklist' : 'link';
+  const refReq = tab === 'references' ? ((await supabase.from('reference_requests').select('*').eq('prescreen_id', id)).data ?? []) : [];
   const st = stepState(p);
   const cur = currentStep(p)[0];
   const clr = submitted ? clearance(p) : null;
@@ -68,7 +71,7 @@ export default async function PrescreenFile({ params, searchParams }) {
       {tab === 'checklist' && <ChecklistTab p={p} role={prescreenRole} canHr={canHr} />}
       {tab === 'application' && <ApplicationTab p={p} />}
       {tab === 'interview' && <InterviewTab p={p} />}
-      {tab === 'references' && <ReferencesTab p={p} />}
+      {tab === 'references' && <ReferencesTab p={p} requests={refReq} />}
       {tab === 'clearance' && <ClearanceTab p={p} clr={clr ?? 'yellow'} canHr={canHr} />}
     </main>
   );
@@ -258,10 +261,20 @@ function InterviewTab({ p }) {
   );
 }
 
-function ReferencesTab({ p }) {
+function ReferencesTab({ p, requests = [] }) {
   const given = p.application?.refs ?? [{}, {}, {}];
+  const back = `/hr/prescreen/${p.id}?tab=references`;
   return (
     <>
+      <RefRequests requests={requests} back={back} />
+      {p.link_status === 'Submitted' && !requests.some((r) => r.status !== 'Cancelled') && (
+        <form action={sendPrescreenRefs} className="card no-print">
+          <input type="hidden" name="prescreen_id" value={p.id} /><input type="hidden" name="back" value={back} />
+          <p className="small" style={{ marginTop: 0 }}>The reference forms haven’t been emailed for this application yet (it was signed before automatic emails started, or an email was missing).</p>
+          <button>📨 Email the 3 reference forms now</button>
+        </form>
+      )}
+      <p className="muted small">The boxes below fill in automatically when a reference answers the form. You can also record a phone check by hand.</p>
       {!managerConfirmed(p) && <p className="message">No completed check confirms a manager or supervisor yet. At least one reference must have directly supervised the person.</p>}
       {[0, 1, 2].map((i) => {
         const r = given[i] ?? {}; const c = p.ref_checks?.[i] ?? {};

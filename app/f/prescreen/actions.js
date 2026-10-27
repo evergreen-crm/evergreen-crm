@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient, adminKey } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email';
 import { validateApplication, SELF } from '@/lib/prescreen';
+import { createReferenceRequests, cleanRefs } from '@/lib/references';
 
 const sha = (s) => createHash('sha256').update(s).digest('hex');
 const codeHash = (token, code) => sha(`prescreen:${token}:${code}:${adminKey() ?? ''}`);
@@ -89,6 +90,15 @@ export async function submitPrescreen(token, answers, signedName, signature) {
     unverified: 'Please confirm the email code again (reload this page).',
     unsigned: 'Please type your name and draw your signature.', too_large: 'The form is too large. Please shorten your answers.' }[data];
   if (msg) return { error: msg };
+  // 📨 Email each supervisor reference their form now (reminders follow automatically).
+  try {
+    if (adminKey()) {
+      const admin = createAdminClient();
+      const { data: p } = await admin.from('prescreens').select('id, first_name, last_name, position').eq('token', token).maybeSingle();
+      if (p) await createReferenceRequests(admin, { prescreenId: p.id, aboutName: `${clean.applicant?.first || p.first_name} ${clean.applicant?.last || p.last_name || ''}`.trim(),
+        position: clean.applicant?.position || p.position, refs: cleanRefs(clean.refs) });
+    }
+  } catch {}
   return { ok: true };
 }
 
