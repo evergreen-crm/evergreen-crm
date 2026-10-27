@@ -114,5 +114,5 @@ export default async function PortalHome() {
 // Shows its children directly, or folded under “All portal areas” for frontline staff.
 function Fold({ open, children }) {
   if (open) return <>{children}</>;
-  return <details className="card no-print"><summary><strong>☰ All portal areas</strong> <span className="muted small">— schedule, timesheet, academy, policies, divisions</span></summary>{children}</details>;
+  return <details className="card no-print"><summary><strong>☰ All portal areas</strong> <span className="muted small">— divisions and areas</span></summary>{children}</details>;
 }
