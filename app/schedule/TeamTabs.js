@@ -255,7 +255,7 @@ export async function TeamsTab({ supabase, profile, homeId }) {
   const home = (homes.data ?? []).find((h) => h.id === homeId) ?? (homes.data ?? [])[0];
   if (!home) return <p className="muted">{lvl === 3 ? 'You aren’t assigned to a house yet. Ask a director to add you under “Program Managers for this house”.' : 'No house to set up.'}</p>;
   const director = lvl >= 4 || profile.role === 'admin';
-  const [lines, people, details, changes, pms, pmLinks] = await Promise.all([
+  const [lines, people, details, pms, pmLinks, changes] = await Promise.all([
     supabase.from('schedule_lines').select('id, shift, pair, slot, profile_id, active').eq('home_id', home.id).eq('active', true),
     supabase.from('profiles').select('id, full_name, home_id, level').in('role', ['staff', 'manager']).eq('active', true).is('staff_group', null).order('full_name'),
     supabase.from('staff_details').select('profile_id, employment_type'),
