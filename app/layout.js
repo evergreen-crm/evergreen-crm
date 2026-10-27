@@ -18,6 +18,7 @@ import AskSide from '@/app/components/AskSide';
 import { getMyTodos, todoCount } from '@/lib/todos';
 import { personLabel } from '@/lib/levels';
 import { buildMenu } from '@/lib/menu';
+import { loadMySections, sectionFindItems } from '@/lib/mySections';
 
 export const metadata = {
   title: 'Evergreen Community Care',
@@ -56,6 +57,10 @@ export default async function RootLayout({ children }) {
     } catch {}
   }
 
+  const sections = profile && profile.role !== 'family'
+    ? await loadMySections(supabase, profile, { psRole, onboarding: onb && onb.status !== 'Complete' }).catch(() => [])
+    : [];
+
   return (
     <html lang="en">
       <body>
@@ -73,16 +78,20 @@ export default async function RootLayout({ children }) {
                     { href: '/portal', label: 'Home', icon: '🏠', color: '#0f3059' },
                     ...menu.tiles.map((t) => ({ href: t.href, label: t.label, icon: t.icon, color: t.tone === 'red' ? '#b3261e' : '#0b5a34', badge: t.badge })),
                   ] },
-                  ...menu.more.map((g) => ({ title: g.title, items: g.items.map((it) => ({
-                    ...it, color: '#0f3059',
-                    ...(it.href === '/todo' ? { badge: todo.total || null, alert: todo.overdue > 0 } : {}),
-                    ...(it.href === '/notifications' ? { badge: unread || null } : {}),
-                    ...(it.href === '/onboarding' ? { alert: true } : {}),
-                  })) })),
+                  // 🔒 The sections this person may open (Admin → Security settings).
+                  { title: 'Sections', items: sections.map((x) => ({ href: `/s/${x.key}`, label: x.label, icon: x.icon, color: '#0f3059' })) },
+                  { title: 'Me & help', items: [
+                    { href: '/todo', label: 'My to-do', icon: '✅', color: '#0f3059', badge: todo.total || null, alert: todo.overdue > 0 },
+                    { href: '/notifications', label: 'Alerts', icon: '🔔', color: '#0f3059', badge: unread || null },
+                    ...(onb && onb.status !== 'Complete' ? [{ href: '/onboarding', label: 'My onboarding', icon: '✅', color: '#d4a72c', alert: true }] : []),
+                    { href: '/more', label: 'All sections', icon: '☰', color: '#0f3059' },
+                    { href: '/ask', label: 'Ask Evergreen', icon: '🤖', color: '#0f3059' },
+                    { href: '/help', label: 'Help', icon: '❓', color: '#0f3059' },
+                  ] },
                 ];
               return (
                 <nav>
-                  <NavMenu groups={groups} find={menu?.all ?? null} />
+                  <NavMenu groups={groups} find={menu ? [...sectionFindItems(sections), ...menu.all] : null} />
                   {staffLike && <Link href="/todo" className={`navquick todo-count${todo.overdue ? ' late' : ''}`} title={todo.overdue ? `${todo.overdue} overdue` : 'My to-do'}>✅ <b>{todo.total}</b><span> To-do</span></Link>}
                   {staffLike && <Link href="/id" className="navquick">🪪 <span>My ID</span></Link>}
                   {onb && onb.status !== 'Complete' && <Link href="/onboarding" className="nav-alert">My onboarding</Link>}

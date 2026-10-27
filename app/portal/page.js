@@ -11,6 +11,8 @@ import { levelOf, groupOf } from '@/lib/levels';
 import { buildMenu } from '@/lib/menu';
 import MenuTiles from '@/app/components/MenuTiles';
 import FindBox from '@/app/components/FindBox';
+import SectionTiles from '@/app/components/SectionTiles';
+import { loadMySections, sectionFindItems } from '@/lib/mySections';
 
 export default async function PortalHome() {
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
@@ -24,6 +26,7 @@ export default async function PortalHome() {
   if (profile.home_id) { const { data: h } = await supabase.from('homes').select('on_call_phone').eq('id', profile.home_id).maybeSingle(); onCall = h?.on_call_phone ?? null; }
   const { data: psRole } = await supabase.rpc('prescreen_role');
   const menu = buildMenu(profile, { onCall, psRole });
+  const sections = await loadMySections(supabase, profile, { psRole });
 
   const { data: rows } = await supabase.from('records').select('division, area, status, due_date');
   const count = {};
@@ -49,8 +52,10 @@ export default async function PortalHome() {
 
       {/* The simple menu (lib/menu.js): up to 8 tiles for my role, and 🔍 Find for everything else. */}
       <section className="no-print">
-        <FindBox items={menu.all} />
+        <FindBox items={[...sectionFindItems(sections), ...menu.all]} />
         <MenuTiles tiles={menu.tiles} />
+        <h2 className="more-h">All sections</h2>
+        <SectionTiles sections={sections} />
       </section>
 
       <MyBadge supabase={supabase} userId={user.id} />
@@ -61,8 +66,6 @@ export default async function PortalHome() {
 
       {/* Frontline and Program Coordinators: everything else is folded away so their shift tools stay on top. */}
       <Fold open={!(levelOf(profile) <= 2 && profile.home_id && !groupOf(profile))}>
-      <p className="small no-print"><Link href="/more">☰ Everything else is under More →</Link></p>
-
       {divisions.length === 0 && (
         <p className="card muted">No areas are open for your job yet. Ask the office to give you access.</p>
       )}
