@@ -53,3 +53,12 @@ drop policy if exists "entries edit" on entries;
 create policy "entries edit" on entries for update
   using (app_role() in ('admin', 'manager') or created_by = auth.uid())
   with check (app_role() in ('admin', 'manager') or created_by = auth.uid());
+
+-- Updated: staff can correct their own entry only within 30 minutes of saving it.
+-- Program Coordinators (their own house), Program Managers, managers and admins can correct any time.
+drop policy if exists "entries edit" on entries;
+create policy "entries edit" on entries for update
+  using (app_role() in ('admin', 'manager') or app_level() >= 3 or (app_level() = 2 and home_id = app_home())
+         or (created_by = auth.uid() and created_at > now() - interval '30 minutes'))
+  with check (app_role() in ('admin', 'manager') or app_level() >= 3 or (app_level() = 2 and home_id = app_home())
+         or (created_by = auth.uid() and created_at > now() - interval '30 minutes'));

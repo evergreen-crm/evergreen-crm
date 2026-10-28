@@ -60,13 +60,14 @@ export async function updateEntry(formData) {
     if (f.required && v === null) throw new Error(`Please fill in "${f.label}".`);
     if (v !== null) data[f.name] = f.type === 'number' ? Number(v) : v;
   }
-  const { error } = await supabase.from('entries').update({
+  const { data: changed, error } = await supabase.from('entries').update({
     data,
     entry_date: text(formData, 'entry_date') ?? undefined,
     entry_time: text(formData, 'entry_time'),
     updated_note: reason,
-  }).eq('id', id);
+  }).eq('id', id).select('id');
   if (error) throw new Error('Could not save the correction: ' + error.message);
+  if (!changed?.length) throw new Error('This entry can’t be changed any more. Staff can correct their own entries within 30 minutes of saving; after that, ask the Program Coordinator or Program Manager.');
   const path = text(formData, 'path');
   if (path?.startsWith('/')) revalidatePath(path.split('?')[0]);
 }

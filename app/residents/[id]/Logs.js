@@ -2,11 +2,13 @@
 import Link from 'next/link';
 import { RESIDENT_LOG_GROUPS, typesIn, ENTRY_TYPES } from '@/lib/entries';
 import { requireUser } from '@/lib/auth';
+import { levelOf } from '@/lib/levels';
+const lvl = (p) => (p.role === 'admin' ? 8 : levelOf(p));
 import EntryForm from '@/app/components/EntryForm';
 import EntryList from '@/app/components/EntryList';
 
 export default async function Logs({ supabase, resident, type, isAdmin }) {
-  const { user } = await requireUser(['admin', 'manager', 'staff']);
+  const { user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const { data: home } = await supabase.from('homes').select('program').eq('id', resident.home_id).maybeSingle();
   // MCFD documentation only shows in MCFD houses; CLBC documentation shows in CLBC houses.
   const groups = RESIDENT_LOG_GROUPS
@@ -28,7 +30,10 @@ export default async function Logs({ supabase, resident, type, isAdmin }) {
   const versions = {};
   for (const v of vers ?? []) (versions[v.entry_id] ??= []).push(v);
 
-  const canCorrect = (e) => isAdmin || e.created_by === user.id;
+  // Staff: their own entries, for 30 minutes after saving. Coordinators (their house), managers, admins: any time.
+  const senior = isAdmin || lvl(profile) >= 2;
+  const now = Date.now();
+  const canCorrect = (e) => senior || (e.created_by === user.id && now - new Date(e.created_at).getTime() < 30 * 60 * 1000);
 
   return (
     <section>
@@ -43,7 +48,7 @@ export default async function Logs({ supabase, resident, type, isAdmin }) {
       </div>
       {kind
         ? <EntryForm kind={kind} homeId={resident.home_id} residentId={resident.id} path={path} shareable={!['Behaviour', 'MCFD'].includes(ENTRY_TYPES[kind].group)} open />
-        : <p className="muted small no-print">Pick a log type above to add an entry. Every save shows the date and time, and corrections keep the earlier version.</p>}
+        : <p className="muted small no-print">Pick a log type above to add an entry. Every save shows the date and time, and corrections keep the earlier version. Staff can correct their own entry for 30 minutes after saving.</p>}
       <EntryList entries={entries} versions={versions} path={path} isAdmin={isAdmin} canCorrect={canCorrect} showFamily />
     </section>
   );
