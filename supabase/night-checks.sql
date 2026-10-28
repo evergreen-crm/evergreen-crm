@@ -82,7 +82,8 @@ begin
   loop
     select full_name into who from profiles where id = r.profile_id;
     select name into hname from homes where id = r.home_id;
-    for ldr in select * from house_leaders(r.home_id) loop
+    -- Leaders of the house, except the person who is on the shift (a PC or PM who works a night doesn't alert themselves).
+    for ldr in select l from house_leaders(r.home_id) l where l <> r.profile_id loop
       perform notify_now(ldr, '⚠️ Night check missed: ' || coalesce(who, 'staff'),
         coalesce(hname, 'House') || ' · ' || case when r.kind = 'Scheduled' then '2-hour check' else 'random check' end
           || ' due ' || to_char(r.due_at at time zone 'America/Vancouver', 'HH24:MI') || ' · not done in time',
