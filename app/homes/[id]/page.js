@@ -232,7 +232,7 @@ export default async function HomePage({ params, searchParams }) {
       </ul>
       </>}
       </div>
-      <HouseRecords program={home.program} records={records} residents={current} todayEntries={todayRecords ?? []} recent={recentRows ?? []} />
+      <HouseRecords homeId={id} program={home.program} records={records} residents={current} todayEntries={todayRecords ?? []} recent={recentRows ?? []} />
       </div>
     </main>
   );

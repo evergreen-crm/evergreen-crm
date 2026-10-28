@@ -12,7 +12,7 @@ const line = (e) => {
   return `${fmtDate(e.entry_date)}${e.entry_time ? ` ${e.entry_time.slice(0, 5)}` : ''}${text ? ` · ${text}` : ''}`;
 };
 
-export default function HouseRecords({ program, records, residents, todayEntries, recent = [] }) {
+export default function HouseRecords({ homeId, program, records, residents, todayEntries, recent = [] }) {
   const last = {};
   for (const e of recent) {
     const k = `${e.resident_id}|${e.kind}`;
@@ -38,7 +38,7 @@ export default function HouseRecords({ program, records, residents, todayEntries
     <aside aria-label={`${program} records`} style={{ flex: '0 1 380px', minWidth: 280, position: 'sticky', top: 12 }}>
       <section className="card">
         <h2 style={{ marginTop: 0 }}>{program} records by section</h2>
-        <p className="small" style={{ margin: '0 0 6px' }}><Link href="/documentation">📝 Documentation guide</Link> · <Link href="/reports/daily">🖨 Print a report</Link></p>
+        <p className="small" style={{ margin: '0 0 6px' }}><Link href={`/homes/${homeId}/daily`}><strong>🗓 Daily grid (enter every child, one screen)</strong></Link> · <Link href="/documentation">📝 Documentation guide</Link> · <Link href="/reports/daily">🖨 Print a report</Link></p>
         <p className="muted small">Every record for each child. Open a record, then set the date and time on the form, so an entry can be made for any date or time today or on an earlier day.</p>
         {!residents?.length && <p className="muted small">No current residents in this house yet.</p>}
         {residents?.map((r) => {
