@@ -55,6 +55,12 @@ export default function HouseRecords({ layout = 'side', homeId, program, records
                 <strong>{name}</strong>{' '}
                 <span className={done ? 'badge' : 'badge warn'}>{done ? 'Daily records done today' : 'Daily records to do today'}</span>
               </summary>
+              <details style={{ marginTop: 6 }}>
+                <summary className="small"><strong>Nothing to report today</strong></summary>
+                <div style={{ marginTop: 6 }}>
+                  <RecordForm compact kind="nothing_to_report" homeId={homeId} residentId={r.id} path={`/homes/${homeId}`} goals={[]} />
+                </div>
+              </details>
               <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0 0' }}>
                 {records.map((rec) => {
                   const n = count[`${r.id}|${rec.kind}`] ?? 0;

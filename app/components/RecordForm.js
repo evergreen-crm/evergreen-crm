@@ -8,6 +8,13 @@ import PrintButton from '@/app/components/PrintButton';
 
 // Reports that are made right away: the date and time are shown and can be changed.
 const REPORT_NOW = ['mcfd_incident', 'mcfd_restraint', 'mcfd_illness'];
+// Records that only exist when something happened. If nothing happened, nothing is recorded here.
+const ONLY_IF_IT_HAPPENED = {
+  mcfd_incident: 'a reportable incident',
+  mcfd_restraint: 'a physical restraint or seclusion',
+  mcfd_discipline: 'a behaviour of concern or discipline',
+  mcfd_illness: 'a serious illness or injury',
+};
 
 export default function RecordForm({ kind, homeId, residentId, path, goals, title, standard, resident, home, compact = false, date }) {
   const type = ENTRY_TYPES[kind];
@@ -15,6 +22,11 @@ export default function RecordForm({ kind, homeId, residentId, path, goals, titl
   const optional = type.fields.filter((f) => !f.required);
   return (
     <div className={`${compact ? '' : 'print-area '}doc-form`}>
+      {ONLY_IF_IT_HAPPENED[kind] && (
+        <p className="message" style={{ marginBottom: 10 }}>
+          <strong>Only fill this in if {ONLY_IF_IT_HAPPENED[kind]} happened.</strong> If nothing happened, do not record it here. Use <strong>Nothing to report today</strong> instead.
+        </p>
+      )}
       {!compact && <header style={{ borderBottom: '2px solid #000', paddingBottom: 8, marginBottom: 12 }}>
         <h1 style={{ margin: 0 }}>{title ?? type.label}</h1>
         <p className="small" style={{ margin: '4px 0 0' }}>

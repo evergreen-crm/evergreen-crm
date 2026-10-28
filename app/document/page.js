@@ -94,6 +94,13 @@ export default async function DocumentRecords({ searchParams }) {
           <h2 style={{ marginBottom: 4 }}>{nameOf(resident)} · {house.program}</h2>
 
           <h3>1. Records by section</h3>
+          <div className="card" style={{ marginBottom: 10 }}>
+            <strong>Nothing to report today?</strong>
+            <p className="small muted" style={{ margin: '4px 0 8px' }}>If there was no incident, restraint, discipline or serious illness, tick this instead of filling those in.</p>
+            {doneKinds.has('nothing_to_report')
+              ? <span className="badge">Nothing to report today — recorded</span>
+              : <RecordForm compact date={date} kind="nothing_to_report" homeId={house.id} residentId={resident.id} path={here()} goals={[]} />}
+          </div>
           {records.map((rec) => (
             <details key={rec.kind} className="card" open={!doneKinds.has(rec.kind) && (rec.tab ? false : true)} style={{ marginTop: 8 }}>
               <summary>

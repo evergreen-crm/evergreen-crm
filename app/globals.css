@@ -1073,3 +1073,9 @@ button.danger-soft { background: #b3261e; color: #fff; }
 .doc-form .row > label { flex: 1 1 260px; }
 .doc-form button { font-size: 17px; min-height: 46px; padding: 8px 18px; }
 .doc-form .message, .doc-form .small { font-size: 16px; }
+
+/* Straight lines: every form row lines up in columns, labels sit above their boxes, all boxes the same height. */
+.doc-form .row { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; align-items: end; }
+.doc-form .row > label { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+.doc-form .row > .button, .doc-form .row > button { justify-self: start; }
+.doc-form fieldset .row { align-items: end; }
