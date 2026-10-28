@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/auth';
 import { HOUSE_TYPES, PROGRAMS } from '@/lib/options';
 import { PROGRAM_DIFFERENCES } from '@/lib/programCompare';
 import { createHome } from '@/app/homes/actions';
+import { levelOf, groupOf } from '@/lib/levels';
 
 export default async function HomesPage() {
   const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
@@ -13,6 +14,7 @@ export default async function HomesPage() {
     supabase.from('residents').select('home_id, status'),
   ]);
 
+  const canReport = levelOf(profile) >= 2 && !groupOf(profile);
   const counts = {};
   for (const r of residents ?? []) {
     if (r.status === 'discharged') continue;
@@ -39,7 +41,7 @@ export default async function HomesPage() {
               <Link className="button" href={`/document?house=${h.id}`}>📝 Document records</Link>
               <Link className="button secondary" href={`/homes/${h.id}?tab=records`}>By section</Link>
               {h.program === 'CLBC' && <Link className="button secondary" href={`/homes/${h.id}/daily`}>🗓 Daily grid</Link>}
-              <Link className="button secondary" href={`/reports/daily?home=${h.id}`}>🖨 Report</Link>
+              {canReport && <Link className="button secondary" href={`/reports/daily?home=${h.id}`}>🖨 Report</Link>}
               {!h.program && <span className="small muted">Choose MCFD or CLBC in Edit house to show the records.</span>}
             </div>
           </div>

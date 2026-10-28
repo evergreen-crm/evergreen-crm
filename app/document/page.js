@@ -3,6 +3,7 @@
 // One date at the top applies to every form. The time is recorded automatically when you save.
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
+import { levelOf, groupOf } from '@/lib/levels';
 import { todayISO, addDaysISO, fmtDate, fmtTime } from '@/lib/options';
 import { recordsFor, isDaily } from '@/lib/records';
 import { recordDose } from '@/app/residents/modules';
@@ -26,6 +27,7 @@ const VIEWS = (records, house) => [
 export default async function DocumentRecords({ searchParams }) {
   const sp = await searchParams;
   const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
+  const canReport = levelOf(profile) >= 2 && !groupOf(profile);
   const today = todayISO();
   const date = isDate(sp.date) && sp.date <= today ? sp.date : today;
 
@@ -102,7 +104,7 @@ export default async function DocumentRecords({ searchParams }) {
         <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <nav aria-label="Records for this person" className="doc-form" style={{ flex: '0 0 220px', minWidth: 200, position: 'sticky', top: 12, background: 'var(--card, #fff)', border: '1px solid #ccc', borderRadius: 8, padding: 10 }}>
             <p className="small" style={{ margin: '0 0 6px' }}><Link href={`/document?house=${house.id}&date=${date}`}>← Choose someone else</Link></p>
-            <p className="small" style={{ margin: '0 0 6px' }}><Link href={`/reports/daily?home=${house.id}&resident=${resident.id}&from=${date}&to=${date}&go=1`}>🖨 Report for this person</Link></p>
+            {canReport && <p className="small" style={{ margin: '0 0 6px' }}><Link href={`/reports/daily?home=${house.id}&resident=${resident.id}&from=${date}&to=${date}&go=1`}>🖨 Report for this person</Link></p>}
             <strong style={{ display: 'block', marginBottom: 6 }}>{nameOf(resident)}</strong>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
               {VIEWS(records, house).map((v) => (
