@@ -10,6 +10,8 @@ export function Field({ f, goals }) {
       return <label>{f.label}<textarea name={f.name} rows={3} required={req} /></label>;
     case 'number':
       return <label>{f.label}<input type="number" name={f.name} step={f.step ?? '1'} required={req} /></label>;
+    case 'date':
+      return <label>{f.label}<input type="date" name={f.name} required={req} /></label>;
     case 'time':
       return <label>{f.label}<input type="time" name={f.name} required={req} /></label>;
     case 'select':

@@ -6,13 +6,14 @@ import { requireUser } from '@/lib/auth';
 import { todayISO, addDaysISO, fmtDate, fmtTime } from '@/lib/options';
 import { recordsFor, isDaily } from '@/lib/records';
 import { recordDose } from '@/app/residents/modules';
-import { addGoalStep, toggleGoalStep } from '@/app/document/actions';
+import { addGoalStep, toggleGoalStep, saveMarSheet } from '@/app/document/actions';
 import RecordForm from '@/app/components/RecordForm';
 
 const isId = (s) => typeof s === 'string' && /^[0-9a-f-]{36}$/i.test(s);
 const isDate = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
 const nameOf = (r) => `${r.preferred_name || r.first_name} ${r.last_name}`;
-const STATUSES = ['Given', 'Refused', 'Missed', 'Held', 'Error'];
+// Mark-sheet answers: the value saved, and the words on the sheet.
+const MAR_OPTIONS = [['Given', 'Yes, given'], ['Refused', 'No, refused'], ['Missed', 'No, missed'], ['Held', 'Held'], ['Error', 'Error']];
 
 export default async function DocumentRecords({ searchParams }) {
   const sp = await searchParams;
@@ -36,7 +37,7 @@ export default async function DocumentRecords({ searchParams }) {
     const { data: ent } = await supabase.from('entries').select('kind').eq('resident_id', resident.id).eq('entry_date', date);
     doneKinds = new Set((ent ?? []).map((e) => e.kind));
     const { data: m } = await supabase.from('medications').select('id, name, dose, route, times, is_prn, active').eq('resident_id', resident.id).eq('active', true).order('name');
-    meds = (m ?? []).filter((x) => !x.is_prn);
+    meds = m ?? [];
     const { data: d } = await supabase.from('med_administrations').select('medication_id, scheduled_time, status, given_at').eq('resident_id', resident.id).eq('admin_date', date);
     doses = d ?? [];
     const { data: g } = await supabase.from('goals').select('id, title, domain, description, target_date, status').eq('resident_id', resident.id).eq('status', 'Active').order('created_at');
@@ -114,36 +115,78 @@ export default async function DocumentRecords({ searchParams }) {
             </details>
           ))}
 
-          <h3 style={{ marginTop: 20 }}>2. Medication (sign each dose)</h3>
-          {meds.length === 0 && <p className="muted small">No scheduled medications for this person.</p>}
-          {meds.map((m) => (
-            <div key={m.id} className="card" style={{ marginTop: 8 }}>
-              <strong>{m.name}</strong> {m.dose && <span className="muted">· {m.dose}</span>} {m.route && <span className="muted small">· {m.route}</span>}
-              {(m.times ?? []).length === 0 && <p className="muted small">No times set for this medication.</p>}
-              {(m.times ?? []).map((t) => {
-                const d = doseFor(m.id, t);
-                return (
-                  <div key={t} className="row" style={{ alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-                    <span style={{ minWidth: 70 }}><strong>{fmtTime(t)}</strong></span>
-                    {d ? (
-                      <span className={`badge ${d.status === 'Given' ? '' : 'bad'}`}>{d.status}{d.given_at ? ` · ${new Date(d.given_at).toLocaleTimeString('en-CA', { timeZone: 'America/Vancouver', hour: '2-digit', minute: '2-digit' })}` : ''}</span>
-                    ) : (
-                      <form action={recordDose} className="row" style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <input type="hidden" name="medication_id" value={m.id} />
-                        <input type="hidden" name="resident_id" value={resident.id} />
-                        <input type="hidden" name="admin_date" value={date} />
-                        <input type="hidden" name="scheduled_time" value={t} />
-                        <select name="status" defaultValue="Given" aria-label="Status">{STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
-                        <input name="reason" placeholder="Reason if not given" aria-label="Reason" />
-                        <button>Sign</button>
-                      </form>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-          <p className="small" style={{ marginTop: 8 }}>PRN (as-needed) medication is written on the Medications tab of the person’s page.</p>
+          <h3 style={{ marginTop: 20 }}>2. Medication sheet for {dayLabel.toLowerCase()}</h3>
+          <p className="small muted">Every active medication is on this sheet. For each scheduled time choose Yes (given) or No (not given), and write why if it was not given. Use the as-needed rows only when a PRN was given. Then press Save medication sheet.</p>
+          {meds.length === 0 && <p className="muted small">No active medications for this person.</p>}
+          {meds.length > 0 && (
+            <form action={saveMarSheet} className="doc-form">
+              <input type="hidden" name="resident_id" value={resident.id} />
+              <input type="hidden" name="admin_date" value={date} />
+              <input type="hidden" name="path" value={here()} />
+              <div style={{ overflowX: 'auto' }}>
+                <table className="small" style={{ borderCollapse: 'collapse', width: '100%' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', borderBottom: '2px solid #000' }}>
+                      <th style={{ padding: '8px 10px' }}>Medication</th>
+                      <th style={{ padding: '8px 10px' }}>Type</th>
+                      <th style={{ padding: '8px 10px' }}>Time</th>
+                      <th style={{ padding: '8px 10px' }}>Given?</th>
+                      <th style={{ padding: '8px 10px' }}>Reason if not given</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {meds.flatMap((m) => {
+                      const medType = m.is_prn ? 'As needed (PRN)' : 'Scheduled';
+                      const label = <><strong>{m.name}</strong><br /><span className="muted">{[m.dose, m.route].filter(Boolean).join(' · ')}</span></>;
+                      if (m.is_prn) {
+                        const d = doseFor(m.id, null);
+                        return [(
+                          <tr key={`${m.id}-prn`} style={{ borderBottom: '1px solid #ccc', verticalAlign: 'top' }}>
+                            <td style={{ padding: '10px' }}>{label}</td>
+                            <td style={{ padding: '10px' }}>{medType}</td>
+                            <td style={{ padding: '10px', minWidth: 160 }}>
+                              {d ? fmtTime(d.given_at ? new Date(d.given_at).toLocaleTimeString('en-GB', { timeZone: 'America/Vancouver', hour: '2-digit', minute: '2-digit', hour12: false }) : '') : <input type="time" name={`time|${m.id}|prn`} aria-label={`Time for ${m.name}`} />}
+                            </td>
+                            <td style={{ padding: '10px', minWidth: 180 }}>
+                              {d ? <span className={`badge ${d.status === 'Given' ? '' : 'bad'}`}>{d.status}</span> : (
+                                <select name={`mar|${m.id}|prn`} defaultValue="" aria-label={`Given for ${m.name}`}><option value="">— leave blank</option>{MAR_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+                              )}
+                            </td>
+                            <td style={{ padding: '10px', minWidth: 220 }}>
+                              {d ? (d.reason ?? '—') : <input name={`reason|${m.id}|prn`} aria-label={`Reason for ${m.name}`} placeholder="Why it was given" />}
+                            </td>
+                          </tr>
+                        )];
+                      }
+                      const times = (m.times ?? []).length ? m.times : [null];
+                      return times.map((t) => {
+                        const d = t ? doseFor(m.id, t) : null;
+                        return (
+                          <tr key={`${m.id}-${t}`} style={{ borderBottom: '1px solid #ccc', verticalAlign: 'top' }}>
+                            <td style={{ padding: '10px' }}>{label}</td>
+                            <td style={{ padding: '10px' }}>{medType}</td>
+                            <td style={{ padding: '10px' }}><strong>{t ? fmtTime(t) : 'No time set'}</strong></td>
+                            <td style={{ padding: '10px', minWidth: 180 }}>
+                              {d ? <span className={`badge ${d.status === 'Given' ? '' : 'bad'}`}>{d.status}</span>
+                                : t ? (
+                                  <select name={`mar|${m.id}|${t}`} defaultValue="" aria-label={`Given for ${m.name} at ${fmtTime(t)}`}><option value="">— leave blank</option>{MAR_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+                                ) : <span className="muted small">Set the times on the Medications tab</span>}
+                            </td>
+                            <td style={{ padding: '10px', minWidth: 220 }}>
+                              {d ? (d.reason ?? '—') : t ? <input name={`reason|${m.id}|${t}`} aria-label={`Reason for ${m.name} at ${fmtTime(t)}`} placeholder="Why it was not given" /> : null}
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="row" style={{ marginTop: 12 }}>
+                <button>Save medication sheet</button>
+              </div>
+            </form>
+          )}
 
           <h3 style={{ marginTop: 20 }}>3. Goals and the steps to reach them</h3>
           {goals.length === 0 && <p className="muted small">No active goals. Add goals on the person’s Goals tab.</p>}
@@ -168,6 +211,12 @@ export default async function DocumentRecords({ searchParams }) {
                     </li>
                   ))}
                 </ol>
+                <details style={{ marginTop: 8 }}>
+                  <summary><strong>Review this goal</strong> (progress, the child’s view, next review date)</summary>
+                  <div style={{ marginTop: 8 }}>
+                    <RecordForm compact date={date} kind="mcfd_care_review" homeId={house.id} residentId={resident.id} path={here()} goals={[g]} />
+                  </div>
+                </details>
                 <form action={addGoalStep} className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
                   <input type="hidden" name="goal_id" value={g.id} />
                   <input type="hidden" name="path" value={here()} />
