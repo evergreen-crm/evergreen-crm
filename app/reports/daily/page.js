@@ -11,6 +11,11 @@ import { ENTRY_TYPES } from '@/lib/entries';
 import { STEP_LABEL } from '@/lib/missing';
 import NotReady from '@/app/components/NotReady';
 import ReportPrintButton from './ReportPrintButton';
+import { MCFD_RECORDS } from '@/lib/mcfdStandards';
+import { CLBC_RECORDS } from '@/lib/records';
+
+// Every record a house keeps, for the record checklist on this report (medication has its own section).
+const ALL_RECORDS = [...MCFD_RECORDS, ...CLBC_RECORDS].filter((r) => !r.tab);
 
 // Date and time with the year (reports can cover more than one year).
 const fmtDateTime = (ts) => (ts ? new Date(ts).toLocaleString('en-CA', { timeZone: TZ, year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
@@ -92,6 +97,8 @@ export default async function DailyReport({ searchParams }) {
   const home = resident ? homeById[resident.home_id] : isId(sp.home) ? homeById[sp.home] : null;
   const chosen = sp.go ? new Set(SECTIONS.map((s) => s.key).filter((k) => sp[k])) : new Set(SECTIONS.map((s) => s.key));
   const marMode = sp.mar === 'exceptions' ? 'exceptions' : 'all';
+  // Records ticked on the form. Null = not chosen yet (all records print).
+  const recFilter = sp.recs ? new Set([].concat(sp.rec ?? [])) : null;
   const span = daysBetween(from, to) + 1;
 
   let problem = null;
@@ -101,6 +108,7 @@ export default async function DailyReport({ searchParams }) {
     else if (span > MAX_DAYS) problem = `Please choose ${MAX_DAYS} days or less (you chose ${span}). For longer periods, print one year at a time.`;
     else if (to > today) problem = 'The “to” date can’t be in the future.';
     else if (!chosen.size) problem = 'Tick at least one section.';
+    else if (chosen.has('logs') && recFilter && !recFilter.size) problem = 'Tick at least one record to print.';
   }
   const ready = sp.go && !problem;
 
@@ -164,6 +172,15 @@ export default async function DailyReport({ searchParams }) {
           </label>
         </div>
       </div>
+      <fieldset style={{ border: 0, padding: 0, margin: '8px 0' }}>
+        <legend className="small"><strong>Records to print</strong> — tick the ones you need. In “Other logs”, only ticked records print.</legend>
+        <input type="hidden" name="recs" value="1" />
+        <div className="row">
+          {ALL_RECORDS.map((r) => (
+            <label key={r.kind} className="check"><input type="checkbox" name="rec" value={r.kind} defaultChecked={!recFilter || recFilter.has(r.kind)} /> {r.section} <span className="muted small">({r.standard})</span></label>
+          ))}
+        </div>
+      </fieldset>
       <div className="row" style={{ alignItems: 'center' }}>
         <button>Show report</button>
         {ready && <ReportPrintButton info={{ home_id: home?.id, resident_id: resident?.id, from, to, sections: [...chosen] }} />}
@@ -243,6 +260,7 @@ export default async function DailyReport({ searchParams }) {
       let q = supabase.from('entries').select('id, kind, resident_id, entry_date, entry_time, data, amount, created_at, author:created_by(full_name)')
         .gte('entry_date', from).lte('entry_date', to);
       q = resident ? q.eq('resident_id', resident.id) : q.eq('home_id', home.id);
+      if (recFilter) q = q.in('kind', [...recFilter]);
       return q.order('entry_date').order('entry_time', { nullsFirst: true });
     });
   }
