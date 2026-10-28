@@ -47,7 +47,7 @@ export default function EntryList({ entries, versions = {}, ctx, path, isAdmin, 
       {entries.map((e) => {
         const t = ENTRY_TYPES[e.kind];
         const important = e.kind === 'commbook' && e.data?.priority === 'Important';
-        const bad = (e.kind === 'safety_check' && e.data?.result === 'Fail — needs action') || e.kind === 'seizure';
+        const bad = (e.kind === 'safety_check' && e.data?.result === 'Fail — needs action') || e.kind === 'seizure' || e.kind === 'mcfd_restraint';
         const history = versions[e.id] ?? [];
         return (
           <li key={e.id} className={important || bad ? 'important' : ''}>
