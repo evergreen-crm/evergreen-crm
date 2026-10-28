@@ -2,7 +2,7 @@
 export default function manifest() {
   return {
     name: 'Evergreen Community Care',
-    short_name: 'Evergreen',
+    short_name: 'Evergreen Community Care',
     description: 'Evergreen staff app: ID card, check-in, schedule, timesheet.',
     id: '/',
     start_url: '/id',

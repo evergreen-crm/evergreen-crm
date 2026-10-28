@@ -23,8 +23,8 @@ import { loadMySections, sectionFindItems } from '@/lib/mySections';
 export const metadata = {
   title: 'Evergreen Community Care',
   description: 'Supporting Growth. Building Futures.',
-  applicationName: 'Evergreen',
-  appleWebApp: { capable: true, title: 'Evergreen', statusBarStyle: 'default' },
+  applicationName: 'Evergreen Community Care',
+  appleWebApp: { capable: true, title: 'Evergreen Community Care', statusBarStyle: 'default' },
   icons: { apple: '/icons/apple-touch-icon.png' },
   formatDetection: { telephone: false },
 };
