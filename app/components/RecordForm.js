@@ -6,6 +6,9 @@ import { Field } from '@/app/components/EntryForm';
 import { todayISO, nowTime, fmtDate } from '@/lib/options';
 import PrintButton from '@/app/components/PrintButton';
 
+// Reports that are made right away: the date and time are shown and can be changed.
+const REPORT_NOW = ['mcfd_incident', 'mcfd_restraint', 'mcfd_illness'];
+
 export default function RecordForm({ kind, homeId, residentId, path, goals, title, standard, resident, home, compact = false, date }) {
   const type = ENTRY_TYPES[kind];
   const required = type.fields.filter((f) => f.required);
@@ -35,7 +38,7 @@ export default function RecordForm({ kind, homeId, residentId, path, goals, titl
             {optional.filter((f) => f.type === 'textarea').map((f) => <Field key={f.name} f={f} goals={goals} />)}
           </fieldset>
         )}
-        {compact ? (
+        {compact && !REPORT_NOW.includes(kind) ? (
           <p className="small muted" style={{ marginTop: 10 }}>
             <input type="hidden" name="entry_date" value={date ?? todayISO()} />
             Recorded for {fmtDate(date ?? todayISO())}. The time is recorded when you press Save.
