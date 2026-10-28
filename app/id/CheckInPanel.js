@@ -107,6 +107,7 @@ function BeforeYouLeave({ status, houseName, staffOnShift }) {
         <button type="button" className="big stop" disabled={busy} onClick={go}>{busy ? 'Checking location…' : '■ Clock out'}</button>
       </div>
       {res && <p className={`message ${res.bad ? '' : 'ok'}`}>{res.text}</p>}
+      <p className="small"><Link href="/absence">🤒 I’m sick / can’t make my shift</Link> · <Link href="/absence">⏰ Running late</Link></p>
       {sent && !asking && <p className="message small">🙋 Your request is waiting for your Program Coordinator / Manager. You’ll get an alert, then tap Clock out again.</p>}
       {asking && <AskPermission kind="Clock out" reasons={asking.reasons} loc={asking.loc} onSent={() => { setAsking(null); setSent(true); router.refresh(); }} />}
     </div>
@@ -185,7 +186,7 @@ export default function CheckInPanel({ onShift, homes, defaultHome, houseName, s
           {nextShift && <p className="small" style={{ margin: '6px 0' }}>🗓 <strong>Your shift: {nextShift.text}</strong>{nextShift.from ? <span className="muted"> · clock in from {nextShift.from}</span> : null}</p>}
           <button type="button" className="big go" disabled={!!busy || !home} onClick={clockIn}>{busy ? 'Checking location…' : '▶ Clock in'}</button>
           <p className="muted small">You can clock in only at the house, up to 15 minutes before your shift. Away from the house (for example at the hospital with a youth)? You’ll be asked for a reason, and your manager approves it.</p>
-          <p className="small"><Link href="/absence">📞 Can’t make my shift</Link> · <Link href="/absence">⏰ Running late</Link></p>
+          <p className="small"><Link href="/absence">🤒 I’m sick / can’t make my shift</Link> · <Link href="/absence">⏰ Running late</Link></p>
           {asking && <AskPermission kind="Clock in" homeId={home} reasons={asking.reasons} loc={asking.loc} onSent={() => { setAsking(null); setMsg({ bad: false, text: '🙋 Request sent. You’ll get an alert when it’s approved — then tap Clock in again.' }); }} />}
         </div>
       ) : (
