@@ -15,18 +15,30 @@ const SHIFT = [
 ];
 
 const TIMING = [
-  ['Signs of illness', 'Document and respond', 'Promptly', 'CLBC'],
-  ['Medication record (MAR)', 'Keep up to date', 'Every dose, at the time given', 'CLBC'],
-  ['Medication errors', 'Report under the critical incident policy', 'Per policy', 'CLBC'],
-  ['Individual record', 'Accurate, complete, current', 'Ongoing', 'CLBC'],
-  ['Individual plan (goals, supports, evaluation)', 'Documented and kept current', 'Confirm the review interval', 'CLBC'],
-  ['Consent', 'Written, time-limited, names what and who', 'Renew before it expires', 'CLBC'],
-  ['Racism or discrimination', 'Document', 'Promptly', 'CLBC'],
-  ['Incident trends', 'Review causes and actions', 'At least once a year', 'CLBC'],
-  ['Health and safety self-inspection', 'Written report', 'At least twice a year', 'CLBC'],
-  ['Emergency plans', 'Review, test, record results', 'Review every 2 years; test at least yearly', 'CLBC'],
-  ['Daily notes', 'Every resident, every shift', 'Signed before the shift ends', 'Both (ECC standard)'],
-  ['Care plan / goals', 'Review date on each goal', 'Confirm with the MCFD care plan or CLBC plan', 'Confirm'],
+  // [record, what is needed, when, program, source]
+  ['Daily log (day book)', 'Significant events, normal routines, any change to routines', 'Daily, for each child', 'MCFD', 'MCFD standards C.1.11, E.7.10(g)'],
+  ['Daily safety and wellness checks', 'Check on each child, within the plan of care', 'Daily', 'MCFD', 'MCFD standards C.1.12'],
+  ['Reportable incident (notify)', 'Notify the child’s social worker', 'Immediately after the incident', 'MCFD', 'MCFD standards C.2.8'],
+  ['Reportable incident (record)', 'Record it in the child’s individual service record', 'Per incident', 'MCFD', 'MCFD standards E.7.10(j)'],
+  ['Restraint', 'Record the child’s and staff’s perspectives; debrief', 'Debrief “timely”, no fixed hours', 'MCFD', 'MCFD standards C.3.11, C.3.3, C.3.9'],
+  ['Behaviour and discipline', 'Record events leading up to it, and the discipline', 'Per incident', 'MCFD', 'MCFD standards D.7.5, D.7.8(a)'],
+  ['Serious illness or injury', 'Notify the social worker and others of significance', 'As soon as possible', 'MCFD', 'MCFD standards D.6.5(b)'],
+  ['Medication', 'Approval for each prescribed and OTC medication; notify parents as the plan says', 'Before it is given', 'MCFD', 'MCFD standards D.6.6(c)'],
+  ['Individual service record', 'Medical, dental, signed consents, PHN, assessments, day book, incidents', 'Kept current', 'MCFD', 'MCFD standards D.6.6(f), E.7.10'],
+  ['Care plan reviews', 'Record each review in the individual service record', 'Schedule timely review dates; set the frequency in the plan', 'MCFD', 'MCFD standards E.5.6, E.5.13(a)'],
+  ['Program statement of purpose', 'Review and update', 'Annually', 'MCFD', 'MCFD standards A.1.7'],
+  ['Signs of illness', 'Document and respond', 'Promptly', 'CLBC', 'CLBC standards §9'],
+  ['Medication record (MAR)', 'Keep an up-to-date record of all medications', 'Up to date', 'CLBC', 'CLBC standards §11'],
+  ['Medication errors', 'Handle under the critical incident policy', 'Per policy', 'CLBC', 'CLBC standards §11'],
+  ['Individual record', 'Accurate, complete, current; emergency information up to date', 'Ongoing', 'CLBC', 'CLBC standards §3'],
+  ['Individual plan', 'Goals, support needs, service design, delivery, evaluation, changing needs', 'Keep current (no interval stated)', 'CLBC', 'CLBC standards §7'],
+  ['Consent', 'Time-limited; names the information and who it is shared with', 'Renew before it expires', 'CLBC', 'CLBC standards §3'],
+  ['Racism or discrimination', 'Document', 'Promptly', 'CLBC', 'CLBC standards §14'],
+  ['Incident trends', 'Review causes, actions, and results of last year’s efforts', 'At least yearly', 'CLBC', 'CLBC standards §15'],
+  ['Health and safety self-inspection', 'Written report', 'At least twice a year', 'CLBC', 'CLBC standards §16'],
+  ['Emergency plans', 'Review; test each procedure and record results', 'Review every 2 years; test at least yearly', 'CLBC', 'CLBC standards §18'],
+  ['Daily notes (ECC practice)', 'Every resident, every shift', 'Signed before the shift ends', 'Both', 'Evergreen standard'],
+  ['Goal progress (ECC practice)', 'Log when it happens', 'As it happens; review date set on each goal', 'Both', 'Evergreen standard'],
 ];
 
 export default async function DocumentationGuide() {
@@ -34,7 +46,7 @@ export default async function DocumentationGuide() {
   return (
     <main>
       <div className="title-row"><h1>Documentation guide</h1></div>
-      <p className="notice small"><strong>Draft for review.</strong> The CLBC timings come from the CLBC Service Standards and Expectations. The MCFD timings and the COA standards are not confirmed yet, so they are marked “Confirm”. Melvin confirms before staff rely on this.</p>
+      <p className="notice small"><strong>Draft for review.</strong> Timings come from the official MCFD Standards for Staffed Children’s Residential Services and the CLBC Service Standards and Expectations (sources listed at the bottom). COA’s own standards are not publicly available. Melvin confirms before staff rely on this.</p>
 
       <h2>Every shift (both programs)</h2>
       <table className="small">
@@ -64,8 +76,8 @@ export default async function DocumentationGuide() {
 
       <h2>Timings from the standards</h2>
       <table className="small">
-        <thead><tr><th>Record</th><th>What is needed</th><th>When</th><th>Program</th></tr></thead>
-        <tbody>{TIMING.map((r) => <tr key={r[0]}><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td><td>{r[3]}</td></tr>)}</tbody>
+        <thead><tr><th>Record</th><th>What is needed</th><th>When</th><th>Program</th><th>Source</th></tr></thead>
+        <tbody>{TIMING.map((r) => <tr key={r[0]}><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td><td>{r[3]}</td><td>{r[4]}</td></tr>)}</tbody>
       </table>
 
       <h2>Goals</h2>
@@ -78,7 +90,7 @@ export default async function DocumentationGuide() {
       <h2>Activity plan</h2>
       <p className="small">Each house keeps its activity plan on its house page. Write what ran and what didn’t, and why.</p>
 
-      <p className="small muted">Sources: <a href="https://www.communitylivingbc.ca/wp-content/uploads/CLBC-Service-Standards-and-Expectations.pdf">CLBC Service Standards and Expectations</a>. The COA standards are not publicly available, so they are not cited here.</p>
+      <p className="small muted">Sources: <a href="https://www2.gov.bc.ca/assets/gov/family-and-social-supports/data-monitoring-quality-assurance/information-for-service-providers/standards_residential_services.pdf">MCFD Standards for Staffed Children’s Residential Services</a> (official PDF, latest revision June 2026 per the document; section numbers as read in that copy) and <a href="https://www.communitylivingbc.ca/wp-content/uploads/CLBC-Service-Standards-and-Expectations.pdf">CLBC Service Standards and Expectations</a>. COA’s own standards are not publicly available, so they are not cited here.</p>
     </main>
   );
 }
