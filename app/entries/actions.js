@@ -45,6 +45,32 @@ export async function saveEntry(formData) {
   if (path?.startsWith('/')) revalidatePath(path.split('?')[0]);
 }
 
+// A correction: the old version is kept (supabase/entry-versions.sql) with who saved it and when.
+export async function updateEntry(formData) {
+  const { supabase } = await requireUser(['admin', 'manager', 'staff']);
+  const id = text(formData, 'id');
+  const kind = text(formData, 'kind');
+  const type = ENTRY_TYPES[kind];
+  if (!type || !id) throw new Error('Could not find that entry.');
+  const reason = text(formData, 'reason');
+  if (!reason) throw new Error('Write why you are correcting it.');
+  const data = {};
+  for (const f of type.fields) {
+    const v = text(formData, f.name);
+    if (f.required && v === null) throw new Error(`Please fill in "${f.label}".`);
+    if (v !== null) data[f.name] = f.type === 'number' ? Number(v) : v;
+  }
+  const { error } = await supabase.from('entries').update({
+    data,
+    entry_date: text(formData, 'entry_date') ?? undefined,
+    entry_time: text(formData, 'entry_time'),
+    updated_note: reason,
+  }).eq('id', id);
+  if (error) throw new Error('Could not save the correction: ' + error.message);
+  const path = text(formData, 'path');
+  if (path?.startsWith('/')) revalidatePath(path.split('?')[0]);
+}
+
 export async function deleteEntry(formData) {
   const { supabase } = await requireUser(['admin']);
   const { error } = await supabase.from('entries').delete().eq('id', text(formData, 'id'));
