@@ -9,6 +9,8 @@ import { HOUSE_TYPES, PROGRAMS, fmtDate, fmtTime, todayISO, age, daysUntil } fro
 import { PROGRAM_DIFFERENCES } from '@/lib/programCompare';
 import { updateHome } from '@/app/homes/actions';
 import EntryForm from '@/app/components/EntryForm';
+import HouseDirectory from '@/app/homes/HouseDirectory';
+import { levelOf } from '@/lib/levels';
 import EntryList from '@/app/components/EntryList';
 
 export default async function HomePage({ params, searchParams }) {
@@ -17,6 +19,14 @@ export default async function HomePage({ params, searchParams }) {
   const { edit, tab = 'dashboard' } = sp;
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const canEdit = ['admin', 'manager'].includes(profile.role);
+
+  const { data: houseContacts } = await supabase.from('house_contacts').select('*').eq('home_id', id).order('kind');
+  const { data: houseStaff } = await supabase.from('profiles').select('id, full_name, level, role, staff_group').eq('home_id', id).eq('active', true).is('staff_group', null).order('full_name');
+  const { data: houseMgrs } = await supabase.from('manager_homes').select('profiles(id, full_name, level, role, active, staff_group)').eq('home_id', id);
+  const staffList = [...(houseStaff ?? []), ...(houseMgrs ?? []).map((m) => m.profiles).filter((p) => p && p.active && !p.staff_group)]
+    .filter((p, i, a) => a.findIndex((x) => x.id === p.id) === i)
+    .map((p) => ({ ...p, level: p.role === 'admin' ? 8 : levelOf(p) }));
+  const canDirectory = profile.role === 'admin' || levelOf(profile) >= 3 || (levelOf(profile) === 2 && profile.home_id === id);
 
   const today = todayISO();
   const [{ data: home }, { data: residents }, { data: appts }, { data: allHomes }] = await Promise.all([
@@ -141,6 +151,8 @@ export default async function HomePage({ params, searchParams }) {
       {/* ---------- Residents ---------- */}
       <div className="title-row">
         <p className="small"><Link href={`/homes/${id}/activities`}>📅 Activity plan</Link> · <Link href="/documentation">📝 What to document each shift</Link></p>
+
+        <HouseDirectory homeId={id} contacts={houseContacts ?? []} staff={staffList} canEdit={canDirectory} />
 
         <h2>Residents ({current.length}{home.capacity ? ` of ${home.capacity}` : ''})</h2>
         {canEdit && <Link className="button" href={`/residents/new?home=${id}`}>+ Add resident</Link>}
