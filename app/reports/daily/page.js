@@ -30,7 +30,7 @@ const SECTIONS = [
   { key: 'logs', label: 'Other logs (contacts, health, behaviour, money, drills…)' },
   { key: 'checklists', label: 'Shift checklists (whole house only)' },
 ];
-const MAX_DAYS = 3660; // about 120 months
+const MAX_DAYS = 36500; // no practical limit: 100 years
 const SHIFT_ORDER = { Day: 1, Evening: 2, Night: 3 };
 const MAR_FLAG = { Refused: 'bad', Missed: 'bad', Held: 'warn', Error: 'bad' };
 const isDate = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -56,7 +56,7 @@ function vanMidnight(iso) {
 // Supabase returns at most 1000 rows per request; read page by page (up to 20,000 rows).
 async function all(make) {
   const out = [];
-  for (let from = 0; from < 200000; from += 1000) {
+  for (let from = 0; from < 2000000; from += 1000) {
     const { data, error } = await make().range(from, from + 999);
     if (error) return { data: out, error };
     out.push(...(data ?? []));
@@ -105,7 +105,7 @@ export default async function DailyReport({ searchParams }) {
   if (sp.go) {
     if (!home && !resident) problem = 'Choose a house or a person.';
     else if (span < 1) problem = 'The “to” date is before the “from” date.';
-    else if (span > MAX_DAYS) problem = `Please choose 120 months or less (you chose ${span} days). For a longer period, print it in parts.`;
+    else if (span > MAX_DAYS) problem = `Please choose 100 years or less (you chose ${span} days).`;
     else if (to > today) problem = 'The “to” date can’t be in the future.';
     else if (!chosen.size) problem = 'Tick at least one section.';
     else if (chosen.has('logs') && recFilter && !recFilter.size) problem = 'Tick at least one record to print.';
@@ -154,7 +154,7 @@ export default async function DailyReport({ searchParams }) {
         <label>To<input type="date" name="to" defaultValue={to} max={today} required /></label>
       </div>
       <p className="small" style={{ margin: '0 0 8px' }}>
-        Quick dates: <Link href={quick(firstOfMonth, today)}>This month</Link> · <Link href={quick(lastMonthStart, lastMonthEnd)}>Last month</Link> · <Link href={quick(monthsAgo(6), today)}>6 months</Link> · <Link href={quick(monthsAgo(9), today)}>9 months</Link> · <Link href={quick(monthsAgo(12), today)}>12 months</Link> · <Link href={quick(monthsAgo(120), today)}>120 months</Link> ·{' '}
+        Quick dates: <Link href={quick(firstOfMonth, today)}>This month</Link> · <Link href={quick(lastMonthStart, lastMonthEnd)}>Last month</Link> · <Link href={quick(monthsAgo(6), today)}>6 months</Link> · <Link href={quick(monthsAgo(9), today)}>9 months</Link> · <Link href={quick(monthsAgo(12), today)}>12 months</Link> · <Link href={quick(monthsAgo(48), today)}>4 years</Link> · <Link href={quick(monthsAgo(72), today)}>6 years</Link> · <Link href={quick(monthsAgo(120), today)}>10 years</Link> · <Link href={quick(monthsAgo(60), today)}>5 years</Link> · <Link href={quick(monthsAgo(36), today)}>3 years</Link> ·{' '}
         <Link href={quick(addDaysISO(today, -29), today)}>Last 30 days</Link> · <Link href={quick(addDaysISO(today, -89), today)}>Last 90 days</Link>
         <span className="muted"> (then press Show report)</span>
       </p>
