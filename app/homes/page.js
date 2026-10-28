@@ -25,15 +25,29 @@ export default async function HomesPage() {
       {homes?.length === 0 && <p className="muted">No houses yet.</p>}
       <div className="cards">
         {homes?.map((h) => (
-          <Link key={h.id} href={`/homes/${h.id}`} className="house">
-            <strong>{h.name}</strong>
-            <span className="muted small">{h.address ?? 'No address'}</span>
-            <span className="small">
-              <span className="badge">{h.program ?? 'No program'}</span>{' '}
-              <span className="badge">{h.house_type ?? 'Adults'}</span>{' '}
-              {counts[h.id] ?? 0}{h.capacity ? ` / ${h.capacity}` : ''} residents
-            </span>
-          </Link>
+          <div key={h.id} className="house" style={{ display: 'block' }}>
+            <Link href={`/homes/${h.id}`} style={{ display: 'block' }}>
+              <strong>{h.name}</strong>
+              <span className="muted small">{h.address ?? 'No address'}</span>
+              <span className="small">
+                <span className="badge">{h.program ?? 'No program'}</span>{' '}
+                <span className="badge">{h.house_type ?? 'Adults'}</span>{' '}
+                {counts[h.id] ?? 0}{h.capacity ? ` / ${h.capacity}` : ''} residents
+              </span>
+            </Link>
+            <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginTop: 8 }} aria-label={`${h.name} records`}>
+              {h.program ? (
+                <>
+                  <Link className="button" href={`/document?house=${h.id}`}>📝 Document records</Link>
+                  <Link className="button secondary" href={`/homes/${h.id}?tab=records`}>By section</Link>
+                  {h.program === 'CLBC' && <Link className="button secondary" href={`/homes/${h.id}/daily`}>🗓 Daily grid</Link>}
+                  <Link className="button secondary" href={`/reports/daily?home=${h.id}`}>🖨 Report</Link>
+                </>
+              ) : (
+                <span className="small muted">Choose MCFD or CLBC in Edit house to show records.</span>
+              )}
+            </div>
+          </div>
         ))}
       </div>
 
