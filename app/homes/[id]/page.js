@@ -63,6 +63,11 @@ export default async function HomePage({ params, searchParams }) {
   // Records for this house's program (MCFD or CLBC), and what has been entered today, for the side panel.
   const records = recordsFor(home.program);
   const recordKinds = records.filter((r) => !r.tab).map((r) => r.kind);
+  // The last few entries of each record kind, shown under each record on the side panel.
+  const { data: recentRows } = records.length
+    ? await supabase.from('entries').select('id, resident_id, kind, entry_date, entry_time, data').eq('home_id', id)
+      .in('kind', recordKinds).order('entry_date', { ascending: false }).order('entry_time', { ascending: false, nullsFirst: false }).limit(800)
+    : { data: null };
   const { data: todayRecords } = records.length
     ? await supabase.from('entries').select('resident_id, kind').eq('home_id', id).eq('entry_date', today).in('kind', recordKinds)
     : { data: null };
@@ -227,7 +232,7 @@ export default async function HomePage({ params, searchParams }) {
       </ul>
       </>}
       </div>
-      <HouseRecords program={home.program} records={records} residents={current} todayEntries={todayRecords ?? []} />
+      <HouseRecords program={home.program} records={records} residents={current} todayEntries={todayRecords ?? []} recent={recentRows ?? []} />
       </div>
     </main>
   );

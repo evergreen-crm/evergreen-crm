@@ -2,8 +2,22 @@
 // Enter any record for any date and time. The entry form has its own date and time boxes.
 import Link from 'next/link';
 import { isDaily } from '@/lib/records';
+import { ENTRY_TYPES } from '@/lib/entries';
+import { fmtDate } from '@/lib/options';
 
-export default function HouseRecords({ program, records, residents, todayEntries }) {
+// One line for a saved entry: date, time, and its summary.
+const line = (e) => {
+  let text = '';
+  try { text = ENTRY_TYPES[e.kind]?.summary?.(e.data ?? {}) ?? ''; } catch { text = ''; }
+  return `${fmtDate(e.entry_date)}${e.entry_time ? ` ${e.entry_time.slice(0, 5)}` : ''}${text ? ` · ${text}` : ''}`;
+};
+
+export default function HouseRecords({ program, records, residents, todayEntries, recent = [] }) {
+  const last = {};
+  for (const e of recent) {
+    const k = `${e.resident_id}|${e.kind}`;
+    (last[k] ??= []).length < 3 && last[k].push(e);
+  }
   if (!records.length) {
     return (
       <aside aria-label="House records" style={{ flex: '0 1 380px', minWidth: 280 }}>
@@ -49,6 +63,11 @@ export default function HouseRecords({ program, records, residents, todayEntries
                         <Link className="button secondary" href={href}>{rec.tab ? 'Open MAR' : 'Open form'}</Link>
                         {!rec.tab && <span className="small">{n} today</span>}
                       </div>
+                      {!rec.tab && (last[`${r.id}|${rec.kind}`] ?? []).length > 0 && (
+                        <ul className="small muted" style={{ margin: '4px 0 0', paddingLeft: 16 }}>
+                          {last[`${r.id}|${rec.kind}`].map((e) => <li key={e.id}>{line(e)}</li>)}
+                        </ul>
+                      )}
                     </li>
                   );
                 })}
