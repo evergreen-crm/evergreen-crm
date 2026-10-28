@@ -103,3 +103,11 @@ export async function removeProtectedDay(fd) {
   await supabase.from('protected_days').delete().eq('profile_id', user.id).eq('day', s(fd, 'day'));
   back('mine', 'Removed.');
 }
+
+// Fill one vacant shift for a person on approved-pending time off (PC or PM of the house).
+export async function fillVacancy(fd) {
+  const { supabase } = await requireUser(['admin', 'manager', 'staff']);
+  const { error } = await supabase.rpc('fill_vacancy', { p_shift: s(fd, 'shift_id'), p_profile: s(fd, 'profile_id') });
+  if (error) back('timeoff', msg(error), true);
+  back('timeoff', 'Shift filled. The request can be approved once every shift is filled.');
+}

@@ -4,7 +4,7 @@ import { addDaysISO, fmtDate, fmtTime, todayISO } from '@/lib/options';
 import { levelOf } from '@/lib/levels';
 import NotReady from '@/app/components/NotReady';
 import { PRESETS } from '@/lib/staffing';
-import { saveStaffing, setHouseManagers, assignLine, pickUp, offerShift, decidePickup, requestTimeOff, decideTimeOff, addProtectedDay, removeProtectedDay } from './teams-actions';
+import { saveStaffing, setHouseManagers, assignLine, pickUp, offerShift, decidePickup, requestTimeOff, decideTimeOff, addProtectedDay, removeProtectedDay, fillVacancy } from './teams-actions';
 
 const A = new Set([0, 1, 4, 5, 6, 8, 9, 10, 11]);
 const daysBetween = (a, b) => Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 864e5);
@@ -195,9 +195,17 @@ export async function TimeOffTab({ supabase, profile }) {
   // Only the requests this person decides (chain: staff → PC → PM → director → CEO).
   const { data: waiting } = lead ? await supabase.rpc('time_off_pending_for_me') : { data: [] };
   const whoIds = [...new Set((waiting ?? []).map((r) => r.profile_id))];
-  const { data: names } = whoIds.length ? await supabase.from('profiles').select('id, full_name').in('id', whoIds) : { data: [] };
-  const nameOf = Object.fromEntries((names ?? []).map((n) => [n.id, n.full_name]));
-  const pending = (waiting ?? []).map((r) => ({ ...r, who: { full_name: nameOf[r.profile_id] } }));
+  const { data: names } = whoIds.length ? await supabase.from('profiles').select('id, full_name, home_id').in('id', whoIds) : { data: [] };
+  const byId = Object.fromEntries((names ?? []).map((n) => [n.id, n]));
+  const homeIds = [...new Set((names ?? []).map((n) => n.home_id).filter(Boolean))];
+  const { data: cover } = homeIds.length ? await supabase.from('profiles').select('id, full_name, home_id').in('home_id', homeIds).eq('active', true).is('staff_group', null) : { data: [] };
+  const { data: vacant } = whoIds.length ? await supabase.from('shifts').select('id, profile_id, shift_date, start_time, end_time, label').in('profile_id', whoIds).gte('shift_date', today) : { data: [] };
+  const pending = (waiting ?? []).map((r) => {
+    const who = byId[r.profile_id];
+    const rows = (vacant ?? []).filter((x) => x.profile_id === r.profile_id && x.shift_date >= today && x.shift_date >= r.start_date && x.shift_date <= r.end_date);
+    const options = (cover ?? []).filter((c) => c.home_id === who?.home_id && c.id !== r.profile_id);
+    return { ...r, who: { full_name: who?.full_name }, rows, options };
+  });
   const onVacation = all.filter((r) => r.status === 'Approved' && r.end_date >= today && r.profile_id !== profile.id);
   const isTop = levelOf(profile) >= 4 || profile.role === 'admin';
   const span = (r) => `${fmtDate(r.start_date)}${r.end_date !== r.start_date ? ` – ${fmtDate(r.end_date)}` : ''}`;
@@ -211,10 +219,26 @@ export async function TimeOffTab({ supabase, profile }) {
             <div key={r.id} className="req-row">
               <p style={{ margin: 0 }}><strong>{r.who?.full_name}</strong> · {r.kind} · {span(r)}{r.start_date < addDaysISO(today, 28) && ['Vacation', 'Personal'].includes(r.kind) && <span className="badge warn"> under 4 weeks’ notice</span>}</p>
               {r.note && <p className="small" style={{ margin: '2px 0' }}>“{r.note}”</p>}
+              {r.rows.length > 0 && (
+                <div className="small" style={{ margin: '6px 0' }}>
+                  <strong>Fill these {r.rows.length} shift{r.rows.length === 1 ? '' : 's'} before approving:</strong>
+                  {r.rows.map((x) => (
+                    <form key={x.id} action={fillVacancy} className="row" style={{ gap: 6, alignItems: 'center', marginTop: 4 }}>
+                      <input type="hidden" name="shift_id" value={x.id} />
+                      <span>{fmtDate(x.shift_date)} · {fmtTime(x.start_time)}–{fmtTime(x.end_time)} {x.label ?? ''}</span>
+                      <select name="profile_id" required defaultValue="">
+                        <option value="" disabled>Who covers?</option>
+                        {r.options.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+                      </select>
+                      <button className="secondary">Fill</button>
+                    </form>
+                  ))}
+                </div>
+              )}
               <form action={decideTimeOff} className="row" style={{ gap: 8, alignItems: 'flex-end' }}>
                 <input type="hidden" name="id" value={r.id} />
                 <label>Message (optional)<input name="note" /></label>
-                <button name="decision" value="approve">✅ Approve</button>
+                <button name="decision" value="approve" disabled={r.rows.length > 0}>✅ Approve</button>
                 <button name="decision" value="decline" className="secondary">⛔ Decline</button>
               </form>
             </div>
