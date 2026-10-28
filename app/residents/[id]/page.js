@@ -11,6 +11,7 @@ import NoteCard from '@/app/notes/NoteCard';
 import { saveNote } from '@/app/notes/actions';
 import { shiftNow } from '@/lib/checklist';
 import Requirements from './Requirements';
+import Consents from './Consents';
 import Incidents from './Incidents';
 import PrintButton from '@/app/PrintButton';
 import Mar from './Mar';
@@ -31,6 +32,7 @@ const TABS = [
   { key: 'money', label: 'Money' },
   { key: 'incidents', label: 'Incidents' },
   { key: 'requirements', label: 'Requirements' },
+  { key: 'consents', label: 'Consents' },
   { key: 'documents', label: 'Documents' },
   { key: 'messages', label: 'Messages', family: true },
   { key: 'all', label: 'Full file (print)' },
@@ -50,6 +52,7 @@ export default async function ResidentPage({ params, searchParams }) {
   const isAdmin = profile.role === 'admin';
 
   const canEdit = ['admin', 'manager'].includes(profile.role);
+  const canEditResident = profile.role === 'admin' || levelOf(profile) >= 2;
   const { data: resident } = await supabase
     .from('residents')
     .select(isStaff ? '*, homes(id, name)' : 'id, first_name, last_name, preferred_name, status, homes(id, name)')
@@ -260,6 +263,13 @@ export default async function ResidentPage({ params, searchParams }) {
           {tab === 'all' && <h2 className="page-break">Requirements</h2>}
           <Requirements supabase={supabase} resident={resident} />
         </>
+      )}
+
+      {isStaff && (tab === 'consents' || tab === 'all') && (
+        <section>
+          {tab === 'all' && <h2 className="page-break">Consents</h2>}
+          <Consents supabase={supabase} resident={resident} canEdit={canEditResident} />
+        </section>
       )}
 
       {isStaff && (tab === 'incidents' || tab === 'all') && (
