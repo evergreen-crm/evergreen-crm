@@ -47,7 +47,7 @@ export default async function DailyGrid({ params, searchParams }) {
   const saveDisabledNote = date > todayISO();
 
   return (
-    <section>
+    <section className="doc-form">
       <div className="title-row">
         <h2>{home.name}: daily grid {home.program ? `(${home.program})` : ''}</h2>
       </div>
