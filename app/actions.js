@@ -223,3 +223,30 @@ export async function setDivisionLevels(formData) {
   revalidatePath('/portal');
   redirect('/admin?ok=' + encodeURIComponent('Division access by level saved.') + '#divisions');
 }
+
+// Program Coordinators (level 2) and Program Managers (level 3) can see their own home plus up to one more
+// (two homes in all). Ticking a house here gives access to it. The database enforces the same limit
+// (supabase/home-scope-two-homes.sql).
+export async function setPersonHomes(formData) {
+  const { user } = await requireUser(['admin']);
+  const userId = text(formData, 'user_id');
+  if (!userId) redirect('/admin?error=' + encodeURIComponent('Could not find that person.'));
+  const admin = createAdminClient();
+  const { data: person } = await admin.from('profiles').select('id, level, home_id').eq('id', userId).maybeSingle();
+  if (!person || ![2, 3].includes(Number(person.level))) {
+    redirect('/admin?error=' + encodeURIComponent('Houses are chosen for Program Coordinators and Program Managers only.') + '#people');
+  }
+  const picked = [...new Set(formData.getAll('home').map(String).filter(Boolean))];
+  const extra = picked.filter((h) => h !== person.home_id);
+  if (extra.length + (person.home_id ? 1 : 0) > 2) {
+    redirect('/admin?error=' + encodeURIComponent('Two homes at most: their own home and one more. Untick a house first.') + '#people');
+  }
+  const { error: delErr } = await admin.from('manager_homes').delete().eq('profile_id', userId);
+  if (delErr) redirect('/admin?error=' + encodeURIComponent('Could not update houses: ' + delErr.message) + '#people');
+  if (extra.length) {
+    const { error } = await admin.from('manager_homes').insert(extra.map((home_id) => ({ profile_id: userId, home_id })));
+    if (error) redirect('/admin?error=' + encodeURIComponent('Could not add that house: ' + error.message) + '#people');
+  }
+  revalidatePath('/admin');
+  redirect('/admin?ok=' + encodeURIComponent('Houses saved.') + '#people');
+}

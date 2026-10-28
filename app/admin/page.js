@@ -1,6 +1,6 @@
 // Admin: give each person access, turn access off, add homes and residents.
 import { requireUser } from '@/lib/auth';
-import { inviteUser, setUserActive, addHome, addResident, setUserLevel, setDivisionLevels } from '@/app/actions';
+import { inviteUser, setUserActive, addHome, addResident, setUserLevel, setDivisionLevels, setPersonHomes } from '@/app/actions';
 import { LEVELS, GROUPS, levelOf, groupOf, accessValue, personLabel } from '@/lib/levels';
 import { DIVISIONS } from '@/lib/divisions';
 import { getDivisionLevels } from '@/lib/portal';
@@ -17,6 +17,9 @@ export default async function AdminPage({ searchParams }) {
     supabase.from('residents').select('id, first_name, last_name, homes(name)').order('last_name'),
     getDivisionLevels(supabase),
   ]);
+  const { data: extraHomes } = await supabase.from('manager_homes').select('profile_id, home_id');
+  const extraBy = {};
+  for (const m of extraHomes ?? []) (extraBy[m.profile_id] ??= []).push(m.home_id);
   // Before supabase/access-levels.sql is run there is no `level` column.
   // Before supabase/staff-groups.sql is run there is no `staff_group` column.
   const peopleNoGroup = peopleErr ? await supabase.from('profiles').select('id, full_name, email, phone, role, level, home_id, active, homes(name)').order('full_name') : null;
@@ -103,6 +106,25 @@ export default async function AdminPage({ searchParams }) {
                     </select>
                     <button className="secondary small">Save</button>
                   </form>
+                )}
+                {!(p.role === 'family' || !levelsReady) && [2, 3].includes(Number(p.level)) && (
+                  <details className="small" style={{ marginTop: 6 }}>
+                    <summary>Houses they can see (up to two: own home plus one)</summary>
+                    <form action={setPersonHomes} className="stack small">
+                      <input type="hidden" name="user_id" value={p.id} />
+                      {homes?.map((h) => {
+                        const own = h.id === p.home_id;
+                        const on = own || (extraBy[p.id] ?? []).includes(h.id);
+                        return (
+                          <label key={h.id} className="check">
+                            <input type="checkbox" name="home" value={h.id} defaultChecked={on} />
+                            {h.name}{own ? ' (own home)' : ''}
+                          </label>
+                        );
+                      })}
+                      <button className="secondary small">Save houses</button>
+                    </form>
+                  </details>
                 )}
               </td>
               <td>{p.homes?.name ?? '—'}</td>
