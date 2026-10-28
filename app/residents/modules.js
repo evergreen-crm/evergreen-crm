@@ -80,9 +80,24 @@ export async function addGoal(formData) {
     domain: text(formData, 'domain'),
     description: text(formData, 'description'),
     target_date: text(formData, 'target_date'),
+    review_date: text(formData, 'review_date'),
     created_by: user.id,
   });
   if (error) throw new Error('Could not add goal: ' + error.message);
+  refresh(residentId);
+}
+
+// A goal review: when it was reviewed, the next review date, and what was decided.
+export async function recordGoalReview(formData) {
+  const { supabase, user } = await requireUser(['admin', 'manager']);
+  const residentId = text(formData, 'resident_id');
+  const { error } = await supabase.from('goals').update({
+    reviewed_on: text(formData, 'reviewed_on'),
+    review_date: text(formData, 'review_date'),
+    review_note: text(formData, 'review_note'),
+    reviewed_by: user.id,
+  }).eq('id', text(formData, 'id'));
+  if (error) throw new Error('Could not record the review: ' + error.message);
   refresh(residentId);
 }
 

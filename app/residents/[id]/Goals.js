@@ -1,6 +1,7 @@
 // "Goals" tab: care plan goals and daily progress.
 import { GOAL_DOMAINS, fmtDate } from '@/lib/options';
-import { addGoal, setGoalStatus } from '@/app/residents/modules';
+import { addGoal, setGoalStatus, recordGoalReview } from '@/app/residents/modules';
+import { todayISO, addDaysISO } from '@/lib/options';
 import EntryForm from '@/app/components/EntryForm';
 import EntryList from '@/app/components/EntryList';
 
@@ -34,6 +35,28 @@ export default async function Goals({ supabase, resident, canEdit, isStaff, isAd
               <strong>{g.title}</strong>
               <span className="muted small">{[g.domain, g.target_date && `target ${fmtDate(g.target_date)}`].filter(Boolean).join(' · ')}</span>
               {g.description && <span className="small">{g.description}</span>}
+              {g.status === 'Active' && (() => {
+                const t = todayISO();
+                if (!g.review_date) return <span className="badge warn">No review date set</span>;
+                if (g.review_date < t) return <span className="badge bad">Review overdue since {fmtDate(g.review_date)}</span>;
+                if (g.review_date <= addDaysISO(t, 14)) return <span className="badge warn">Review due {fmtDate(g.review_date)}</span>;
+                return <span className="small muted">Next review {fmtDate(g.review_date)}</span>;
+              })()}
+              {g.reviewed_on && <span className="small muted">Last reviewed {fmtDate(g.reviewed_on)}{g.review_note ? `: ${g.review_note}` : ''}</span>}
+              {canEdit && g.status === 'Active' && (
+                <details className="no-print">
+                  <summary className="link small">Record a review</summary>
+                  <form action={recordGoalReview} className="stack">
+                    <input type="hidden" name="id" value={g.id} /><input type="hidden" name="resident_id" value={resident.id} />
+                    <div className="row">
+                      <label>Reviewed on<input type="date" name="reviewed_on" defaultValue={todayISO()} required /></label>
+                      <label>Next review<input type="date" name="review_date" defaultValue={addDaysISO(todayISO(), 90)} required /></label>
+                    </div>
+                    <label>What was decided<input name="review_note" placeholder="e.g., Continue; now with prompts only" /></label>
+                    <button className="secondary">Save review</button>
+                  </form>
+                </details>
+              )}
               <span>
                 <span className={`badge ${g.status === 'Achieved' ? '' : g.status === 'Active' ? 'warn' : ''}`}>{g.status}</span>{' '}
                 {avg !== null && <span className="small muted">Last {recent.length}: {'●'.repeat(Math.round(avg))}{'○'.repeat(3 - Math.round(avg))} ({avg >= 2.5 ? 'mostly independent' : avg >= 1.5 ? 'with prompts' : 'needs support'})</span>}
@@ -60,6 +83,7 @@ export default async function Goals({ supabase, resident, canEdit, isStaff, isAd
             <div className="row">
               <label>Area<select name="domain" defaultValue="">{['', ...GOAL_DOMAINS].map((d) => <option key={d} value={d}>{d || '—'}</option>)}</select></label>
               <label>Target date<input type="date" name="target_date" /></label>
+              <label>Next review date<input type="date" name="review_date" defaultValue={addDaysISO(todayISO(), 90)} /></label>
             </div>
             <label>How staff support it<textarea name="description" rows={2} /></label>
             <button>Add goal</button>
