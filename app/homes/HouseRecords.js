@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { isDaily } from '@/lib/records';
 import { ENTRY_TYPES } from '@/lib/entries';
 import { fmtDate } from '@/lib/options';
+import RecordForm from '@/app/components/RecordForm';
 
 // One line for a saved entry: date, time, and its summary.
 const line = (e) => {
@@ -60,9 +61,17 @@ export default function HouseRecords({ homeId, program, records, residents, toda
                       <div className="muted small">{rec.standard}</div>
                       <div className="small">{rec.when}</div>
                       <div className="row" style={{ alignItems: 'center', gap: 8, marginTop: 4 }}>
-                        <Link className="button secondary" href={href}>{rec.tab ? 'Open MAR' : 'Open form'}</Link>
+                        <Link className="button secondary" href={href}>{rec.tab ? 'Open MAR' : 'Full page'}</Link>
                         {!rec.tab && <span className="small">{n} today</span>}
                       </div>
+                      {!rec.tab && (
+                        <details style={{ marginTop: 6 }}>
+                          <summary className="small"><strong>Write {rec.section.toLowerCase()} here</strong></summary>
+                          <div style={{ marginTop: 6 }}>
+                            <RecordForm compact kind={rec.kind} homeId={homeId} residentId={r.id} path={`/homes/${homeId}`} goals={[]} />
+                          </div>
+                        </details>
+                      )}
                       {!rec.tab && (last[`${r.id}|${rec.kind}`] ?? []).length > 0 && (
                         <ul className="small muted" style={{ margin: '4px 0 0', paddingLeft: 16 }}>
                           {last[`${r.id}|${rec.kind}`].map((e) => <li key={e.id}>{line(e)}</li>)}

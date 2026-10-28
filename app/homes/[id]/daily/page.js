@@ -41,6 +41,7 @@ export default async function DailyGrid({ params, searchParams }) {
   const savedBy = {};
   for (const e of saved ?? []) savedBy[`${e.resident_id}|${e.kind}`] = e;
 
+  const canEnter = home.program === 'CLBC';
   const base = `/homes/${id}/daily`;
   const nav = (d) => `${base}?date=${d}`;
   const saveDisabledNote = date > todayISO();
@@ -64,8 +65,9 @@ export default async function DailyGrid({ params, searchParams }) {
       </div>
       <p className="muted small">Fill in only what happened. Each row is one child. Leave a cell blank if it is not needed. Save all writes every filled row at once. Records already saved for this date show as saved.</p>
 
+      {home.program === 'MCFD' && <p className="message">MCFD records are written in each section on the house page, under “MCFD records by section”. This grid only shows what has been written for the day.</p>}
       {kinds.length > 0 && (
-        <form action={saveDailyGrid} style={{ marginTop: 8 }}>
+        <form action={canEnter ? saveDailyGrid : undefined} style={{ marginTop: 8 }}>
           <input type="hidden" name="home_id" value={home.id} />
           <input type="hidden" name="entry_date" value={date} />
           <input type="hidden" name="program" value={home.program} />
@@ -96,6 +98,7 @@ export default async function DailyGrid({ params, searchParams }) {
                           <Link href={`/residents/${r.id}?tab=logs&type=${k}`}>View</Link>
                         </td>;
                       }
+                      if (!canEnter) return <td key={k} colSpan={gridFields(k).length} className="small muted" style={{ borderLeft: '2px solid #888' }}>Not yet</td>;
                       return gridFields(k).map((f, i) => (
                         <td key={k + f.name} style={{ borderLeft: i === 0 ? '2px solid #888' : undefined, padding: 2 }}>
                           <Cell resident={r} kind={k} field={f} />
@@ -107,7 +110,7 @@ export default async function DailyGrid({ params, searchParams }) {
               </tbody>
             </table>
           </div>
-          {(residents ?? []).length > 0 && (
+          {canEnter && (residents ?? []).length > 0 && (
             <div className="row" style={{ marginTop: 12, gap: 8 }}>
               <button disabled={saveDisabledNote}>Save all for {fmtDate(date)}</button>
               {saveDisabledNote && <span className="small muted">Dates after today can’t be saved.</span>}

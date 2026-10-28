@@ -6,19 +6,19 @@ import { Field } from '@/app/components/EntryForm';
 import { todayISO, nowTime } from '@/lib/options';
 import PrintButton from '@/app/components/PrintButton';
 
-export default function RecordForm({ kind, homeId, residentId, path, goals, title, standard, resident, home }) {
+export default function RecordForm({ kind, homeId, residentId, path, goals, title, standard, resident, home, compact = false }) {
   const type = ENTRY_TYPES[kind];
   const required = type.fields.filter((f) => f.required);
   const optional = type.fields.filter((f) => !f.required);
   return (
-    <div className="print-area">
-      <header style={{ borderBottom: '2px solid #000', paddingBottom: 8, marginBottom: 12 }}>
+    <div className={compact ? undefined : 'print-area'}>
+      {!compact && <header style={{ borderBottom: '2px solid #000', paddingBottom: 8, marginBottom: 12 }}>
         <h1 style={{ margin: 0 }}>{title ?? type.label}</h1>
         <p className="small" style={{ margin: '4px 0 0' }}>
           <strong>Resident:</strong> {resident} · <strong>House:</strong> {home}{standard ? ` · Standard: ${standard}` : ''}
         </p>
         <p className="small muted" style={{ margin: '4px 0 0' }}>Fields marked * must be filled in. Other fields are optional. Date and time are at the bottom.</p>
-      </header>
+      </header>}
       <form action={saveEntry}>
         <input type="hidden" name="kind" value={kind} />
         <input type="hidden" name="home_id" value={homeId} />
@@ -47,7 +47,7 @@ export default function RecordForm({ kind, homeId, residentId, path, goals, titl
           <PrintButton />
         </div>
       </form>
-      <style>{`@media print { .no-print, nav, header.app-header { display: none !important; } .print-area { font-size: 12pt; } input, textarea, select { border: 1px solid #000 !important; } }`}</style>
+      {!compact && <style>{`@media print { .no-print, nav, header.app-header { display: none !important; } .print-area { font-size: 12pt; } input, textarea, select { border: 1px solid #000 !important; } }`}</style>}
     </div>
   );
 }
