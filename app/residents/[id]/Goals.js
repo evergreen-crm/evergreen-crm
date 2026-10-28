@@ -1,6 +1,7 @@
 // "Goals" tab: care plan goals and daily progress.
 import { GOAL_DOMAINS, fmtDate } from '@/lib/options';
 import { addGoal, setGoalStatus, recordGoalReview } from '@/app/residents/modules';
+import { addGoalStep, toggleGoalStep } from '@/app/document/actions';
 import { todayISO, addDaysISO } from '@/lib/options';
 import EntryForm from '@/app/components/EntryForm';
 import EntryList from '@/app/components/EntryList';
@@ -14,6 +15,12 @@ export default async function Goals({ supabase, resident, canEdit, isStaff, isAd
       .eq('resident_id', resident.id).eq('kind', 'goal_progress')
       .order('entry_date', { ascending: false }).order('created_at', { ascending: false }).limit(200),
   ]);
+  const goalIds = (goals ?? []).map((g) => g.id);
+  const { data: stepRows } = goalIds.length
+    ? await supabase.from('goal_steps').select('id, goal_id, step, done_on, sort').in('goal_id', goalIds).order('sort').order('created_at')
+    : { data: [] };
+  const stepsByGoal = {};
+  for (const s of stepRows ?? []) (stepsByGoal[s.goal_id] ??= []).push(s);
   const active = (goals ?? []).filter((g) => g.status === 'Active');
   const names = Object.fromEntries((goals ?? []).map((g) => [g.id, g.title]));
   const path = `/residents/${resident.id}`;
@@ -43,6 +50,40 @@ export default async function Goals({ supabase, resident, canEdit, isStaff, isAd
                 return <span className="small muted">Next review {fmtDate(g.review_date)}</span>;
               })()}
               {g.reviewed_on && <span className="small muted">Last reviewed {fmtDate(g.reviewed_on)}{g.review_note ? `: ${g.review_note}` : ''}</span>}
+              {(() => {
+                const steps = stepsByGoal[g.id] ?? [];
+                const doneCount = steps.filter((s) => s.done_on).length;
+                return (
+                  <div className="small" style={{ marginTop: 6 }}>
+                    <strong>Steps to achieve this goal{steps.length ? ` (${doneCount} of ${steps.length} done)` : ''}</strong>
+                    {steps.length === 0 && <p className="muted small" style={{ margin: '2px 0' }}>No steps yet.</p>}
+                    <ul style={{ listStyle: 'none', padding: 0, margin: '4px 0' }}>
+                      {steps.map((s) => (
+                        <li key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span style={{ textDecoration: s.done_on ? 'line-through' : 'none' }}>{s.step}</span>
+                          {s.done_on && <span className="badge">Done {fmtDate(s.done_on)}</span>}
+                          {isStaff && (
+                            <form action={toggleGoalStep} className="no-print" style={{ display: 'inline' }}>
+                              <input type="hidden" name="id" value={s.id} />
+                              <input type="hidden" name="done" value={s.done_on ? 'no' : 'yes'} />
+                              <input type="hidden" name="path" value={path} />
+                              <button className="secondary" style={{ minHeight: 0, padding: '2px 8px' }}>{s.done_on ? 'Undo' : 'Mark done'}</button>
+                            </form>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    {canEdit && g.status === 'Active' && (
+                      <form action={addGoalStep} className="row no-print">
+                        <input type="hidden" name="goal_id" value={g.id} />
+                        <input type="hidden" name="path" value={path} />
+                        <input name="step" placeholder="Add a step" aria-label={`New step for ${g.title}`} required />
+                        <button className="secondary">Add step</button>
+                      </form>
+                    )}
+                  </div>
+                );
+              })()}
               {canEdit && g.status === 'Active' && (
                 <details className="no-print">
                   <summary className="link small">Record a review</summary>

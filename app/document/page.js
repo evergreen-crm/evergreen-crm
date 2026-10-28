@@ -146,24 +146,34 @@ export default async function DocumentRecords({ searchParams }) {
                             const medType = m.is_prn ? 'As needed (PRN)' : 'Scheduled';
                             const label = <><strong>{m.name}</strong><br /><span className="muted">{[m.dose, m.route].filter(Boolean).join(' · ')}</span></>;
                             if (m.is_prn) {
-                              const d = doseFor(m.id, null);
-                              return [(
-                                <tr key={`${m.id}-prn`} style={{ borderBottom: '1px solid #ccc', verticalAlign: 'top' }}>
+                              // As-needed: every dose already given today shows as its own row, then one blank row to add another.
+                              const prnDoses = doses.filter((d) => d.medication_id === m.id && d.scheduled_time == null);
+                              const timeText = (d) => (d.given_at ? new Date(d.given_at).toLocaleTimeString('en-GB', { timeZone: 'America/Vancouver', hour: '2-digit', minute: '2-digit', hour12: false }) : '');
+                              const done = prnDoses.map((d, i) => (
+                                <tr key={`${m.id}-prn-done-${i}`} style={{ borderBottom: '1px solid #ccc', verticalAlign: 'top' }}>
                                   <td style={{ padding: 10 }}>{label}</td>
                                   <td style={{ padding: 10 }}>{medType}</td>
+                                  <td style={{ padding: 10, minWidth: 160 }}>{timeText(d)}</td>
+                                  <td style={{ padding: 10, minWidth: 180 }}><span className={`badge ${d.status === 'Given' ? '' : 'bad'}`}>{d.status}</span></td>
+                                  <td style={{ padding: 10, minWidth: 220 }}>{d.reason ?? '—'}</td>
+                                </tr>
+                              ));
+                              const blank = (
+                                <tr key={`${m.id}-prn-new`} style={{ borderBottom: '1px solid #ccc', verticalAlign: 'top' }}>
+                                  <td style={{ padding: 10 }}>{label}</td>
+                                  <td style={{ padding: 10 }}>{medType}{prnDoses.length ? ' · add another dose' : ''}</td>
                                   <td style={{ padding: 10, minWidth: 160 }}>
-                                    {d ? (d.given_at ? new Date(d.given_at).toLocaleTimeString('en-GB', { timeZone: 'America/Vancouver', hour: '2-digit', minute: '2-digit', hour12: false }) : '') : <input type="time" name={`time|${m.id}|prn`} aria-label={`Time for ${m.name}`} />}
+                                    <input type="time" name={`time|${m.id}|prn`} aria-label={`Time for ${m.name}`} />
                                   </td>
                                   <td style={{ padding: 10, minWidth: 180 }}>
-                                    {d ? <span className={`badge ${d.status === 'Given' ? '' : 'bad'}`}>{d.status}</span> : (
-                                      <select name={`mar|${m.id}|prn`} defaultValue="" aria-label={`Given for ${m.name}`}><option value="">— leave blank</option>{MAR_OPTIONS.map(([v2, l]) => <option key={v2} value={v2}>{l}</option>)}</select>
-                                    )}
+                                    <select name={`mar|${m.id}|prn`} defaultValue="" aria-label={`Given for ${m.name}`}><option value="">— leave blank</option>{MAR_OPTIONS.map(([v2, l]) => <option key={v2} value={v2}>{l}</option>)}</select>
                                   </td>
                                   <td style={{ padding: 10, minWidth: 220 }}>
-                                    {d ? (d.reason ?? '—') : <input name={`reason|${m.id}|prn`} aria-label={`Reason for ${m.name}`} placeholder="Why it was given" />}
+                                    <input name={`reason|${m.id}|prn`} aria-label={`Reason for ${m.name}`} placeholder="Why it was given" />
                                   </td>
                                 </tr>
-                              )];
+                              );
+                              return [...done, blank];
                             }
                             const times = (m.times ?? []).length ? m.times : [null];
                             return times.map((t) => {
