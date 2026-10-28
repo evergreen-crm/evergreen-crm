@@ -1,4 +1,4 @@
-// "Logs" tab: MCFD day book and wellness checks (MCFD houses only), contact log, health logs, behaviour (ABC).
+// "Logs" tab: MCFD documentation (MCFD houses) or CLBC documentation (CLBC houses), contact log, health logs, behaviour (ABC).
 import Link from 'next/link';
 import { RESIDENT_LOG_GROUPS, typesIn, ENTRY_TYPES } from '@/lib/entries';
 import { requireUser } from '@/lib/auth';
@@ -12,7 +12,7 @@ export default async function Logs({ supabase, resident, type, isAdmin }) {
   const { data: home } = await supabase.from('homes').select('program').eq('id', resident.home_id).maybeSingle();
   // MCFD documentation only shows in MCFD houses; CLBC documentation shows in CLBC houses.
   const groups = RESIDENT_LOG_GROUPS
-    .filter((g) => g !== 'MCFD' || home?.program === 'MCFD')
+    .filter((g) => (g !== 'MCFD' || home?.program === 'MCFD') && (g !== 'CLBC' || home?.program === 'CLBC'))
     .map((g) => ({ name: g, types: typesIn(g).filter((t) => !t.hidden) }));
   const allKinds = groups.flatMap((g) => g.types.map((t) => t.key));
   const kind = allKinds.includes(type) ? type : null;
@@ -41,13 +41,13 @@ export default async function Logs({ supabase, resident, type, isAdmin }) {
         <Link href={base} className={!kind ? 'on' : ''}>All logs</Link>
         {groups.map((g) => (
           <span key={g.name} className="pill-group">
-            <span className="muted small">{g.name === 'MCFD' ? 'MCFD documentation' : g.name}:</span>
+            <span className="muted small">{g.name === 'MCFD' || g.name === 'CLBC' ? `${g.name} documentation` : g.name}:</span>
             {g.types.map((t) => <Link key={t.key} href={`${base}&type=${t.key}`} className={kind === t.key ? 'on' : ''}>{t.icon} {t.label}</Link>)}
           </span>
         ))}
       </div>
       {kind
-        ? <EntryForm kind={kind} homeId={resident.home_id} residentId={resident.id} path={path} shareable={!['Behaviour', 'MCFD'].includes(ENTRY_TYPES[kind].group)} open />
+        ? <EntryForm kind={kind} homeId={resident.home_id} residentId={resident.id} path={path} shareable={!['Behaviour', 'MCFD', 'CLBC'].includes(ENTRY_TYPES[kind].group)} open />
         : <p className="muted small no-print">Pick a log type above to add an entry. Every save shows the date and time, and corrections keep the earlier version. Staff can correct their own entry for 30 minutes after saving.</p>}
       <EntryList entries={entries} versions={versions} path={path} isAdmin={isAdmin} canCorrect={canCorrect} showFamily />
     </section>
