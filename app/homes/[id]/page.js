@@ -13,8 +13,8 @@ import HouseDirectory from '@/app/homes/HouseDirectory';
 import { levelOf } from '@/lib/levels';
 import RecordChecks from '@/app/homes/RecordChecks';
 import EntryList from '@/app/components/EntryList';
-import McfdDaily from '@/app/homes/McfdDaily';
-import { MCFD_RECORDS } from '@/lib/mcfdStandards';
+import HouseRecords from '@/app/homes/HouseRecords';
+import { recordsFor } from '@/lib/records';
 
 export default async function HomePage({ params, searchParams }) {
   const { id } = await params;
@@ -60,10 +60,11 @@ export default async function HomePage({ params, searchParams }) {
   const { data: lastDrill } = await supabase.from('entries').select('entry_date')
     .eq('home_id', id).eq('kind', 'fire_drill').order('entry_date', { ascending: false }).limit(1).maybeSingle();
   const drillThisMonth = lastDrill?.entry_date?.slice(0, 7) === today.slice(0, 7);
-  // MCFD daily records (today), for the shift log's child-by-child panel.
-  const mcfdKinds = MCFD_RECORDS.filter((r) => !r.tab).map((r) => r.kind);
-  const { data: mcfdToday } = tab === 'commbook' && home.program === 'MCFD'
-    ? await supabase.from('entries').select('resident_id, kind').eq('home_id', id).eq('entry_date', today).in('kind', mcfdKinds)
+  // Records for this house's program (MCFD or CLBC), and what has been entered today, for the side panel.
+  const records = recordsFor(home.program);
+  const recordKinds = records.filter((r) => !r.tab).map((r) => r.kind);
+  const { data: todayRecords } = records.length
+    ? await supabase.from('entries').select('resident_id, kind').eq('home_id', id).eq('entry_date', today).in('kind', recordKinds)
     : { data: null };
   const TABS = [['dashboard', '📊 Dashboard'], ['residents', 'Residents'], ['commbook', 'Shift log'], ['safety', 'Fire drills & safety']];
 
@@ -134,6 +135,8 @@ export default async function HomePage({ params, searchParams }) {
       )}
 
       {!drillThisMonth && <p className="alert">No fire drill recorded yet this month{lastDrill ? ` (last one ${fmtDate(lastDrill.entry_date)})` : ''}.</p>}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-start' }}>
+      <div style={{ flex: '1 1 480px', minWidth: 0 }}>
       <nav className="tabs-bar no-print">
         {TABS.map(([k, label]) => <Link key={k} href={`${path}?tab=${k}`} className={tab === k ? 'on' : ''}>{label}</Link>)}
         <Link href={`/schedule?home=${id}`}>Schedule →</Link>
@@ -146,7 +149,6 @@ export default async function HomePage({ params, searchParams }) {
       {tab === 'commbook' && (
         <section>
           <p className="muted small">Read this at the start of every shift. Important messages stay highlighted.</p>
-          {home.program === 'MCFD' && <McfdDaily residents={current} todayEntries={mcfdToday ?? []} />}
           <EntryForm kind="commbook" homeId={id} path={path} title="Write in the communication book" open />
           <EntryList entries={houseEntries} path={path} isAdmin={isAdmin} empty="No messages yet." />
         </section>
@@ -224,6 +226,9 @@ export default async function HomePage({ params, searchParams }) {
         ))}
       </ul>
       </>}
+      </div>
+      {records.length > 0 && <HouseRecords program={home.program} records={records} residents={current} todayEntries={todayRecords ?? []} />}
+      </div>
     </main>
   );
 }
