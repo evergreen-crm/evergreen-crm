@@ -52,10 +52,13 @@ export default async function PortalHome() {
 
       {/* Clock in / out: its own big button for everyone, above the department menu. */}
       <Link href="/id#checkin" className="clock-btn no-print">
-        <span aria-hidden="true">⏰</span>
-        <strong>Clock in / Clock out</strong>
-        <span className="muted small">Check in and check out at the house</span>
+        <span aria-hidden="true">🕒</span>
+        <strong>My time</strong>
+        <span className="muted small">Clock in / out · sick · running late · vacation</span>
       </Link>
+      <p className="small no-print" style={{ textAlign: 'center', marginTop: -8 }}>
+        <Link href="/id#checkin">⏰ Clock in / out</Link> · <Link href="/id#my-time">🤒 Sick or late</Link> · <Link href="/id#my-time">🌴 Vacation</Link>
+      </p>
 
       {/* The simple menu (lib/menu.js): up to 8 tiles for my role, and 🔍 Find for everything else. */}
       <section className="no-print">
