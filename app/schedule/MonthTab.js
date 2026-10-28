@@ -20,7 +20,7 @@ export default async function MonthTab({ supabase, profile, homeId: homeParam, f
   // Only the houses in my program (supabase/schedule-privacy.sql).
   let { data: homes, error: hErr } = await supabase.rpc('schedule_homes');
   if (hErr) ({ data: homes } = await supabase.from('homes').select('id, name').order('name'));
-  let q = supabase.from('shifts').select('id, shift_date, start_time, end_time, label, profile_id, offered, cover_needed_at, home_id, who:profile_id(full_name)')
+  let q = supabase.from('shifts').select('id, shift_date, start_time, end_time, label, profile_id, offered, cover_needed_at, open_reason, home_id, who:profile_id(full_name)')
     .gte('shift_date', from).lte('shift_date', to);
   if (homeId) q = q.eq('home_id', homeId);
   const { data: shifts } = await q.order('shift_date').order('start_time').limit(3000);
@@ -64,8 +64,8 @@ export default async function MonthTab({ supabase, profile, homeId: homeParam, f
                 const open = !s.profile_id;
                 return (
                   <span key={s.id} className={`cal30-chip${me ? ' me' : ''}${open ? ' open' : ''}${s.cover_needed_at ? ' urgent' : ''}`}
-                    title={`${s.label ?? ''} ${fmtTime(s.start_time)}–${fmtTime(s.end_time)} · ${open ? 'OPEN' : s.who?.full_name ?? ''}${multi ? ' · ' + (homeName[s.home_id] ?? '') : ''}`}>
-                    <b>{LETTER[s.label] ?? (s.label ?? '').slice(0, 2)}</b> {me ? 'Me' : open ? 'OPEN' : first(s.who?.full_name)}{multi ? <i> {String(homeName[s.home_id] ?? '').slice(0, 10)}</i> : null}
+                    title={`${s.label ?? ''} ${fmtTime(s.start_time)}–${fmtTime(s.end_time)} · ${open ? 'GAP' + (s.open_reason ? ': ' + s.open_reason : '') : s.who?.full_name ?? ''}${multi ? ' · ' + (homeName[s.home_id] ?? '') : ''}`}>
+                    <b>{LETTER[s.label] ?? (s.label ?? '').slice(0, 2)}</b> {me ? 'Me' : open ? 'GAP' : first(s.who?.full_name)}{multi ? <i> {String(homeName[s.home_id] ?? '').slice(0, 10)}</i> : null}
                   </span>
                 );
               })}
@@ -73,7 +73,7 @@ export default async function MonthTab({ supabase, profile, homeId: homeParam, f
           );
         })}
       </div>
-      <p className="muted small">D = day (7–3) · E = evening (3–11) · N = awake night (11–7) · 3–7 = extra 3–7 pm. <span className="cal30-chip me"><b>D</b> Me</span> your shift · <span className="cal30-chip open"><b>D</b> OPEN</span> nobody on it yet. {lead ? 'To add or remove shifts by hand, use the Week tab.' : <>See all 6 months on <Link href="/schedule?tab=mine">My 6 months</Link>.</>}</p>
+      <p className="muted small">D = day (7–3) · E = evening (3–11) · N = awake night (11–7) · 3–7 = extra 3–7 pm. <span className="cal30-chip me"><b>D</b> Me</span> your shift · <span className="cal30-chip open"><b>D</b> GAP</span> nobody on it yet (time off, a call-in, or an empty line). Tap a GAP chip’s hover text for the reason. {lead ? 'To add or remove shifts by hand, use the Week tab.' : <>See all 6 months on <Link href="/schedule?tab=mine">My 6 months</Link>.</>}</p>
     </>
   );
 }
