@@ -28,14 +28,14 @@ export default function HouseRecords({ program, records, residents, todayEntries
               <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0 0' }}>
                 {records.map((rec) => {
                   const n = count[`${r.id}|${rec.kind}`] ?? 0;
-                  const href = rec.tab ? `/residents/${r.id}?tab=${rec.tab}` : `/residents/${r.id}?tab=logs&type=${rec.kind}`;
+                  const href = rec.tab ? `/residents/${r.id}?tab=${rec.tab}` : `/residents/${r.id}/forms/${rec.kind}`;
                   return (
                     <li key={rec.kind} style={{ borderTop: '1px solid var(--line, #ddd)', padding: '6px 0' }}>
                       <div><strong>{rec.section}</strong></div>
                       <div className="muted small">{rec.standard}</div>
                       <div className="small">{rec.when}</div>
                       <div className="row" style={{ alignItems: 'center', gap: 8, marginTop: 4 }}>
-                        <Link className="button secondary" href={href}>{rec.tab ? 'Open MAR' : n ? 'Add another' : 'Enter'}</Link>
+                        <Link className="button secondary" href={href}>{rec.tab ? 'Open MAR' : 'Open form'}</Link>
                         {!rec.tab && <span className="small">{n} today</span>}
                       </div>
                     </li>

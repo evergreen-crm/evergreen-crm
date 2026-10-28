@@ -3,7 +3,7 @@ import { ENTRY_TYPES } from '@/lib/entries';
 import { todayISO, nowTime } from '@/lib/options';
 import { saveEntry } from '@/app/entries/actions';
 
-function Field({ f, goals }) {
+export function Field({ f, goals }) {
   const req = f.required;
   switch (f.type) {
     case 'textarea':
