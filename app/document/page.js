@@ -102,6 +102,7 @@ export default async function DocumentRecords({ searchParams }) {
         <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <nav aria-label="Records for this person" className="doc-form" style={{ flex: '0 0 260px', minWidth: 230, position: 'sticky', top: 12, background: 'var(--card, #fff)', border: '1px solid #ccc', borderRadius: 8, padding: 10 }}>
             <p className="small" style={{ margin: '0 0 6px' }}><Link href={`/document?house=${house.id}&date=${date}`}>← Choose someone else</Link></p>
+            <p className="small" style={{ margin: '0 0 6px' }}><Link href={`/reports/daily?home=${house.id}&resident=${resident.id}&from=${date}&to=${date}&go=1`}>🖨 Report for this person</Link></p>
             <strong style={{ display: 'block', marginBottom: 6 }}>{nameOf(resident)}</strong>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
               {VIEWS(records, house).map((v) => (
