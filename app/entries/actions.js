@@ -5,6 +5,10 @@ import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/auth';
 import { ENTRY_TYPES } from '@/lib/entries';
 
+// The date and time of saving, in Vancouver, used when a form does not ask for them.
+const vanToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Vancouver' }).format(new Date());
+const vanNow = () => new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Vancouver', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+
 const text = (formData, key) => {
   const v = formData.get(key);
   return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
@@ -33,8 +37,8 @@ export async function saveEntry(formData) {
     kind,
     home_id: text(formData, 'home_id'),
     resident_id: type.scope === 'resident' ? text(formData, 'resident_id') : null,
-    entry_date: text(formData, 'entry_date') ?? undefined,
-    entry_time: text(formData, 'entry_time'),
+    entry_date: text(formData, 'entry_date') ?? vanToday(),
+    entry_time: text(formData, 'entry_time') ?? vanNow(),
     data,
     amount,
     share_with_family: type.scope === 'resident' && formData.get('share_with_family') === 'on',

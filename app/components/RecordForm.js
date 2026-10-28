@@ -3,10 +3,10 @@
 import { ENTRY_TYPES } from '@/lib/entries';
 import { saveEntry } from '@/app/entries/actions';
 import { Field } from '@/app/components/EntryForm';
-import { todayISO, nowTime } from '@/lib/options';
+import { todayISO, nowTime, fmtDate } from '@/lib/options';
 import PrintButton from '@/app/components/PrintButton';
 
-export default function RecordForm({ kind, homeId, residentId, path, goals, title, standard, resident, home, compact = false }) {
+export default function RecordForm({ kind, homeId, residentId, path, goals, title, standard, resident, home, compact = false, date }) {
   const type = ENTRY_TYPES[kind];
   const required = type.fields.filter((f) => f.required);
   const optional = type.fields.filter((f) => !f.required);
@@ -35,13 +35,20 @@ export default function RecordForm({ kind, homeId, residentId, path, goals, titl
             {optional.filter((f) => f.type === 'textarea').map((f) => <Field key={f.name} f={f} goals={goals} />)}
           </fieldset>
         )}
-        <fieldset style={{ border: 0, padding: 0, margin: '16px 0 0', borderTop: '1px solid #000', paddingTop: 12 }}>
-          <legend className="small"><strong>Date and time</strong></legend>
-          <div className="row">
-            <label>Date<input type="date" name="entry_date" required defaultValue={todayISO()} /></label>
-            <label>Time<input type="time" name="entry_time" defaultValue={nowTime()} /></label>
-          </div>
-        </fieldset>
+        {compact ? (
+          <p className="small muted" style={{ marginTop: 10 }}>
+            <input type="hidden" name="entry_date" value={date ?? todayISO()} />
+            Recorded for {fmtDate(date ?? todayISO())}. The time is recorded when you press Save.
+          </p>
+        ) : (
+          <fieldset style={{ border: 0, padding: 0, margin: '16px 0 0', borderTop: '1px solid #000', paddingTop: 12 }}>
+            <legend className="small"><strong>Date and time</strong></legend>
+            <div className="row">
+              <label>Date<input type="date" name="entry_date" required defaultValue={todayISO()} /></label>
+              <label>Time<input type="time" name="entry_time" defaultValue={nowTime()} /></label>
+            </div>
+          </fieldset>
+        )}
         <div className="row no-print" style={{ marginTop: 16, gap: 8 }}>
           <button>Save record</button>
           <PrintButton />
