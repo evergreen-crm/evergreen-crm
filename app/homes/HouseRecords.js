@@ -37,7 +37,7 @@ export default function HouseRecords({ layout = 'side', homeId, program, records
   }
   const dailyKinds = records.filter(isDaily).map((r) => r.kind);
   return (
-    <aside aria-label={`${program} records`} style={wrap}>
+    <aside aria-label={`${program} records`} className="doc-form" style={wrap}>
       <section className="card">
         <h2 style={{ marginTop: 0 }}>{program} records by section</h2>
         <div className="message" style={{ marginBottom: 8 }}>

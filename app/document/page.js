@@ -50,7 +50,7 @@ export default async function DocumentRecords({ searchParams }) {
   const dayLabel = date === today ? 'Today' : fmtDate(date);
 
   return (
-    <main>
+    <main className="doc-form">
       <div className="title-row"><h1>📝 Document records</h1></div>
       <nav className="tabs-bar" aria-label="Houses">
         {(homes ?? []).map((h) => (

@@ -14,7 +14,7 @@ export default function RecordForm({ kind, homeId, residentId, path, goals, titl
   const required = type.fields.filter((f) => f.required);
   const optional = type.fields.filter((f) => !f.required);
   return (
-    <div className={compact ? undefined : 'print-area'}>
+    <div className={`${compact ? '' : 'print-area '}doc-form`}>
       {!compact && <header style={{ borderBottom: '2px solid #000', paddingBottom: 8, marginBottom: 12 }}>
         <h1 style={{ margin: 0 }}>{title ?? type.label}</h1>
         <p className="small" style={{ margin: '4px 0 0' }}>
