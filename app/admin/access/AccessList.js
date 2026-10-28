@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DEPARTMENTS, LEVELS, LEVEL_ORDER, mySections } from '@/lib/sections';
-import { savePersonAccess, savePersonSections } from './actions';
+import { savePersonAccess, savePersonSections, savePersonHomes } from './actions';
 
 // Department choices (Everyone is automatic, so it isn't offered as a home).
 const CHOICES = DEPARTMENTS.filter((d) => d !== 'Everyone');
@@ -16,16 +16,27 @@ const PRESETS = {
   'Payroll': { department: 'Finance & Payroll', extra: [] },
 };
 
-export default function AccessList({ rows, sections }) {
+export default function AccessList({ rows, sections, homes = [] }) {
   return (
     <div className="access-list">
-      {rows.map((r) => <PersonCard key={r.id} row={r} sections={sections} />)}
+      {rows.map((r) => <PersonCard key={r.id} row={r} sections={sections} homes={homes} />)}
       {!rows.length && <p className="muted">No people yet.</p>}
     </div>
   );
 }
 
-function PersonCard({ row, sections }) {
+function PersonCard({ row, sections, homes }) {
+  const [houseIds, setHouseIds] = useState(row.homeIds ?? []);
+  const [houseSaved, setHouseSaved] = useState(null);
+  async function saveHouses(next) {
+    setHouseIds(next);
+    const r = await savePersonHomes({ id: row.id, homeIds: next });
+    setHouseSaved(r?.error ? { bad: true, text: r.error } : { text: 'Houses saved.' });
+  }
+  function toggleHouse(h) {
+    const next = houseIds.includes(h) ? houseIds.filter((x) => x !== h) : [...houseIds, h];
+    saveHouses(next);
+  }
   const [department, setDepartment] = useState(row.department);
   const [own, setOwn] = useState(row.own ?? {});
   const [extra, setExtra] = useState(row.extra);
@@ -77,6 +88,19 @@ function PersonCard({ row, sections }) {
           ? <span className="small">🌐 Sees everything</span>
           : <button type="button" className="secondary" onClick={save} disabled={busy || !dirty}>{busy ? 'Saving…' : dirty ? 'Save' : 'Saved'}</button>}
       </div>
+
+      {row.canHouses && (
+        <div className="small" style={{ margin: '8px 0' }}>
+          <strong>Houses they can see:</strong>{' '}
+          {homes.map((h) => (
+            <label key={h.id} style={{ marginRight: 12 }}>
+              <input type="checkbox" checked={houseIds.includes(h.id)} onChange={() => toggleHouse(h.id)} /> {h.name}
+            </label>
+          ))}
+          {!houseIds.length && <span className="muted"> None yet. They see no houses.</span>}
+          {houseSaved && <div className={houseSaved.bad ? 'message' : 'muted'}>{houseSaved.text}</div>}
+        </div>
+      )}
 
       {row.fullAccess ? (
         <p className="small muted">The administrator and CEO always see every department. No setting needed.</p>

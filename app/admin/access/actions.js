@@ -48,3 +48,18 @@ export async function savePersonSections({ id, levels }) {
   revalidatePath('/', 'layout');
   return { ok: true };
 }
+
+// Step 2: the houses a Program Manager or Program Coordinator is assigned to (replaces the whole list).
+export async function savePersonHomes({ id, homeIds }) {
+  const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
+  if (!canManage(profile)) return { error: 'Only the administrator and the CEO can assign houses.' };
+  const { error: delErr } = await supabase.from('manager_homes').delete().eq('profile_id', id);
+  if (delErr) return { error: delErr.message };
+  const rows = [...new Set(homeIds ?? [])].map((h) => ({ profile_id: id, home_id: h, created_by: profile.id }));
+  if (rows.length) {
+    const { error } = await supabase.from('manager_homes').insert(rows);
+    if (error) return { error: error.message };
+  }
+  revalidatePath('/', 'layout');
+  return { ok: true };
+}

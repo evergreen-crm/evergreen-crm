@@ -20,8 +20,14 @@ export default async function AccessPage() {
   const ownBy = {};
   for (const r of own ?? []) (ownBy[r.profile_id] ??= {})[r.section] = r.level;
   const sections = SECTIONS.map(({ key, icon, label }) => ({ key, icon, label }));
+  const { data: homeRows } = await supabase.from('homes').select('id, name').order('name');
+  const { data: assigned } = await supabase.from('manager_homes').select('profile_id, home_id');
+  const homeIdsBy = {};
+  for (const a of assigned ?? []) (homeIdsBy[a.profile_id] ??= []).push(a.home_id);
   const rows = (people ?? []).map((p) => ({
     own: ownBy[p.id] ?? {},
+    homeIds: homeIdsBy[p.id] ?? [],
+    canHouses: !(p.role === 'admin' || levelOf(p) >= 4) && !groupName(p.staff_group) && (levelOf(p) === 2 || levelOf(p) === 3),
     id: p.id,
     name: p.full_name ?? 'No name',
     job: p.role === 'admin' ? 'Administrator' : (groupName(p.staff_group) ?? levelName(levelOf(p))),
@@ -37,7 +43,7 @@ export default async function AccessPage() {
       <h1>👤 Access &amp; departments</h1>
       <p className="small">Pick a department for each person, then press <strong>Save</strong>. The box underneath shows exactly which menu sections they’ll see. The administrator and CEO always see everything.</p>
       {error && <p className="message">Could not load people: {error.message}</p>}
-      <AccessList rows={rows} sections={sections} />
+      <AccessList rows={rows} sections={sections} homes={homeRows ?? []} />
     </main>
   );
 }
