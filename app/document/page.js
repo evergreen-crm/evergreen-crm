@@ -15,6 +15,14 @@ const nameOf = (r) => `${r.preferred_name || r.first_name} ${r.last_name}`;
 // Mark-sheet answers: the value saved, and the words on the sheet.
 const MAR_OPTIONS = [['Given', 'Yes, given'], ['Refused', 'No, refused'], ['Missed', 'No, missed'], ['Held', 'Held'], ['Error', 'Error']];
 
+// The sidebar: one entry for each record, then the medication sheet and goals.
+const VIEWS = (records, house) => [
+  { key: 'nothing', kind: 'nothing_to_report', icon: '✔', label: 'Nothing to report today' },
+  ...records.filter((r) => !r.tab).map((r) => ({ key: r.kind, kind: r.kind, icon: '📝', label: r.section })),
+  { key: 'med', icon: '💊', label: 'Medication sheet' },
+  { key: 'goals', icon: '🎯', label: 'Goals and steps' },
+];
+
 export default async function DocumentRecords({ searchParams }) {
   const sp = await searchParams;
   const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
@@ -30,6 +38,7 @@ export default async function DocumentRecords({ searchParams }) {
   const resident = isId(sp.resident) ? (residents ?? []).find((r) => r.id === sp.resident) ?? null : null;
   const records = recordsFor(house?.program);
   const here = (extra = '') => `/document?house=${house?.id}&resident=${resident?.id}&date=${date}${extra}`;
+  const view = typeof sp.view === 'string' ? sp.view : 'nothing';
 
   // Everything for this resident on this date.
   let doneKinds = new Set(), meds = [], doses = [], goals = [], steps = [];
@@ -90,149 +99,179 @@ export default async function DocumentRecords({ searchParams }) {
       )}
 
       {house && house.program && resident && (
-        <section>
-          <p className="small"><Link href={`/document?house=${house.id}&date=${date}`}>← Choose someone else</Link> · <Link href={`/homes/${house.id}?tab=records`}>All records for {house.name}</Link></p>
-          <h2 style={{ marginBottom: 4 }}>{nameOf(resident)} · {house.program}</h2>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <nav aria-label="Records for this person" className="doc-form" style={{ flex: '0 0 260px', minWidth: 230, position: 'sticky', top: 12, background: 'var(--card, #fff)', border: '1px solid #ccc', borderRadius: 8, padding: 10 }}>
+            <p className="small" style={{ margin: '0 0 6px' }}><Link href={`/document?house=${house.id}&date=${date}`}>← Choose someone else</Link></p>
+            <strong style={{ display: 'block', marginBottom: 6 }}>{nameOf(resident)}</strong>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {VIEWS(records, house).map((v) => (
+                <li key={v.key}>
+                  <Link href={here(`&view=${v.key}`)} aria-current={view === v.key ? 'page' : undefined}
+                    style={{ display: 'block', padding: '10px 10px', borderRadius: 6, marginBottom: 4, fontWeight: view === v.key ? 700 : 400, background: view === v.key ? '#e8f0fb' : 'transparent', textDecoration: 'none', color: 'inherit' }}>
+                    {v.icon} {v.label}
+                    {v.done ? <span className="badge" style={{ marginLeft: 6 }}>done</span> : null}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
 
-          <h3>1. Records by section</h3>
-          <div className="card" style={{ marginBottom: 10 }}>
-            <strong>Nothing to report today?</strong>
-            <p className="small muted" style={{ margin: '4px 0 8px' }}>If there was no incident, restraint, discipline or serious illness, tick this instead of filling those in.</p>
-            {doneKinds.has('nothing_to_report')
-              ? <span className="badge">Nothing to report today — recorded</span>
-              : <RecordForm compact date={date} kind="nothing_to_report" homeId={house.id} residentId={resident.id} path={here()} goals={[]} />}
+          <div className="doc-form" style={{ flex: '1 1 520px', minWidth: 0 }}>
+            {view === 'med' && (
+              <section>
+                <h2 style={{ marginTop: 0 }}>💊 Medication sheet for {dayLabel.toLowerCase()}</h2>
+                <p className="small muted">Every active medication is on this sheet. For each scheduled time choose Yes (given) or No (not given), and write why if it was not given. As-needed medication has its own row, used only when it was given. Then press Save medication sheet.</p>
+                {meds.length === 0 && <p className="muted small">No active medications for this person. Add them on the person’s Medications tab.</p>}
+                {meds.length > 0 && (
+                  <form action={saveMarSheet}>
+                    <input type="hidden" name="resident_id" value={resident.id} />
+                    <input type="hidden" name="admin_date" value={date} />
+                    <input type="hidden" name="path" value={here('&view=med')} />
+                    <div style={{ overflowX: 'auto' }}>
+                      <table className="small" style={{ borderCollapse: 'collapse', width: '100%' }}>
+                        <thead>
+                          <tr style={{ textAlign: 'left', borderBottom: '2px solid #000' }}>
+                            <th style={{ padding: '8px 10px' }}>Medication</th>
+                            <th style={{ padding: '8px 10px' }}>Type</th>
+                            <th style={{ padding: '8px 10px' }}>Time</th>
+                            <th style={{ padding: '8px 10px' }}>Given?</th>
+                            <th style={{ padding: '8px 10px' }}>Reason if not given</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {meds.flatMap((m) => {
+                            const medType = m.is_prn ? 'As needed (PRN)' : 'Scheduled';
+                            const label = <><strong>{m.name}</strong><br /><span className="muted">{[m.dose, m.route].filter(Boolean).join(' · ')}</span></>;
+                            if (m.is_prn) {
+                              const d = doseFor(m.id, null);
+                              return [(
+                                <tr key={`${m.id}-prn`} style={{ borderBottom: '1px solid #ccc', verticalAlign: 'top' }}>
+                                  <td style={{ padding: 10 }}>{label}</td>
+                                  <td style={{ padding: 10 }}>{medType}</td>
+                                  <td style={{ padding: 10, minWidth: 160 }}>
+                                    {d ? (d.given_at ? new Date(d.given_at).toLocaleTimeString('en-GB', { timeZone: 'America/Vancouver', hour: '2-digit', minute: '2-digit', hour12: false }) : '') : <input type="time" name={`time|${m.id}|prn`} aria-label={`Time for ${m.name}`} />}
+                                  </td>
+                                  <td style={{ padding: 10, minWidth: 180 }}>
+                                    {d ? <span className={`badge ${d.status === 'Given' ? '' : 'bad'}`}>{d.status}</span> : (
+                                      <select name={`mar|${m.id}|prn`} defaultValue="" aria-label={`Given for ${m.name}`}><option value="">— leave blank</option>{MAR_OPTIONS.map(([v2, l]) => <option key={v2} value={v2}>{l}</option>)}</select>
+                                    )}
+                                  </td>
+                                  <td style={{ padding: 10, minWidth: 220 }}>
+                                    {d ? (d.reason ?? '—') : <input name={`reason|${m.id}|prn`} aria-label={`Reason for ${m.name}`} placeholder="Why it was given" />}
+                                  </td>
+                                </tr>
+                              )];
+                            }
+                            const times = (m.times ?? []).length ? m.times : [null];
+                            return times.map((t) => {
+                              const d = t ? doseFor(m.id, t) : null;
+                              return (
+                                <tr key={`${m.id}-${t}`} style={{ borderBottom: '1px solid #ccc', verticalAlign: 'top' }}>
+                                  <td style={{ padding: 10 }}>{label}</td>
+                                  <td style={{ padding: 10 }}>{medType}</td>
+                                  <td style={{ padding: 10 }}><strong>{t ? fmtTime(t) : 'No time set'}</strong></td>
+                                  <td style={{ padding: 10, minWidth: 180 }}>
+                                    {d ? <span className={`badge ${d.status === 'Given' ? '' : 'bad'}`}>{d.status}</span>
+                                      : t ? (
+                                        <select name={`mar|${m.id}|${t}`} defaultValue="" aria-label={`Given for ${m.name} at ${fmtTime(t)}`}><option value="">— leave blank</option>{MAR_OPTIONS.map(([v2, l]) => <option key={v2} value={v2}>{l}</option>)}</select>
+                                      ) : <span className="muted small">Set the times on the Medications tab</span>}
+                                  </td>
+                                  <td style={{ padding: 10, minWidth: 220 }}>
+                                    {d ? (d.reason ?? '—') : t ? <input name={`reason|${m.id}|${t}`} aria-label={`Reason for ${m.name} at ${fmtTime(t)}`} placeholder="Why it was not given" /> : null}
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="row" style={{ marginTop: 12 }}>
+                      <button>Save medication sheet</button>
+                    </div>
+                  </form>
+                )}
+              </section>
+            )}
+
+            {view === 'goals' && (
+              <section>
+                <h2 style={{ marginTop: 0 }}>🎯 Goals and the steps to reach them</h2>
+                <p className="small muted">For each goal: tick steps as they are done, add steps, record today’s progress, or review the goal (progress, the child’s view, next review date).</p>
+                {goals.length === 0 && <p className="muted small">No active goals. Add goals on the person’s Goals tab.</p>}
+                {goals.map((g) => {
+                  const gs = steps.filter((s2) => s2.goal_id === g.id);
+                  return (
+                    <div key={g.id} className="card" style={{ marginTop: 10 }}>
+                      <h3 style={{ margin: '0 0 4px' }}>{g.title}</h3>
+                      <p className="small muted" style={{ margin: 0 }}>{[g.domain, g.target_date && `target ${fmtDate(g.target_date)}`].filter(Boolean).join(' · ')}</p>
+                      {g.description && <p className="small" style={{ margin: '6px 0' }}>{g.description}</p>}
+                      <p className="small"><strong>Steps:</strong> {gs.filter((x) => x.done_on).length} of {gs.length} done</p>
+                      <ol style={{ margin: '0 0 8px', paddingLeft: 0, listStyle: 'none' }}>
+                        {gs.map((s2) => (
+                          <li key={s2.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '6px 0', borderTop: '1px solid #eee' }}>
+                            <form action={toggleGoalStep}>
+                              <input type="hidden" name="id" value={s2.id} />
+                              <input type="hidden" name="path" value={here('&view=goals')} />
+                              <input type="hidden" name="done" value={s2.done_on ? 'no' : 'yes'} />
+                              <button className="secondary">{s2.done_on ? '✓ Done' : 'Mark done'}</button>
+                            </form>
+                            <span className={s2.done_on ? 'muted' : ''}>{s2.step}</span>
+                            {s2.done_on && <span className="muted small">{fmtDate(s2.done_on)}</span>}
+                          </li>
+                        ))}
+                      </ol>
+                      <form action={addGoalStep} className="row" style={{ gap: 8 }}>
+                        <input type="hidden" name="goal_id" value={g.id} />
+                        <input type="hidden" name="path" value={here('&view=goals')} />
+                        <label style={{ flex: '1 1 300px' }}>New step
+                          <input name="step" placeholder="Write the next step to reach this goal" />
+                        </label>
+                        <button className="secondary">Add step</button>
+                      </form>
+                      <details style={{ marginTop: 10 }}>
+                        <summary><strong>Record progress today</strong></summary>
+                        <div style={{ marginTop: 8 }}>
+                          <RecordForm compact date={date} kind="goal_progress" homeId={house.id} residentId={resident.id} path={here('&view=goals')} goals={[g]} />
+                        </div>
+                      </details>
+                      <details style={{ marginTop: 6 }}>
+                        <summary><strong>Review this goal</strong> (progress, the child’s view, next review date)</summary>
+                        <div style={{ marginTop: 8 }}>
+                          <RecordForm compact date={date} kind="mcfd_care_review" homeId={house.id} residentId={resident.id} path={here('&view=goals')} goals={[g]} />
+                        </div>
+                      </details>
+                    </div>
+                  );
+                })}
+              </section>
+            )}
+
+            {view !== 'med' && view !== 'goals' && (() => {
+              const v = VIEWS(records, house).find((x) => x.key === view) ?? VIEWS(records, house)[0];
+              if (v.kind === 'nothing_to_report') {
+                return (
+                  <section>
+                    <h2 style={{ marginTop: 0 }}>✔ Nothing to report today</h2>
+                    <p className="small muted">If there was no reportable incident, physical restraint, behaviour of concern or discipline, and no serious illness or injury, tick this instead of filling those records in.</p>
+                    {doneKinds.has('nothing_to_report') ? <p className="message">Recorded for {fmtDate(date)}.</p>
+                      : <RecordForm compact date={date} kind="nothing_to_report" homeId={house.id} residentId={resident.id} path={here(`&view=${v.key}`)} goals={[]} />}
+                  </section>
+                );
+              }
+              const rec = records.find((r) => r.kind === v.kind);
+              if (!rec || rec.tab) return <p className="card">Choose a record from the list.</p>;
+              return (
+                <section>
+                  <h2 style={{ marginTop: 0 }}>{rec.section}</h2>
+                  <p className="small muted" style={{ margin: '0 0 4px' }}>{rec.standard} · {doneKinds.has(rec.kind) ? 'Entered for this date' : 'Not yet entered for this date'}</p>
+                  <p className="small" style={{ margin: '0 0 12px' }}>{rec.when}</p>
+                  <RecordForm compact date={date} kind={rec.kind} homeId={house.id} residentId={resident.id} path={here(`&view=${v.key}`)} goals={goals} />
+                </section>
+              );
+            })()}
           </div>
-          {records.map((rec) => (
-            <details key={rec.kind} className="card" open={!doneKinds.has(rec.kind) && (rec.tab ? false : true)} style={{ marginTop: 8 }}>
-              <summary>
-                <strong>{rec.section}</strong> <span className="muted small">· {rec.standard}</span>{' '}
-                {rec.tab
-                  ? <span className="small">Medication: see section 2</span>
-                  : <span className={doneKinds.has(rec.kind) ? 'badge' : 'badge warn'}>{doneKinds.has(rec.kind) ? 'entered' : 'not yet'}</span>}
-              </summary>
-              <p className="small muted" style={{ margin: '6px 0' }}>{rec.when}</p>
-              {!rec.tab && <RecordForm compact date={date} kind={rec.kind} homeId={house.id} residentId={resident.id} path={here()} goals={goals} />}
-            </details>
-          ))}
-
-          <h3 style={{ marginTop: 20 }}>2. Medication sheet for {dayLabel.toLowerCase()}</h3>
-          <p className="small muted">Every active medication is on this sheet. For each scheduled time choose Yes (given) or No (not given), and write why if it was not given. Use the as-needed rows only when a PRN was given. Then press Save medication sheet.</p>
-          {meds.length === 0 && <p className="muted small">No active medications for this person.</p>}
-          {meds.length > 0 && (
-            <form action={saveMarSheet} className="doc-form">
-              <input type="hidden" name="resident_id" value={resident.id} />
-              <input type="hidden" name="admin_date" value={date} />
-              <input type="hidden" name="path" value={here()} />
-              <div style={{ overflowX: 'auto' }}>
-                <table className="small" style={{ borderCollapse: 'collapse', width: '100%' }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', borderBottom: '2px solid #000' }}>
-                      <th style={{ padding: '8px 10px' }}>Medication</th>
-                      <th style={{ padding: '8px 10px' }}>Type</th>
-                      <th style={{ padding: '8px 10px' }}>Time</th>
-                      <th style={{ padding: '8px 10px' }}>Given?</th>
-                      <th style={{ padding: '8px 10px' }}>Reason if not given</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {meds.flatMap((m) => {
-                      const medType = m.is_prn ? 'As needed (PRN)' : 'Scheduled';
-                      const label = <><strong>{m.name}</strong><br /><span className="muted">{[m.dose, m.route].filter(Boolean).join(' · ')}</span></>;
-                      if (m.is_prn) {
-                        const d = doseFor(m.id, null);
-                        return [(
-                          <tr key={`${m.id}-prn`} style={{ borderBottom: '1px solid #ccc', verticalAlign: 'top' }}>
-                            <td style={{ padding: '10px' }}>{label}</td>
-                            <td style={{ padding: '10px' }}>{medType}</td>
-                            <td style={{ padding: '10px', minWidth: 160 }}>
-                              {d ? fmtTime(d.given_at ? new Date(d.given_at).toLocaleTimeString('en-GB', { timeZone: 'America/Vancouver', hour: '2-digit', minute: '2-digit', hour12: false }) : '') : <input type="time" name={`time|${m.id}|prn`} aria-label={`Time for ${m.name}`} />}
-                            </td>
-                            <td style={{ padding: '10px', minWidth: 180 }}>
-                              {d ? <span className={`badge ${d.status === 'Given' ? '' : 'bad'}`}>{d.status}</span> : (
-                                <select name={`mar|${m.id}|prn`} defaultValue="" aria-label={`Given for ${m.name}`}><option value="">— leave blank</option>{MAR_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-                              )}
-                            </td>
-                            <td style={{ padding: '10px', minWidth: 220 }}>
-                              {d ? (d.reason ?? '—') : <input name={`reason|${m.id}|prn`} aria-label={`Reason for ${m.name}`} placeholder="Why it was given" />}
-                            </td>
-                          </tr>
-                        )];
-                      }
-                      const times = (m.times ?? []).length ? m.times : [null];
-                      return times.map((t) => {
-                        const d = t ? doseFor(m.id, t) : null;
-                        return (
-                          <tr key={`${m.id}-${t}`} style={{ borderBottom: '1px solid #ccc', verticalAlign: 'top' }}>
-                            <td style={{ padding: '10px' }}>{label}</td>
-                            <td style={{ padding: '10px' }}>{medType}</td>
-                            <td style={{ padding: '10px' }}><strong>{t ? fmtTime(t) : 'No time set'}</strong></td>
-                            <td style={{ padding: '10px', minWidth: 180 }}>
-                              {d ? <span className={`badge ${d.status === 'Given' ? '' : 'bad'}`}>{d.status}</span>
-                                : t ? (
-                                  <select name={`mar|${m.id}|${t}`} defaultValue="" aria-label={`Given for ${m.name} at ${fmtTime(t)}`}><option value="">— leave blank</option>{MAR_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-                                ) : <span className="muted small">Set the times on the Medications tab</span>}
-                            </td>
-                            <td style={{ padding: '10px', minWidth: 220 }}>
-                              {d ? (d.reason ?? '—') : t ? <input name={`reason|${m.id}|${t}`} aria-label={`Reason for ${m.name} at ${fmtTime(t)}`} placeholder="Why it was not given" /> : null}
-                            </td>
-                          </tr>
-                        );
-                      });
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <div className="row" style={{ marginTop: 12 }}>
-                <button>Save medication sheet</button>
-              </div>
-            </form>
-          )}
-
-          <h3 style={{ marginTop: 20 }}>3. Goals and the steps to reach them</h3>
-          {goals.length === 0 && <p className="muted small">No active goals. Add goals on the person’s Goals tab.</p>}
-          {goals.map((g) => {
-            const gs = steps.filter((s) => s.goal_id === g.id);
-            return (
-              <details key={g.id} className="card" style={{ marginTop: 8 }} open>
-                <summary><strong>{g.title}</strong> {g.domain && <span className="muted small">· {g.domain}</span>} {g.target_date && <span className="muted small">· target {fmtDate(g.target_date)}</span>}</summary>
-                {g.description && <p className="small" style={{ margin: '6px 0' }}>{g.description}</p>}
-                <p className="small"><strong>Steps:</strong> {gs.filter((s) => s.done_on).length} of {gs.length} done</p>
-                <ol style={{ margin: '0 0 8px', paddingLeft: 20 }}>
-                  {gs.map((s) => (
-                    <li key={s.id} style={{ marginBottom: 4 }}>
-                      <form action={toggleGoalStep} className="row" style={{ gap: 8, alignItems: 'center', display: 'inline-flex' }}>
-                        <input type="hidden" name="id" value={s.id} />
-                        <input type="hidden" name="path" value={here()} />
-                        <input type="hidden" name="done" value={s.done_on ? 'no' : 'yes'} />
-                        <button className="secondary small">{s.done_on ? '✓ Done' : 'Mark done'}</button>
-                      </form>{' '}
-                      <span className={s.done_on ? 'muted' : ''}>{s.step}</span>
-                      {s.done_on && <span className="muted small"> · {fmtDate(s.done_on)}</span>}
-                    </li>
-                  ))}
-                </ol>
-                <details style={{ marginTop: 8 }}>
-                  <summary><strong>Review this goal</strong> (progress, the child’s view, next review date)</summary>
-                  <div style={{ marginTop: 8 }}>
-                    <RecordForm compact date={date} kind="mcfd_care_review" homeId={house.id} residentId={resident.id} path={here()} goals={[g]} />
-                  </div>
-                </details>
-                <form action={addGoalStep} className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                  <input type="hidden" name="goal_id" value={g.id} />
-                  <input type="hidden" name="path" value={here()} />
-                  <input name="step" placeholder="Add a step to reach this goal" aria-label="New step" style={{ minWidth: 260 }} />
-                  <button className="secondary">Add step</button>
-                </form>
-              </details>
-            );
-          })}
-          {goals.length > 0 && (
-            <div style={{ marginTop: 10 }}>
-              <strong className="small">Progress today on a goal</strong>
-              <RecordForm compact date={date} kind="goal_progress" homeId={house.id} residentId={resident.id} path={here()} goals={goals} />
-            </div>
-          )}
-        </section>
+        </div>
       )}
     </main>
   );
