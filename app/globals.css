@@ -1079,3 +1079,16 @@ button.danger-soft { background: #b3261e; color: #fff; }
 .doc-form .row > label { display: flex; flex-direction: column; gap: 4px; margin: 0; }
 .doc-form .row > .button, .doc-form .row > button { justify-self: start; }
 .doc-form fieldset .row { align-items: end; }
+
+/* Larger entry boxes across the documentation pages, so every entry can be read while it is typed. */
+.doc-form label { font-size: 19px; }
+.doc-form input:not([type='checkbox']):not([type='radio']),
+.doc-form select,
+.doc-form textarea { font-size: 19px; min-height: 58px; padding: 10px 14px; }
+.doc-form textarea { min-height: 170px; line-height: 1.5; }
+.doc-form input[type='date'], .doc-form input[type='time'] { min-width: 240px; min-height: 58px; }
+.doc-form .row { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.doc-form button { font-size: 19px; min-height: 58px; padding: 10px 22px; }
+.doc-form h2 { font-size: 26px; }
+.doc-form .small, .doc-form .message { font-size: 17px; }
+.doc-form input[type='checkbox'] { width: 26px; height: 26px; }
