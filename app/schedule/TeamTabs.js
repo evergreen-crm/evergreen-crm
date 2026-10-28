@@ -199,7 +199,7 @@ export async function TimeOffTab({ supabase, profile }) {
   const nameOf = Object.fromEntries((names ?? []).map((n) => [n.id, n.full_name]));
   const pending = (waiting ?? []).map((r) => ({ ...r, who: { full_name: nameOf[r.profile_id] } }));
   const onVacation = all.filter((r) => r.status === 'Approved' && r.end_date >= today && r.profile_id !== profile.id);
-  const isTop = levelOf(profile) >= 7 || profile.role === 'admin';
+  const isTop = levelOf(profile) >= 4 || profile.role === 'admin';
   const span = (r) => `${fmtDate(r.start_date)}${r.end_date !== r.start_date ? ` – ${fmtDate(r.end_date)}` : ''}`;
   return (
     <>
