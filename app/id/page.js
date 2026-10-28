@@ -11,6 +11,7 @@ import CheckInPanel from './CheckInPanel';
 import { shiftTimes, clock } from '@/lib/attendance';
 import PrintButton from '@/app/PrintButton';
 import MyTimeForms from './MyTimeForms';
+import NightCheck from './NightCheck';
 
 export const metadata = { title: 'My ID card · Evergreen' };
 
@@ -23,6 +24,8 @@ export default async function IdPage({ searchParams }) {
   const today = todayISO();
   const { data: upcomingShifts } = isSelf ? await supabase.from('shifts').select('id, shift_date, start_time, homes(name)')
     .eq('profile_id', user.id).gte('shift_date', today).lte('shift_date', addDaysISO(today, 14)).order('shift_date').order('start_time') : { data: null };
+
+  const { data: nightChecks } = isSelf ? await supabase.rpc('my_night_checks') : { data: null };
 
   const [{ data: person }, { data: details }, { data: card }, { data: onb }, { data: perf }] = await Promise.all([
     supabase.from('profiles').select('id, full_name, active, home_id, homes(name)').eq('id', pid).maybeSingle(),
@@ -147,6 +150,7 @@ export default async function IdPage({ searchParams }) {
           <p className="small"><Link href="/timesheet">Full timesheet →</Link></p>
         </section>
       )}
+      {isSelf && <NightCheck checks={nightChecks ?? []} />}
       {isSelf && <MyTimeForms today={today} shifts={(upcomingShifts ?? []).map((x) => ({ id: x.id, shift_date: x.shift_date, start_time: x.start_time, homes: x.homes }))} />}
       {isSelf && <p className="muted small no-print">Tip: on your phone, use “Add to Home Screen” so your ID card opens like an app.</p>}
     </main>

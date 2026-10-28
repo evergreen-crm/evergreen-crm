@@ -21,6 +21,7 @@ export async function addShift(formData) {
     end_time: text(formData, 'end_time'),
     label: text(formData, 'label'),
     notes: text(formData, 'notes'),
+    night_role: text(formData, 'night_role'),
     created_by: user.id,
   }));
   const { error } = await supabase.from('shifts').insert(rows);

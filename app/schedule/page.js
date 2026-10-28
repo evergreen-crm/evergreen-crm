@@ -168,6 +168,7 @@ export default async function SchedulePage({ searchParams }) {
               <label>Repeat for<select name="repeat" defaultValue="1">{[1, 2, 3, 4, 5, 6, 7, 14].map((n) => <option key={n} value={n}>{n} day{n > 1 ? 's' : ''}</option>)}</select></label>
             </div>
             <label>Notes<input name="notes" placeholder="e.g., drive to appointment at 10" /></label>
+            <label>Awake portion (night shifts only)<input name="night_role" placeholder="e.g., Awake residence worker" /></label>
             <button>Add shift</button>
           </form>
           {homeId && (
