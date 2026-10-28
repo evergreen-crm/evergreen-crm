@@ -53,7 +53,7 @@ function vanMidnight(iso) {
   const mins = m ? (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] ?? 0)) : -480;
   return new Date(Date.parse(iso + 'T00:00:00Z') - mins * 60000).toISOString();
 }
-// Supabase returns at most 1000 rows per request; read page by page (up to 20,000 rows).
+// Supabase returns at most 1000 rows per request; read page by page (up to 2,000,000 rows, in steps of 1000).
 async function all(make) {
   const out = [];
   for (let from = 0; from < 2000000; from += 1000) {
@@ -188,6 +188,7 @@ export default async function DailyReport({ searchParams }) {
         {ready && <ReportPrintButton info={{ home_id: home?.id, resident_id: resident?.id, from, to, sections: [...chosen] }} />}
       </div>
       {problem && <p className="message error">{problem}</p>}
+      {!problem && span > 366 && <p className="message"><strong>Long report.</strong> A range over one year can take a minute or more to prepare. If it does not finish, print one year at a time.</p>}
       <p className="muted small">Tip: to make a PDF, choose “Save as PDF” as the printer. Discharged people are still listed so their records can be printed.</p>
     </form>
   );
