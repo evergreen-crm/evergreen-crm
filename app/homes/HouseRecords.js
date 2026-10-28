@@ -10,7 +10,8 @@ import RecordForm from '@/app/components/RecordForm';
 const line = (e) => {
   let text = '';
   try { text = ENTRY_TYPES[e.kind]?.summary?.(e.data ?? {}) ?? ''; } catch { text = ''; }
-  return `${fmtDate(e.entry_date)}${e.entry_time ? ` ${e.entry_time.slice(0, 5)}` : ''}${text ? ` · ${text}` : ''}`;
+  const who = e.author?.full_name ? ` · by ${e.author.full_name}` : '';
+  return `${fmtDate(e.entry_date)}${e.entry_time ? ` ${e.entry_time.slice(0, 5)}` : ''}${text ? ` · ${text}` : ''}${who}`;
 };
 
 export default function HouseRecords({ layout = 'side', homeId, program, records, residents, todayEntries, recent = [] }) {

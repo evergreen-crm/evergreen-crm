@@ -65,7 +65,7 @@ export default async function HomePage({ params, searchParams }) {
   const recordKinds = records.filter((r) => !r.tab).map((r) => r.kind);
   // The last few entries of each record kind, shown under each record on the side panel.
   const { data: recentRows } = records.length
-    ? await supabase.from('entries').select('id, resident_id, kind, entry_date, entry_time, data').eq('home_id', id)
+    ? await supabase.from('entries').select('id, resident_id, kind, entry_date, entry_time, data, author:created_by(full_name)').eq('home_id', id)
       .in('kind', recordKinds).order('entry_date', { ascending: false }).order('entry_time', { ascending: false, nullsFirst: false }).limit(800)
     : { data: null };
   const { data: todayRecords } = records.length

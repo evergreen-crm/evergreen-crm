@@ -49,7 +49,7 @@ export default async function DocumentRecords({ searchParams }) {
     doneKinds = new Set((ent ?? []).map((e) => e.kind));
     const { data: m } = await supabase.from('medications').select('id, name, dose, route, times, is_prn, active').eq('resident_id', resident.id).eq('active', true).order('name');
     meds = m ?? [];
-    const { data: d } = await supabase.from('med_administrations').select('medication_id, scheduled_time, status, given_at').eq('resident_id', resident.id).eq('admin_date', date);
+    const { data: d } = await supabase.from('med_administrations').select('medication_id, scheduled_time, status, given_at, reason, staff:given_by(full_name)').eq('resident_id', resident.id).eq('admin_date', date);
     doses = d ?? [];
     const { data: g } = await supabase.from('goals').select('id, title, domain, description, target_date, status').eq('resident_id', resident.id).eq('status', 'Active').order('created_at');
     goals = g ?? [];
@@ -154,7 +154,7 @@ export default async function DocumentRecords({ searchParams }) {
                                   <td style={{ padding: 10 }}>{label}</td>
                                   <td style={{ padding: 10 }}>{medType}</td>
                                   <td style={{ padding: 10, minWidth: 160 }}>{timeText(d)}</td>
-                                  <td style={{ padding: 10, minWidth: 180 }}><span className={`badge ${d.status === 'Given' ? '' : 'bad'}`}>{d.status}</span></td>
+                                  <td style={{ padding: 10, minWidth: 180 }}><span className={`badge ${d.status === 'Given' ? '' : 'bad'}`}>{d.status}</span>{d.staff?.full_name && <div className="small muted">by {d.staff.full_name}</div>}</td>
                                   <td style={{ padding: 10, minWidth: 220 }}>{d.reason ?? '—'}</td>
                                 </tr>
                               ));
