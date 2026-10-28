@@ -41,7 +41,7 @@ const TIMING = [
   ['Views of child, family and others', 'Recorded in the individual service record', 'Each time views are sought', 'MCFD', 'MCFD standards E.3.9, E.3.10(e)'],
   ['Intake decisions and consents', 'Intake decision and consents documented; decision sent to the referral source', 'Within the agreed time', 'MCFD', 'MCFD standards E.1.7(d), E.1.8(b)'],
   ['Transition or discharge plan', 'Written plan, filed in the individual service record', 'Before the transition', 'MCFD', 'MCFD standards E.6.4, E.6.5(c)'],
-  ['Reportable incident alert', 'Saving a reportable incident alerts the house’s Program Coordinator and Program Manager (in-app and email). No other record alerts.', 'Immediately', 'MCFD', 'MCFD standards C.2.8; CRM alert'],
+  ['Urgent alert (incident, restraint, serious illness)', 'Saving a reportable incident, a restraint or seclusion, or a serious illness or injury alerts the house’s Program Coordinator and Program Manager (in-app and email). No other record alerts.', 'Immediately', 'MCFD', 'MCFD standards C.2.8, C.3.11, D.6.5(b); CRM alert'],
   ['Staff orientation and acknowledgement', 'Written orientation: philosophy, service, duties and plan of care, safety and emergency, confidentiality, ethics, standards; signed acknowledgement', 'Before first independent shift (Evergreen practice; the standard says timely)', 'MCFD', 'MCFD standards G.3.6, G.3.7'],
   ['Job description', 'Current written job description for each position, signed', 'At hire; kept current', 'MCFD', 'MCFD standards G.1.9, G.4.5(a)'],
   ['Performance review (staff)', 'Regular written performance evaluation', 'Every 3 months (Melvin’s instruction)', 'MCFD', 'MCFD standards G.4.5(d)'],
