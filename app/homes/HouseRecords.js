@@ -13,7 +13,8 @@ const line = (e) => {
   return `${fmtDate(e.entry_date)}${e.entry_time ? ` ${e.entry_time.slice(0, 5)}` : ''}${text ? ` · ${text}` : ''}`;
 };
 
-export default function HouseRecords({ homeId, program, records, residents, todayEntries, recent = [] }) {
+export default function HouseRecords({ layout = 'side', homeId, program, records, residents, todayEntries, recent = [] }) {
+  const wrap = layout === 'full' ? { width: '100%' } : { flex: '0 1 380px', minWidth: 280, position: 'sticky', top: 12 };
   const last = {};
   for (const e of recent) {
     const k = `${e.resident_id}|${e.kind}`;
@@ -36,9 +37,12 @@ export default function HouseRecords({ homeId, program, records, residents, toda
   }
   const dailyKinds = records.filter(isDaily).map((r) => r.kind);
   return (
-    <aside aria-label={`${program} records`} style={{ flex: '0 1 380px', minWidth: 280, position: 'sticky', top: 12 }}>
+    <aside aria-label={`${program} records`} style={wrap}>
       <section className="card">
         <h2 style={{ marginTop: 0 }}>{program} records by section</h2>
+        <div className="message" style={{ marginBottom: 8 }}>
+          <strong>How to enter a record:</strong> 1. Find the child below. 2. Open the record you need (“Write … here”). 3. Fill in the required fields (the first group). 4. Check the date and time at the bottom, change them if the entry is for another time. 5. Press Save. The entry appears under that record straight away.
+        </div>
         <p className="small" style={{ margin: '0 0 6px' }}><Link href={`/homes/${homeId}/daily`}><strong>🗓 Daily grid (enter every child, one screen)</strong></Link> · <Link href="/documentation">📝 Documentation guide</Link> · <Link href="/reports/daily">🖨 Print a report</Link></p>
         <p className="muted small">Every record for each child. Open a record, then set the date and time on the form, so an entry can be made for any date or time today or on an earlier day.</p>
         {!residents?.length && <p className="muted small">No current residents in this house yet.</p>}

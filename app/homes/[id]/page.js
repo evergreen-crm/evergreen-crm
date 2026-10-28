@@ -71,7 +71,8 @@ export default async function HomePage({ params, searchParams }) {
   const { data: todayRecords } = records.length
     ? await supabase.from('entries').select('resident_id, kind').eq('home_id', id).eq('entry_date', today).in('kind', recordKinds)
     : { data: null };
-  const TABS = [['dashboard', '📊 Dashboard'], ['residents', 'Residents'], ['commbook', 'Shift log'], ['safety', 'Fire drills & safety']];
+  const TABS = [['dashboard', '📊 Dashboard'], ['residents', 'Residents'], ['commbook', 'Shift log'], ['safety', 'Fire drills & safety'],
+    ...(records.length ? [['records', '📝 Records by section']] : [])];
 
   const current = residents?.filter((r) => r.status !== 'discharged') ?? [];
   const past = residents?.filter((r) => r.status === 'discharged') ?? [];
@@ -159,6 +160,10 @@ export default async function HomePage({ params, searchParams }) {
         </section>
       )}
 
+      {tab === 'records' && (
+        <HouseRecords layout="full" homeId={id} program={home.program} records={records} residents={current} todayEntries={todayRecords ?? []} recent={recentRows ?? []} />
+      )}
+
       {tab === 'safety' && (
         <section>
           <p className="muted small">Fire drills: at least once a month, including some during sleeping hours. Record every safety check and any repairs needed.</p>
@@ -232,7 +237,6 @@ export default async function HomePage({ params, searchParams }) {
       </ul>
       </>}
       </div>
-      <HouseRecords homeId={id} program={home.program} records={records} residents={current} todayEntries={todayRecords ?? []} recent={recentRows ?? []} />
       </div>
     </main>
   );
