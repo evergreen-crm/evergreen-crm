@@ -4,6 +4,16 @@ import Link from 'next/link';
 import { isDaily } from '@/lib/records';
 
 export default function HouseRecords({ program, records, residents, todayEntries }) {
+  if (!records.length) {
+    return (
+      <aside aria-label="House records" style={{ flex: '0 1 380px', minWidth: 280 }}>
+        <section className="card">
+          <h2 style={{ marginTop: 0 }}>House records by section</h2>
+          <p className="small">This house has no program yet, so its records are not shown. Use <strong>Edit house</strong> and choose MCFD or CLBC.</p>
+        </section>
+      </aside>
+    );
+  }
   const count = {};
   for (const e of todayEntries ?? []) {
     const k = `${e.resident_id}|${e.kind}`;

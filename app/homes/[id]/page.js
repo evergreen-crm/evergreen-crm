@@ -227,7 +227,7 @@ export default async function HomePage({ params, searchParams }) {
       </ul>
       </>}
       </div>
-      {records.length > 0 && <HouseRecords program={home.program} records={records} residents={current} todayEntries={todayRecords ?? []} />}
+      <HouseRecords program={home.program} records={records} residents={current} todayEntries={todayRecords ?? []} />
       </div>
     </main>
   );
