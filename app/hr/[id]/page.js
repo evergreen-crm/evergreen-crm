@@ -85,7 +85,8 @@ export default async function StaffHrPage({ params, searchParams }) {
         ) : <p className="muted small">No onboarding checklist yet.</p>}
         <p className="small"><Link href={`/hr/${person.id}/certificates`}>🏅 Print all training certificates</Link>
           {canEdit && <> · <Link href={`/policies/report?person=${person.id}`}>📘 Print policy sign-off record</Link></>}
-          {canEdit && <> · <Link href={`/hr/${person.id}/file`}><strong>🗂 Print complete staff file</strong></Link></>}</p>
+          {canEdit && <> · <Link href={`/hr/${person.id}/file`}><strong>🗂 Print complete staff file</strong></Link></>}
+          {canEdit && <> · <Link href={`/hr/${person.id}/records`}><strong>📝 Evaluations, supervision and job description</strong></Link></>}</p>
       </div>
 
 
