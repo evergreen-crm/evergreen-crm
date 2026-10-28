@@ -50,6 +50,13 @@ export default async function PortalHome() {
         </div>
       </div>
 
+      {/* Clock in / out: its own big button for everyone, above the department menu. */}
+      <Link href="/id#checkin" className="clock-btn no-print">
+        <span aria-hidden="true">⏰</span>
+        <strong>Clock in / Clock out</strong>
+        <span className="muted small">Check in and check out at the house</span>
+      </Link>
+
       {/* The simple menu (lib/menu.js): up to 8 tiles for my role, and 🔍 Find for everything else. */}
       <section className="no-print">
         <FindBox items={[...sectionFindItems(sections), ...menu.all]} />

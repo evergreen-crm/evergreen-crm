@@ -1050,3 +1050,8 @@ button.danger-soft { background: #b3261e; color: #fff; }
 .sec-cell.lv-all { background: #e3f1e8; color: #0b5a34; }
 .sec-cell.lv-assigned { background: #eef6f1; }
 .sec-cell.changed { outline: 2px solid #d4a72c; outline-offset: 1px; }
+
+/* Clock in / out: one big button on the home screen for everyone. */
+.clock-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0 0 16px; padding: 18px 16px; border-radius: 14px; background: var(--brand, #2f6b4f); color: #fff; text-decoration: none; text-align: center; font-size: 1.1rem; }
+.clock-btn span:first-child { font-size: 2rem; }
+.clock-btn .muted { color: #e8f3ee; }
