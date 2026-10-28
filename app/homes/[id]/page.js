@@ -11,6 +11,7 @@ import { updateHome } from '@/app/homes/actions';
 import EntryForm from '@/app/components/EntryForm';
 import HouseDirectory from '@/app/homes/HouseDirectory';
 import { levelOf } from '@/lib/levels';
+import RecordChecks from '@/app/homes/RecordChecks';
 import EntryList from '@/app/components/EntryList';
 
 export default async function HomePage({ params, searchParams }) {
@@ -20,6 +21,11 @@ export default async function HomePage({ params, searchParams }) {
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const canEdit = ['admin', 'manager'].includes(profile.role);
 
+  const { data: houseResidents } = await supabase.from('residents')
+    .select('id, first_name, last_name, preferred_name, status, on_medication, emergency_contact_name, emergency_contact_phone, doctor_name, allergies, care_plan_review_date, guardian_name, guardian_phone')
+    .eq('home_id', id).neq('status', 'discharged');
+  const { data: houseMeds } = await supabase.from('medications').select('resident_id, name, dose, route, prescriber, active').eq('active', true)
+    .in('resident_id', (houseResidents ?? []).map((r) => r.id).length ? (houseResidents ?? []).map((r) => r.id) : ['00000000-0000-0000-0000-000000000000']);
   const { data: houseContacts } = await supabase.from('house_contacts').select('*').eq('home_id', id).order('kind');
   const { data: houseStaff } = await supabase.from('profiles').select('id, full_name, level, role, staff_group').eq('home_id', id).eq('active', true).is('staff_group', null).order('full_name');
   const { data: houseMgrs } = await supabase.from('manager_homes').select('profiles(id, full_name, level, role, active, staff_group)').eq('home_id', id);
@@ -151,6 +157,8 @@ export default async function HomePage({ params, searchParams }) {
       {/* ---------- Residents ---------- */}
       <div className="title-row">
         <p className="small"><Link href={`/homes/${id}/activities`}>📅 Activity plan</Link> · <Link href="/documentation">📝 What to document each shift</Link></p>
+
+        <RecordChecks homeId={id} program={home.program} residents={houseResidents ?? []} meds={houseMeds ?? []} />
 
         <HouseDirectory homeId={id} contacts={houseContacts ?? []} staff={staffList} canEdit={canDirectory} />
 
