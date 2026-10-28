@@ -36,16 +36,11 @@ export default async function HomesPage() {
               </span>
             </Link>
             <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginTop: 8 }} aria-label={`${h.name} records`}>
-              {h.program ? (
-                <>
-                  <Link className="button" href={`/document?house=${h.id}`}>📝 Document records</Link>
-                  <Link className="button secondary" href={`/homes/${h.id}?tab=records`}>By section</Link>
-                  {h.program === 'CLBC' && <Link className="button secondary" href={`/homes/${h.id}/daily`}>🗓 Daily grid</Link>}
-                  <Link className="button secondary" href={`/reports/daily?home=${h.id}`}>🖨 Report</Link>
-                </>
-              ) : (
-                <span className="small muted">Choose MCFD or CLBC in Edit house to show records.</span>
-              )}
+              <Link className="button" href={`/document?house=${h.id}`}>📝 Document records</Link>
+              <Link className="button secondary" href={`/homes/${h.id}?tab=records`}>By section</Link>
+              {h.program === 'CLBC' && <Link className="button secondary" href={`/homes/${h.id}/daily`}>🗓 Daily grid</Link>}
+              <Link className="button secondary" href={`/reports/daily?home=${h.id}`}>🖨 Report</Link>
+              {!h.program && <span className="small muted">Choose MCFD or CLBC in Edit house to show the records.</span>}
             </div>
           </div>
         ))}

@@ -141,6 +141,13 @@ export default async function HomePage({ params, searchParams }) {
       )}
 
       {!drillThisMonth && <p className="alert">No fire drill recorded yet this month{lastDrill ? ` (last one ${fmtDate(lastDrill.entry_date)})` : ''}.</p>}
+      <div className="card no-print" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+        <strong>Documentation:</strong>
+        <Link className="button" href={`/document?house=${id}`}>📝 Document records</Link>
+        <Link className="button secondary" href={`/homes/${id}?tab=records`}>Records by section</Link>
+        {home.program === 'CLBC' && <Link className="button secondary" href={`/homes/${id}/daily`}>🗓 Daily grid</Link>}
+        <Link className="button secondary" href={`/reports/daily?home=${id}`}>🖨 Print report</Link>
+      </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-start' }}>
       <div style={{ flex: '1 1 480px', minWidth: 0 }}>
       <nav className="tabs-bar no-print">
