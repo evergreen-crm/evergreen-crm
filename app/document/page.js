@@ -21,7 +21,7 @@ const VIEWS = (records, house) => [
   ...records.filter((r) => !r.tab).map((r) => ({ key: r.kind, kind: r.kind, icon: '📝', label: r.section })),
   { key: 'med', icon: '💊', label: 'Medication sheet' },
   { key: 'goals', icon: '🎯', label: 'Goals and steps' },
-];
+].map((v, i) => ({ ...v, label: `${i + 1}. ${v.label}` }));
 
 export default async function DocumentRecords({ searchParams }) {
   const sp = await searchParams;
