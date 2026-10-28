@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { HOUSE_TYPES, PROGRAMS } from '@/lib/options';
+import { PROGRAM_DIFFERENCES } from '@/lib/programCompare';
 import { createHome } from '@/app/homes/actions';
 
 export default async function HomesPage() {
@@ -59,6 +60,13 @@ export default async function HomesPage() {
               <label>Capacity (beds)<input name="capacity" type="number" min="1" /></label>
             </div>
             <label>Licence number<input name="licence_number" /></label>
+            <details>
+              <summary className="small"><strong>What is different: MCFD or CLBC house</strong></summary>
+              <table className="small" style={{ marginTop: 6 }}>
+                <thead><tr><th>Topic</th><th>MCFD house</th><th>CLBC house</th></tr></thead>
+                <tbody>{PROGRAM_DIFFERENCES.map((d) => <tr key={d.topic}><td>{d.topic}</td><td>{d.mcfd}</td><td>{d.clbc}</td></tr>)}</tbody>
+              </table>
+            </details>
             <button>Add house</button>
           </form>
         </details>

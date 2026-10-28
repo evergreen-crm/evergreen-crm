@@ -6,6 +6,7 @@ import HouseDashboard from './HouseDashboard';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { HOUSE_TYPES, PROGRAMS, fmtDate, fmtTime, todayISO, age, daysUntil } from '@/lib/options';
+import { PROGRAM_DIFFERENCES } from '@/lib/programCompare';
 import { updateHome } from '@/app/homes/actions';
 import EntryForm from '@/app/components/EntryForm';
 import EntryList from '@/app/components/EntryList';
@@ -83,6 +84,13 @@ export default async function HomePage({ params, searchParams }) {
             <label>Capacity<input type="number" min="1" name="capacity" defaultValue={home.capacity ?? ''} /></label>
           </div>
           <label>Licence number<input name="licence_number" defaultValue={home.licence_number ?? ''} /></label>
+          <details>
+            <summary className="small"><strong>What is different: MCFD or CLBC house</strong></summary>
+            <table className="small" style={{ marginTop: 6 }}>
+              <thead><tr><th>Topic</th><th>MCFD house</th><th>CLBC house</th></tr></thead>
+              <tbody>{PROGRAM_DIFFERENCES.map((d) => <tr key={d.topic}><td>{d.topic}</td><td>{d.mcfd}</td><td>{d.clbc}</td></tr>)}</tbody>
+            </table>
+          </details>
           <fieldset className="card">
             <legend>House location — staff can clock in and out only here</legend>
             <div className="row">
