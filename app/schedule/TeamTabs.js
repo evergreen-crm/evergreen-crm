@@ -192,7 +192,14 @@ export async function TimeOffTab({ supabase, profile }) {
   if (notReady(error)) return <NotReady what="Time off requests" file="schedule-teams.sql" />;
   const all = data ?? [];
   const mine = all.filter((r) => r.profile_id === profile.id);
-  const pending = all.filter((r) => r.profile_id !== profile.id && r.status === 'Pending');
+  // Only the requests this person decides (chain: staff → PC → PM → director → CEO).
+  const { data: waiting } = lead ? await supabase.rpc('time_off_pending_for_me') : { data: [] };
+  const whoIds = [...new Set((waiting ?? []).map((r) => r.profile_id))];
+  const { data: names } = whoIds.length ? await supabase.from('profiles').select('id, full_name').in('id', whoIds) : { data: [] };
+  const nameOf = Object.fromEntries((names ?? []).map((n) => [n.id, n.full_name]));
+  const pending = (waiting ?? []).map((r) => ({ ...r, who: { full_name: nameOf[r.profile_id] } }));
+  const onVacation = all.filter((r) => r.status === 'Approved' && r.end_date >= today && r.profile_id !== profile.id);
+  const isTop = levelOf(profile) >= 7 || profile.role === 'admin';
   const span = (r) => `${fmtDate(r.start_date)}${r.end_date !== r.start_date ? ` – ${fmtDate(r.end_date)}` : ''}`;
   return (
     <>
@@ -212,7 +219,14 @@ export async function TimeOffTab({ supabase, profile }) {
               </form>
             </div>
           ))}
-          <p className="muted small">Approving opens their shifts in those dates for the part-time and casual pick-up pool.</p>
+          <p className="muted small">Approving opens their shifts in those dates for the pick-up pool.</p>
+        </section>
+      )}
+      {(lead || isTop) && (
+        <section className="card">
+          <h2 style={{ marginTop: 0 }}>{isTop ? 'Who is on vacation (everyone)' : 'Who is on vacation'}</h2>
+          {!onVacation.length && <p className="muted">Nobody approved for time off from today on.</p>}
+          <ul className="list compact">{onVacation.map((r) => <li key={r.id}><span>{r.who?.full_name} · {r.kind} · {span(r)}</span><span className="small">Shifts open for pick-up</span></li>)}</ul>
         </section>
       )}
       <section className="card">
