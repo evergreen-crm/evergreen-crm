@@ -12,6 +12,7 @@ import { shiftTimes, clock } from '@/lib/attendance';
 import PrintButton from '@/app/PrintButton';
 import MyTimeForms from './MyTimeForms';
 import NightCheck from './NightCheck';
+import NightDuties from './NightDuties';
 
 export const metadata = { title: 'My ID card · Evergreen' };
 
@@ -26,6 +27,15 @@ export default async function IdPage({ searchParams }) {
     .eq('profile_id', user.id).gte('shift_date', today).lte('shift_date', addDaysISO(today, 14)).order('shift_date').order('start_time') : { data: null };
 
   const { data: nightChecks } = isSelf ? await supabase.rpc('my_night_checks') : { data: null };
+  // The night shift I am on right now (or started within the last 12 hours), for its duty list.
+  const { data: nightShifts } = isSelf ? await supabase.from('shifts').select('id, shift_date, start_time, end_time, label, night_role, homes(program)')
+    .eq('profile_id', user.id).in('label', ['Awake night', 'Sleep night']).gte('shift_date', addDaysISO(today, -1)).lte('shift_date', today) : { data: null };
+  const nowMs = Date.now();
+  const mineNow = (nightShifts ?? []).map((x) => {
+    const st = new Date(`${x.shift_date}T${String(x.start_time).slice(0, 5)}:00-07:00`).getTime();
+    const dur = (((Number(String(x.end_time).slice(0, 2)) * 60 + Number(String(x.end_time).slice(3, 5))) - (Number(String(x.start_time).slice(0, 2)) * 60 + Number(String(x.start_time).slice(3, 5)))) + 1440) % 1440;
+    return { ...x, st, en: st + dur * 60000, program: x.homes?.program };
+  }).find((x) => nowMs >= x.st - 30 * 60000 && nowMs < x.en);
 
   const [{ data: person }, { data: details }, { data: card }, { data: onb }, { data: perf }] = await Promise.all([
     supabase.from('profiles').select('id, full_name, active, home_id, homes(name)').eq('id', pid).maybeSingle(),
@@ -136,6 +146,7 @@ export default async function IdPage({ searchParams }) {
                   {nextDue && <span className={overdue ? 'badge bad' : 'badge'}>{overdue ? 'Check-in due now' : `Next check-in by ${fmtDateTime(nextDue.toISOString()).split(', ').pop()}`}</span>}
                 </p>
               ) : <p className="muted small">You are not clocked in.</p>}
+              {mineNow && <NightDuties shift={mineNow} />}
               <CheckInPanel onShift={!!openEntry} homes={homes ?? []} defaultHome={profile.home_id} houseName={openEntry?.homes?.name} status={outStatus} staffOnShift={staffOnShift} nextShift={nextShift} />
               {checks?.length > 0 && (
                 <ul className="list compact">
