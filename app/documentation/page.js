@@ -28,6 +28,17 @@ const TIMING = [
   ['Individual service record', 'Medical, dental, signed consents, PHN, assessments, day book, incidents', 'Kept current', 'MCFD', 'MCFD standards D.6.6(f), E.7.10'],
   ['Care plan reviews', 'Record each review in the individual service record', 'Schedule timely review dates; set the frequency in the plan', 'MCFD', 'MCFD standards E.5.6, E.5.13(a)'],
   ['Program statement of purpose', 'Review and update', 'Annually', 'MCFD', 'MCFD standards A.1.7'],
+  ['Goal and care plan review', 'Progress against each measurable objective, with timelines; the child’s input; next review date', 'On each review date (the CRM flags overdue reviews)', 'MCFD', 'MCFD standards E.4.5(b), E.5.6, E.5.10(c), E.5.13(a)'],
+  ['Individual service record sections', 'Intake, Indigenous identity, legal documents, health and consents, assessments, care plan, day book, incidents, complaints, termination or transition', 'Kept current; each change filed the same shift', 'MCFD', 'MCFD standards E.7.10, E.7.11, D.6.6(f)'],
+  ['Views of child, family and others', 'Recorded in the individual service record', 'Each time views are sought', 'MCFD', 'MCFD standards E.3.9, E.3.10(e)'],
+  ['Intake decisions and consents', 'Intake decision and consents documented; decision sent to the referral source', 'Within the agreed time', 'MCFD', 'MCFD standards E.1.7(d), E.1.8(b)'],
+  ['Transition or discharge plan', 'Written plan, filed in the individual service record', 'Before the transition', 'MCFD', 'MCFD standards E.6.4, E.6.5(c)'],
+  ['Reportable incident alert', 'Saving a reportable incident alerts the house’s Program Coordinator and Program Manager (in-app and email). No other record alerts.', 'Immediately', 'MCFD', 'MCFD standards C.2.8; CRM alert'],
+  ['Staff orientation and acknowledgement', 'Written orientation: philosophy, service, duties and plan of care, safety and emergency, confidentiality, ethics, standards; signed acknowledgement', 'Before first independent shift (Evergreen practice; the standard says timely)', 'MCFD', 'MCFD standards G.3.6, G.3.7'],
+  ['Job description', 'Current written job description for each position, signed', 'At hire; kept current', 'MCFD', 'MCFD standards G.1.9, G.4.5(a)'],
+  ['Performance review (staff)', 'Regular written performance evaluation', 'Every 3 months (Melvin’s instruction)', 'MCFD', 'MCFD standards G.4.5(d)'],
+  ['Supervision (staff)', 'Supervision and support recorded', 'Every 3 months (Evergreen default, to be confirmed)', 'MCFD', 'MCFD standards G.4.3'],
+  ['Personnel record (staff)', 'Criminal record check, references, qualifications, orientation acknowledgement, evaluations, discipline, employment dates, rehire recommendation, exit interview', 'Kept current, secure and retrievable', 'MCFD', 'MCFD standards G.1.10(a)–(b)'],
   ['Signs of illness', 'Document and respond', 'Promptly', 'CLBC', 'CLBC standards §9'],
   ['Medication record (MAR)', 'Keep an up-to-date record of all medications', 'Up to date', 'CLBC', 'CLBC standards §11'],
   ['Medication errors', 'Handle under the critical incident policy', 'Per policy', 'CLBC', 'CLBC standards §11'],
@@ -97,7 +108,7 @@ export default async function DocumentationGuide() {
       <h2>Goals</h2>
       <ul>
         <li>Each resident has goals on their page (Goals tab). Log progress when it happens, not at the end of the week.</li>
-        <li>Each goal should have a review date. The CRM does not yet flag overdue goals.</li>
+        <li>Each goal needs a target date and a review date. The CRM flags goals with no review date, overdue reviews and reviews due soon.</li>
         <li>Goals should match the plan: MCFD care plan for MCFD youth, CLBC individual plan for adults.</li>
       </ul>
 

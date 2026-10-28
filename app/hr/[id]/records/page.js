@@ -36,7 +36,7 @@ export default async function StaffRecords({ params }) {
     <main>
       <p className="small"><Link href={`/hr/${id}`}>← {person.full_name}</Link></p>
       <h1>Staff file records</h1>
-      <p className="muted small">Standards G.1.9, G.1.10(a), G.4.3 and G.4.5. Evaluations are due every {EVALUATION_EVERY_MONTHS} months and supervision every {SUPERVISION_EVERY_MONTHS} months (Evergreen defaults, to be confirmed).</p>
+      <p className="muted small">Standards G.1.9, G.1.10(a), G.4.3 and G.4.5. Performance reviews are due every {EVALUATION_EVERY_MONTHS} months. Supervision is due every {SUPERVISION_EVERY_MONTHS} months (Evergreen default, to be confirmed).</p>
 
       <h2>Still to do ({gaps.length})</h2>
       {gaps.length === 0 && <p className="muted small">Nothing missing from the standards checks.</p>}
