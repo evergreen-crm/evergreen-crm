@@ -5,7 +5,7 @@ import FindAddress from './FindAddress';
 import HouseDashboard from './HouseDashboard';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
-import { HOUSE_TYPES, fmtDate, fmtTime, todayISO, age, daysUntil } from '@/lib/options';
+import { HOUSE_TYPES, PROGRAMS, fmtDate, fmtTime, todayISO, age, daysUntil } from '@/lib/options';
 import { updateHome } from '@/app/homes/actions';
 import EntryForm from '@/app/components/EntryForm';
 import EntryList from '@/app/components/EntryList';
@@ -54,6 +54,7 @@ export default async function HomePage({ params, searchParams }) {
         {canEdit && !edit && <Link className="button secondary" href={`/homes/${id}?edit=1`}>Edit house</Link>}
       </div>
       <p className="muted">
+        <span className="badge">{home.program ?? 'No program yet'}</span>{' '}
         <span className="badge">{home.house_type ?? 'Adults'}</span>{' '}
         {[home.address, home.phone, home.licence_number && `Licence ${home.licence_number}`].filter(Boolean).join(' · ')}
       </p>
@@ -67,6 +68,12 @@ export default async function HomePage({ params, searchParams }) {
           <div className="row">
             <label>Phone<input name="phone" type="tel" inputMode="tel" defaultValue={home.phone ?? ''} /></label>
             <label>On-call phone (for the 🆘 button)<input name="on_call_phone" type="tel" inputMode="tel" defaultValue={home.on_call_phone ?? ''} placeholder="Manager on-call cell" /></label>
+            <label>Program
+              <select name="program" required defaultValue={home.program ?? ''}>
+                <option value="" disabled>Choose MCFD or CLBC</option>
+                {PROGRAMS.map((t) => <option key={t} value={t}>{t === 'MCFD' ? 'MCFD — children and youth' : 'CLBC — adults'}</option>)}
+              </select>
+            </label>
             <label>
               Who lives here
               <select name="house_type" defaultValue={home.house_type ?? 'Adults'}>

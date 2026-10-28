@@ -1,14 +1,14 @@
 // Houses: the starting page for staff, managers and admins.
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
-import { HOUSE_TYPES } from '@/lib/options';
+import { HOUSE_TYPES, PROGRAMS } from '@/lib/options';
 import { createHome } from '@/app/homes/actions';
 
 export default async function HomesPage() {
   const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
 
   const [{ data: homes }, { data: residents }] = await Promise.all([
-    supabase.from('homes').select('id, name, address, house_type, capacity').order('name'),
+    supabase.from('homes').select('id, name, address, house_type, program, capacity').order('name'),
     supabase.from('residents').select('home_id, status'),
   ]);
 
@@ -28,6 +28,7 @@ export default async function HomesPage() {
             <strong>{h.name}</strong>
             <span className="muted small">{h.address ?? 'No address'}</span>
             <span className="small">
+              <span className="badge">{h.program ?? 'No program'}</span>{' '}
               <span className="badge">{h.house_type ?? 'Adults'}</span>{' '}
               {counts[h.id] ?? 0}{h.capacity ? ` / ${h.capacity}` : ''} residents
             </span>
@@ -42,6 +43,12 @@ export default async function HomesPage() {
             <label>House name<input name="name" required placeholder="e.g., Maple House" /></label>
             <label>Address<input name="address" /></label>
             <div className="row">
+              <label>Program
+                <select name="program" required defaultValue="">
+                  <option value="" disabled>Choose MCFD or CLBC</option>
+                  {PROGRAMS.map((t) => <option key={t} value={t}>{t === 'MCFD' ? 'MCFD — children and youth' : 'CLBC — adults'}</option>)}
+                </select>
+              </label>
               <label>Phone<input name="phone" type="tel" /></label>
               <label>
                 Who lives here

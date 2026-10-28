@@ -9,11 +9,14 @@ const text = (formData, key) => {
   return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
 };
 
-const HOME_FIELDS = ['name', 'address', 'phone', 'licence_number', 'house_type', 'notes'];
+const HOME_FIELDS = ['name', 'address', 'phone', 'licence_number', 'house_type', 'program', 'notes'];
+const PROGRAM_OK = ['MCFD', 'CLBC'];
+const checkProgram = (v) => { if (!PROGRAM_OK.includes(v)) throw new Error('Choose MCFD or CLBC for this house.'); };
 
 export async function createHome(formData) {
   const { supabase } = await requireUser(['admin']);
   const row = Object.fromEntries(HOME_FIELDS.map((k) => [k, text(formData, k)]));
+  checkProgram(row.program);
   row.capacity = text(formData, 'capacity');
   const { data, error } = await supabase.from('homes').insert(row).select('id').single();
   if (error) throw new Error('Could not add house: ' + error.message);
@@ -25,6 +28,7 @@ export async function updateHome(formData) {
   const { supabase } = await requireUser(['admin', 'manager']);
   const id = text(formData, 'id');
   const row = Object.fromEntries(HOME_FIELDS.map((k) => [k, text(formData, k)]));
+  checkProgram(row.program);
   row.capacity = text(formData, 'capacity');
   if (formData.has('lat')) {
     const n = (k, lo, hi) => { const v = Number(text(formData, k)); return text(formData, k) !== null && Number.isFinite(v) && v >= lo && v <= hi ? v : null; };
