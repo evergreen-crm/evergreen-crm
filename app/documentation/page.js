@@ -5,9 +5,17 @@
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { MCFD, CLBC } from '@/lib/requirements';
-import { MCFD_RECORDS, SERVICE_RECORD_STANDARD } from '@/lib/mcfdStandards';
+import { MCFD_RECORDS, SERVICE_RECORD_STANDARD, SERVICE_RECORD_SECTIONS } from '@/lib/mcfdStandards';
 
 const count = (p) => (p.sections ?? []).reduce((n, s) => n + (s.items?.length ?? 0), 0);
+
+// Where each MCFD record is entered in the CRM.
+const WHERE = {
+  day_book: 'House shift log, “MCFD daily records”, once per child',
+  wellness_check: 'House shift log, “MCFD daily records”, once per child',
+  mar: 'Resident page, Medications tab',
+};
+const whereOf = (r) => WHERE[r.kind] ?? `Resident page, Logs tab, type “${r.section}”`;
 
 const SHIFT = [
   ['Start of shift (first 15 min)', 'Clock in at the house. Read the communication book and handover. Check today’s activity plan and who is on it. Check medication times on the MAR.'],
@@ -69,14 +77,16 @@ export default async function DocumentationGuide() {
       <h2>MCFD: every record, by section (enter daily)</h2>
       <p className="small">Each record below can be entered for each child on the house’s shift log, under “MCFD daily records”. Entries save with the date, time and author, and every correction keeps the earlier version.</p>
       <table className="small">
-        <thead><tr><th>Record (section)</th><th>Standard</th><th>When to enter</th></tr></thead>
-        <tbody>{MCFD_RECORDS.map((r) => <tr key={r.kind}><td>{r.section}</td><td>{r.standard}</td><td>{r.when}</td></tr>)}</tbody>
+        <thead><tr><th>Record (section)</th><th>Standard</th><th>When to enter</th><th>Where in the CRM</th></tr></thead>
+        <tbody>{MCFD_RECORDS.map((r) => <tr key={r.kind}><td>{r.section}</td><td>{r.standard}</td><td>{r.when}</td><td>{whereOf(r)}</td></tr>)}</tbody>
       </table>
       <h3>Individual service record: sections (E.7.10)</h3>
       <table className="small">
         <thead><tr><th>Section</th><th>What it must contain</th></tr></thead>
         <tbody>{SERVICE_RECORD_STANDARD.map((r) => <tr key={r[0]}><td>{r[0]}</td><td>{r[1]}</td></tr>)}</tbody>
       </table>
+      <p className="small">Staff enter each change under “Individual service record (by section)” on the resident’s Logs tab. Choose the section it belongs to:</p>
+      <ul className="small">{SERVICE_RECORD_SECTIONS.map((s) => <li key={s}>{s}</li>)}</ul>
       <p className="small muted">Staff records (standard G.1.10(a): criminal record check, references, job description, orientation acknowledgement, performance evaluations, discipline documentation, first aid, and others) are on each staff member’s personnel file, not in the child record.</p>
 
       <h2>Night shifts</h2>
