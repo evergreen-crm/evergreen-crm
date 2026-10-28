@@ -1,10 +1,10 @@
 import { submitItem } from '@/app/onboarding/actions';
 import { fmtDate, addDaysISO } from '@/lib/options';
-// Six-day new staff orientation: Days 1–3 online, Days 4–6 in person. Each day is 5.5 paid hours (330 minutes)
+// Six-day new staff orientation: Days 1–4 online, Days 5–6 in person. Each day is 5.5 paid hours (330 minutes)
 // plus an unpaid 30-minute lunch. Items come from the orientation_plan_items table.
 // Paid minutes = every item except lunch, and except the awake-night shadow shift (starts after 18:00), which is paid as a night shift.
 const KIND_LABEL = { training: 'Training', quiz: 'Quiz', practical: 'In person', shift: 'Shift', admin: 'Admin', lunch: 'Lunch', external: 'External cert' };
-const ONLINE_DAYS = 3; // Days 1–3 are online; Days 4–6 are in person.
+const ONLINE_DAYS = 4; // Days 1–4 are online (Evergreen Academy); Days 5–6 are in person in the programs.
 
 const mins = (a, b) => {
   const [h1, m1] = a.split(':').map(Number);
@@ -25,7 +25,8 @@ export default function OrientationPlan({ items, sign, fullName, startDate }) {
   const CHECKLIST = [
     { text: 'Complete the online course and quizzes, pass mark 80%', when: range(1, ONLINE_DAYS) },
     { text: 'Read and sign the policies, your job description, and the supervision schedule', when: on(3) },
-    { text: 'Facility tour, exits, emergency procedures, Naloxone, and CPI Nonviolent Crisis Intervention (Module 1)', when: range(4, 4) },
+    { text: 'Online orientation final quiz and review (pass mark 80%)', when: on(4) },
+    { text: 'Facility tour, exits, emergency procedures, Naloxone, and CPI Nonviolent Crisis Intervention (Module 1)', when: on(5) },
     { text: 'Shadow day and evening shifts with a Shift Lead', when: range(5, 6) },
     { text: 'First Aid / CPR certificate checked (full course before your first unsupervised shift)', when: on(6) },
     { text: 'Meeting with the Program Coordinator: training records and first supervision date', when: on(6) },
@@ -36,7 +37,7 @@ export default function OrientationPlan({ items, sign, fullName, startDate }) {
     <section className="card" aria-labelledby="orientation-plan-h" style={{ marginBottom: 16 }}>
       <h2 id="orientation-plan-h">Orientation plan: Days 1 to 6</h2>
       <p className="small muted">
-        Days 1 to 3 are online training. Days 4 to 6 are in person. Each day is 5.5 paid hours, plus a 30-minute unpaid lunch.
+        {`Days 1 to ${ONLINE_DAYS} are online training in the Evergreen Academy. Days ${ONLINE_DAYS + 1} to 6 are in person in the programs. Each day is 5.5 paid hours, plus a 30-minute unpaid lunch.`}
         {startDate ? ` Day 1 is ${fmtDate(startDate)}.` : ' Your dates appear once your start date is confirmed.'}
       </p>
       {days.map((d) => (
