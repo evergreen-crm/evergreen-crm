@@ -140,6 +140,8 @@ export default async function HomePage({ params, searchParams }) {
       {tab === 'residents' && <>
       {/* ---------- Residents ---------- */}
       <div className="title-row">
+        <p className="small"><Link href={`/homes/${id}/activities`}>📅 Activity plan</Link> · <Link href="/documentation">📝 What to document each shift</Link></p>
+
         <h2>Residents ({current.length}{home.capacity ? ` of ${home.capacity}` : ''})</h2>
         {canEdit && <Link className="button" href={`/residents/new?home=${id}`}>+ Add resident</Link>}
       </div>
