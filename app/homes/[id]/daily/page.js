@@ -65,7 +65,7 @@ export default async function DailyGrid({ params, searchParams }) {
       </div>
       <p className="muted small">Fill in only what happened. Each row is one child. Leave a cell blank if it is not needed. Save all writes every filled row at once. Records already saved for this date show as saved.</p>
 
-      {home.program === 'MCFD' && <p className="message">MCFD records are written in each section on the house page, under “MCFD records by section”. This grid only shows what has been written for the day.</p>}
+      {home.program === 'MCFD' && <p className="message"><strong>View only.</strong> MCFD records are written on the <a href={`/document?house=${id}`}>📝 Document records</a> page, one section at a time. This grid only shows what has been written for the day.</p>}
       {kinds.length > 0 && (
         <form action={canEnter ? saveDailyGrid : undefined} style={{ marginTop: 8 }}>
           <input type="hidden" name="home_id" value={home.id} />
