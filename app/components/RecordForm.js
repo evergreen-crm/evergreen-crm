@@ -47,7 +47,7 @@ export default function RecordForm({ kind, homeId, residentId, path, goals, titl
           <fieldset style={{ border: 0, padding: 0, margin: '16px 0 0', borderTop: '1px solid #000', paddingTop: 12 }}>
             <legend className="small"><strong>Date and time</strong></legend>
             <div className="row">
-              <label>Date<input type="date" name="entry_date" required defaultValue={todayISO()} /></label>
+              <label>Date<input type="date" name="entry_date" required defaultValue={date ?? todayISO()} /></label>
               <label>Time<input type="time" name="entry_time" defaultValue={nowTime()} /></label>
             </div>
           </fieldset>
