@@ -2,8 +2,8 @@
 // One card per person: choose a department, tick extras, see what they'll see, then Save.
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DEPARTMENTS, mySections } from '@/lib/sections';
-import { savePersonAccess } from './actions';
+import { DEPARTMENTS, LEVELS, LEVEL_ORDER, mySections } from '@/lib/sections';
+import { savePersonAccess, savePersonSections } from './actions';
 
 // Department choices (Everyone is automatic, so it isn't offered as a home).
 const CHOICES = DEPARTMENTS.filter((d) => d !== 'Everyone');
@@ -16,25 +16,26 @@ const PRESETS = {
   'Payroll': { department: 'Finance & Payroll', extra: [] },
 };
 
-export default function AccessList({ rows }) {
+export default function AccessList({ rows, sections }) {
   return (
     <div className="access-list">
-      {rows.map((r) => <PersonCard key={r.id} row={r} />)}
+      {rows.map((r) => <PersonCard key={r.id} row={r} sections={sections} />)}
       {!rows.length && <p className="muted">No people yet.</p>}
     </div>
   );
 }
 
-function PersonCard({ row }) {
+function PersonCard({ row, sections }) {
   const [department, setDepartment] = useState(row.department);
+  const [own, setOwn] = useState(row.own ?? {});
   const [extra, setExtra] = useState(row.extra);
   const [saved, setSaved] = useState(null);
   const [busy, setBusy] = useState(false);
   const router = useRouter();
 
-  const preview = mySections({ role: row.fullAccess ? 'admin' : 'staff', level: row.level, department, extra_departments: extra, id: row.id }, null, {});
+  const preview = mySections({ role: row.fullAccess ? 'admin' : 'staff', level: row.level, department, extra_departments: extra, id: row.id }, null, { personLevels: Object.fromEntries(Object.entries(own).filter(([, v]) => v !== 'default')) });
   const shown = row.fullAccess ? DEPARTMENTS.filter((d) => d !== 'Everyone') : [department, ...extra].filter(Boolean);
-  const dirty = department !== row.department || extra.slice().sort().join() !== row.extra.slice().sort().join();
+  const dirty = department !== row.department || extra.slice().sort().join() !== row.extra.slice().sort().join() || sections.some((x) => (own[x.key] ?? 'default') !== (row.own?.[x.key] ?? 'default'));
 
   function applyPreset(name) {
     const p = PRESETS[name];
@@ -46,9 +47,20 @@ function PersonCard({ row }) {
     setExtra((e) => (e.includes(d) ? e.filter((x) => x !== d) : [...e, d]));
     setSaved(null);
   }
+  function setSection(key, level) {
+    setOwn((o) => ({ ...o, [key]: level }));
+    setSaved(null);
+  }
   async function save() {
     setBusy(true); setSaved(null);
     const r = await savePersonAccess({ id: row.id, department, extra });
+    if (!r?.error) {
+      const changed = Object.fromEntries(sections.filter((x) => (own[x.key] ?? 'default') !== (row.own?.[x.key] ?? 'default')).map((x) => [x.key, own[x.key] ?? 'default']));
+      if (Object.keys(changed).length) {
+        const r2 = await savePersonSections({ id: row.id, levels: changed });
+        if (r2?.error) { setBusy(false); setSaved({ bad: true, text: r2.error }); return; }
+      }
+    }
     setBusy(false);
     if (r?.error) { setSaved({ bad: true, text: r.error }); return; }
     setSaved({ text: 'Saved.' });
@@ -90,6 +102,24 @@ function PersonCard({ row }) {
               </label>
             ))}
           </div>
+          <details style={{ marginTop: 8 }}>
+            <summary className="small">Fine-tune each section for this person</summary>
+            <table className="small" style={{ marginTop: 6 }}>
+              <tbody>
+                {sections.map((x) => (
+                  <tr key={x.key}>
+                    <td>{x.icon} {x.label}</td>
+                    <td>
+                      <select value={own[x.key] ?? 'default'} onChange={(e) => setSection(x.key, e.target.value)}>
+                        <option value="default">Default (from department)</option>
+                        {LEVEL_ORDER.map((l) => <option key={l} value={l}>{LEVELS[l].icon} {LEVELS[l].name}</option>)}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </details>
           <p className="small" style={{ marginTop: 8 }}>
             <strong>They will see:</strong>{' '}
             {preview.length ? preview.map((s) => `${s.icon} ${s.label}`).join(' · ') : 'Nothing yet, pick a department.'}

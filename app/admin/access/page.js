@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { levelOf, levelName, groupName } from '@/lib/levels';
 import AccessList from './AccessList';
+import { SECTIONS } from '@/lib/sections';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Access & departments · Evergreen' };
@@ -15,7 +16,12 @@ export default async function AccessPage() {
     .from('profiles')
     .select('id, full_name, role, level, staff_group, department, extra_departments, active')
     .order('full_name');
+  const { data: own } = await supabase.from('person_section_access').select('profile_id, section, level');
+  const ownBy = {};
+  for (const r of own ?? []) (ownBy[r.profile_id] ??= {})[r.section] = r.level;
+  const sections = SECTIONS.map(({ key, icon, label }) => ({ key, icon, label }));
   const rows = (people ?? []).map((p) => ({
+    own: ownBy[p.id] ?? {},
     id: p.id,
     name: p.full_name ?? 'No name',
     job: p.role === 'admin' ? 'Administrator' : (groupName(p.staff_group) ?? levelName(levelOf(p))),
@@ -31,7 +37,7 @@ export default async function AccessPage() {
       <h1>👤 Access &amp; departments</h1>
       <p className="small">Pick a department for each person, then press <strong>Save</strong>. The box underneath shows exactly which menu sections they’ll see. The administrator and CEO always see everything.</p>
       {error && <p className="message">Could not load people: {error.message}</p>}
-      <AccessList rows={rows} />
+      <AccessList rows={rows} sections={sections} />
     </main>
   );
 }
