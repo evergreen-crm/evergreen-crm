@@ -5,6 +5,7 @@
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { MCFD, CLBC } from '@/lib/requirements';
+import { MCFD_RECORDS, SERVICE_RECORD_STANDARD } from '@/lib/mcfdStandards';
 
 const count = (p) => (p.sections ?? []).reduce((n, s) => n + (s.items?.length ?? 0), 0);
 
@@ -54,6 +55,19 @@ export default async function DocumentationGuide() {
         <tbody>{SHIFT.map(([w, d]) => <tr key={w}><td>{w}</td><td>{d}</td></tr>)}</tbody>
       </table>
 
+      <h2>MCFD: every record, by section (enter daily)</h2>
+      <p className="small">Each record below can be entered for each child on the house’s shift log, under “MCFD daily records”. Entries save with the date, time and author, and every correction keeps the earlier version.</p>
+      <table className="small">
+        <thead><tr><th>Record (section)</th><th>Standard</th><th>When to enter</th></tr></thead>
+        <tbody>{MCFD_RECORDS.map((r) => <tr key={r.kind}><td>{r.section}</td><td>{r.standard}</td><td>{r.when}</td></tr>)}</tbody>
+      </table>
+      <h3>Individual service record: sections (E.7.10)</h3>
+      <table className="small">
+        <thead><tr><th>Section</th><th>What it must contain</th></tr></thead>
+        <tbody>{SERVICE_RECORD_STANDARD.map((r) => <tr key={r[0]}><td>{r[0]}</td><td>{r[1]}</td></tr>)}</tbody>
+      </table>
+      <p className="small muted">Staff records (standard G.1.10(a): criminal record check, references, job description, orientation acknowledgement, performance evaluations, discipline documentation, first aid, and others) are on each staff member’s personnel file, not in the child record.</p>
+
       <h2>Night shifts</h2>
       <ul>
         <li><strong>Awake night:</strong> location check-in every 2 hours, and a random check about every 32 minutes. Note anything that happened.</li>
@@ -90,7 +104,7 @@ export default async function DocumentationGuide() {
       <h2>Activity plan</h2>
       <p className="small">Each house keeps its activity plan on its house page. Write what ran and what didn’t, and why.</p>
 
-      <p className="small muted">Sources: <a href="https://www2.gov.bc.ca/assets/gov/family-and-social-supports/data-monitoring-quality-assurance/information-for-service-providers/standards_residential_services.pdf">MCFD Standards for Staffed Children’s Residential Services</a> (official PDF, latest revision June 2026 per the document; section numbers as read in that copy) and <a href="https://www.communitylivingbc.ca/wp-content/uploads/CLBC-Service-Standards-and-Expectations.pdf">CLBC Service Standards and Expectations</a>. COA’s own standards are not publicly available, so they are not cited here.</p>
+      <p className="small muted">Sources: <a href="https://www2.gov.bc.ca/assets/gov/family-and-social-supports/data-monitoring-quality-assurance/information-for-service-providers/standards_residential_services.pdf">MCFD Standards for Staffed Children’s Residential Services</a> (official PDF; section numbers as read from it) and <a href="https://www.communitylivingbc.ca/wp-content/uploads/CLBC-Service-Standards-and-Expectations.pdf">CLBC Service Standards and Expectations</a>. COA’s own standards are not publicly available, so they are not cited here.</p>
     </main>
   );
 }

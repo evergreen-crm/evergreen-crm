@@ -13,6 +13,8 @@ import HouseDirectory from '@/app/homes/HouseDirectory';
 import { levelOf } from '@/lib/levels';
 import RecordChecks from '@/app/homes/RecordChecks';
 import EntryList from '@/app/components/EntryList';
+import McfdDaily from '@/app/homes/McfdDaily';
+import { MCFD_RECORDS } from '@/lib/mcfdStandards';
 
 export default async function HomePage({ params, searchParams }) {
   const { id } = await params;
@@ -58,6 +60,11 @@ export default async function HomePage({ params, searchParams }) {
   const { data: lastDrill } = await supabase.from('entries').select('entry_date')
     .eq('home_id', id).eq('kind', 'fire_drill').order('entry_date', { ascending: false }).limit(1).maybeSingle();
   const drillThisMonth = lastDrill?.entry_date?.slice(0, 7) === today.slice(0, 7);
+  // MCFD daily records (today), for the shift log's child-by-child panel.
+  const mcfdKinds = MCFD_RECORDS.filter((r) => !r.tab).map((r) => r.kind);
+  const { data: mcfdToday } = tab === 'commbook' && home.program === 'MCFD'
+    ? await supabase.from('entries').select('resident_id, kind').eq('home_id', id).eq('entry_date', today).in('kind', mcfdKinds)
+    : { data: null };
   const TABS = [['dashboard', '📊 Dashboard'], ['residents', 'Residents'], ['commbook', 'Shift log'], ['safety', 'Fire drills & safety']];
 
   const current = residents?.filter((r) => r.status !== 'discharged') ?? [];
@@ -139,6 +146,7 @@ export default async function HomePage({ params, searchParams }) {
       {tab === 'commbook' && (
         <section>
           <p className="muted small">Read this at the start of every shift. Important messages stay highlighted.</p>
+          {home.program === 'MCFD' && <McfdDaily residents={current} todayEntries={mcfdToday ?? []} />}
           <EntryForm kind="commbook" homeId={id} path={path} title="Write in the communication book" open />
           <EntryList entries={houseEntries} path={path} isAdmin={isAdmin} empty="No messages yet." />
         </section>
