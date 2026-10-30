@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/auth';
 
-const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Vancouver' }).format(new Date());
+const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Etc/GMT+7' }).format(new Date());
 
 export async function addGoalStep(formData) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);

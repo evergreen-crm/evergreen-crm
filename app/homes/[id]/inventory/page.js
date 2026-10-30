@@ -30,7 +30,7 @@ export default async function InventoryRegister({ params, searchParams }) {
     photoList.push({ ...p, url: data?.signedUrl ?? null });
   }
   const canAdd = levelOf(profile) >= 2 || ['admin', 'manager'].includes(profile.role);
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Vancouver' }).format(new Date());
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Etc/GMT+7' }).format(new Date());
 
   return (
     <div>

@@ -148,7 +148,7 @@ export default async function DocumentRecords({ searchParams }) {
                             if (m.is_prn) {
                               // As-needed: every dose already given today shows as its own row, then one blank row to add another.
                               const prnDoses = doses.filter((d) => d.medication_id === m.id && d.scheduled_time == null);
-                              const timeText = (d) => (d.given_at ? new Date(d.given_at).toLocaleTimeString('en-GB', { timeZone: 'America/Vancouver', hour: '2-digit', minute: '2-digit', hour12: false }) : '');
+                              const timeText = (d) => (d.given_at ? new Date(d.given_at).toLocaleTimeString('en-GB', { timeZone: 'Etc/GMT+7', hour: '2-digit', minute: '2-digit', hour12: false }) : '');
                               const done = prnDoses.map((d, i) => (
                                 <tr key={`${m.id}-prn-done-${i}`} style={{ borderBottom: '1px solid #ccc', verticalAlign: 'top' }}>
                                   <td style={{ padding: 10 }}>{label}</td>

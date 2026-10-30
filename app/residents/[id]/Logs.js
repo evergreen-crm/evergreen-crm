@@ -30,10 +30,10 @@ export default async function Logs({ supabase, resident, type, isAdmin }) {
   const versions = {};
   for (const v of vers ?? []) (versions[v.entry_id] ??= []).push(v);
 
-  // Staff: their own entries, for 30 minutes after saving. Coordinators (their house), managers, admins: any time.
+  // Staff: their own entries, for 1 day (24 hours) after saving. Coordinators (their house), managers, admins: any time.
   const senior = isAdmin || lvl(profile) >= 2;
   const now = Date.now();
-  const canCorrect = (e) => senior || (e.created_by === user.id && now - new Date(e.created_at).getTime() < 30 * 60 * 1000);
+  const canCorrect = (e) => senior || (e.created_by === user.id && now - new Date(e.created_at).getTime() < 24 * 60 * 60 * 1000);
 
   return (
     <section>
@@ -48,7 +48,7 @@ export default async function Logs({ supabase, resident, type, isAdmin }) {
       </div>
       {kind
         ? <EntryForm kind={kind} homeId={resident.home_id} residentId={resident.id} path={path} shareable={!['Behaviour', 'MCFD', 'CLBC'].includes(ENTRY_TYPES[kind].group)} open />
-        : <p className="muted small no-print">Pick a log type above to add an entry. Every save shows the date and time, and corrections keep the earlier version. Staff can correct their own entry for 30 minutes after saving.</p>}
+        : <p className="muted small no-print">Pick a log type above to add an entry. Every save shows the date and time, and corrections keep the earlier version. Staff can correct their own entry for 1 day (24 hours) after saving.</p>}
       <EntryList entries={entries} versions={versions} path={path} isAdmin={isAdmin} canCorrect={canCorrect} showFamily />
     </section>
   );

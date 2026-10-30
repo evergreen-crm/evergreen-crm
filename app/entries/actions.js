@@ -6,8 +6,8 @@ import { requireUser } from '@/lib/auth';
 import { ENTRY_TYPES } from '@/lib/entries';
 
 // The date and time of saving, in Vancouver, used when a form does not ask for them.
-const vanToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Vancouver' }).format(new Date());
-const vanNow = () => new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Vancouver', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+const vanToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Etc/GMT+7' }).format(new Date());
+const vanNow = () => new Intl.DateTimeFormat('en-GB', { timeZone: 'Etc/GMT+7', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
 
 const text = (formData, key) => {
   const v = formData.get(key);
@@ -71,7 +71,7 @@ export async function updateEntry(formData) {
     updated_note: reason,
   }).eq('id', id).select('id');
   if (error) throw new Error('Could not save the correction: ' + error.message);
-  if (!changed?.length) throw new Error('This entry can’t be changed any more. Staff can correct their own entries within 30 minutes of saving; after that, ask the Program Coordinator or Program Manager.');
+  if (!changed?.length) throw new Error('This entry can’t be changed any more. Staff can correct their own entries for 1 day (24 hours) after saving; after that, ask the Program Coordinator or Program Manager.');
   const path = text(formData, 'path');
   if (path?.startsWith('/')) revalidatePath(path.split('?')[0]);
 }

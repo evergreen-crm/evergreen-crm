@@ -44,9 +44,9 @@ begin
   for s in
     select sh.* from shifts sh
     where sh.label in ('Awake night', 'Sleep night') and sh.profile_id is not null
-      and ((sh.shift_date + sh.start_time) at time zone 'America/Vancouver') between now() - interval '1 day' and now() + interval '12 hours'
+      and ((sh.shift_date + sh.start_time) at time zone evg_tz()) between now() - interval '1 day' and now() + interval '12 hours'
   loop
-    st := (s.shift_date + s.start_time) at time zone 'America/Vancouver';
+    st := (s.shift_date + s.start_time) at time zone evg_tz();
     en := st + make_interval(secs => mod((extract(epoch from s.end_time) - extract(epoch from s.start_time))::int + 86400, 86400));
 
     -- Every 2 hours after the start (both shift types).
@@ -86,7 +86,7 @@ begin
     for ldr in select l from house_leaders(r.home_id) l where l <> r.profile_id loop
       perform notify_now(ldr, '⚠️ Night check missed: ' || coalesce(who, 'staff'),
         coalesce(hname, 'House') || ' · ' || case when r.kind = 'Scheduled' then '2-hour check' else 'random check' end
-          || ' due ' || to_char(r.due_at at time zone 'America/Vancouver', 'HH24:MI') || ' · not done in time',
+          || ' due ' || to_char(r.due_at at time zone evg_tz(), 'HH24:MI') || ' · not done in time',
         '/homes/' || r.home_id, 'ncm:' || r.id || ':' || ldr);
     end loop;
   end loop;

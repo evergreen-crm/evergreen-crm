@@ -81,7 +81,7 @@ export default function OrientationPlan({ items, sign, fullName, startDate }) {
         </p>
         {sign?.signed_at ? (
           <p className="small" style={{ marginTop: 12 }}>
-            Signed as <strong>{sign.signed_name}</strong> on {new Date(sign.signed_at).toLocaleDateString('en-CA', { timeZone: 'America/Vancouver', year: 'numeric', month: 'short', day: 'numeric' })}.
+            Signed as <strong>{sign.signed_name}</strong> on {new Date(sign.signed_at).toLocaleDateString('en-CA', { timeZone: 'Etc/GMT+7', year: 'numeric', month: 'short', day: 'numeric' })}.
           </p>
         ) : sign ? (
           <form action={submitItem} className="onb-form" style={{ marginTop: 12 }}>

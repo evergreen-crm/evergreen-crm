@@ -11,9 +11,9 @@
 
 create or replace function missing_records_alerts() returns void language plpgsql security definer set search_path = public as $$
 declare
-  t date := (now() at time zone 'America/Vancouver')::date;
-  hr int := extract(hour from (now() at time zone 'America/Vancouver'))::int;
-  wk text := to_char(date_trunc('week', now() at time zone 'America/Vancouver'), 'YYYY-MM-DD');
+  t date := (now() at time zone evg_tz())::date;
+  hr int := extract(hour from (now() at time zone evg_tz()))::int;
+  wk text := to_char(date_trunc('week', now() at time zone evg_tz()), 'YYYY-MM-DD');
   r record; g record; s record; k text; ldr uuid; nm text; hname text;
 begin
   if hr < 10 then return; end if;
@@ -34,7 +34,7 @@ begin
               when 'day_book' then 'day book (MCFD C.1.11)'
               when 'wellness_check' then 'daily safety and wellness check (MCFD C.1.12)'
               when 'clbc_day' then 'daily support note (CLBC)'
-              else 'daily health and wellbeing check (CLBC)' end || ' · not entered by ' || to_char(now() at time zone 'America/Vancouver', 'HH24:MI'),
+              else 'daily health and wellbeing check (CLBC)' end || ' · not entered by ' || to_char(now() at time zone evg_tz(), 'HH24:MI'),
             '/residents/' || r.rid || '?tab=logs&type=' || k,
             'miss:' || r.rid || ':' || k || ':' || t || ':' || ldr);
         end loop;
