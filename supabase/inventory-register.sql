@@ -4,7 +4,7 @@
 -- cannot be changed: there is no UPDATE policy, so only photos can be added afterwards.
 -- Read: anyone who can see the house (same check as residents). Add item and photos: Program
 -- Coordinator and up for that house, plus managers and admins. Nobody edits or deletes from the app.
--- Corrections are made by an admin directly in the database.
+-- Corrections: status changes and Admin-only number corrections, with history (inventory-changes.sql).
 -- Photos are kept in a private storage bucket, path: <home_id>/<item_id>/<file>.
 -- Safe to run more than once.
 -- =====================================================================
@@ -35,7 +35,7 @@ drop policy if exists inv_insert on inventory_items;
 create policy inv_insert on inventory_items for insert with check (
   app_role() = 'admin' or app_level() >= 3 or (app_level() = 2 and app_scope_write('ind', home_id))
 );
--- No update or delete policy: once saved, the item cannot be changed in the app.
+-- No update or delete policy: changes go only through inventory-changes.sql functions (logged).
 
 create table if not exists inventory_photos (
   id uuid primary key default gen_random_uuid(),

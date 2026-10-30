@@ -1,6 +1,6 @@
 'use server';
 // House inventory register: add an item (locked once saved), and attach a photo to it.
-// There is no edit or delete action: serial, SKU and IMEI cannot be changed from the app.
+// Serial, SKU and IMEI are locked once saved; only an Administrator can correct them (with a reason, kept in history).
 import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/auth';
 
@@ -42,5 +42,38 @@ export async function addInventoryPhotoRecord(formData) {
     item_id: itemId, home_id: homeId, file_path: filePath, caption, taken_on: takenOn, added_by: user.id,
   });
   if (error) throw new Error('Could not save the photo: ' + error.message);
+  revalidatePath(`/homes/${homeId}/inventory`);
+}
+
+// Change an item's status (in use / stored / lost / retired). Coordinators (their houses), managers and up, admins.
+// The database checks who may do it and keeps the change in the item's history.
+export async function setInventoryStatus(formData) {
+  const { supabase } = await requireUser(['admin', 'manager', 'staff']);
+  const itemId = String(formData.get('item_id') ?? '');
+  const homeId = String(formData.get('home_id') ?? '');
+  const status = String(formData.get('status') ?? '');
+  const reason = String(formData.get('reason') ?? '').trim();
+  if (!reason) throw new Error('Write why the status is changing.');
+  const { error } = await supabase.rpc('inventory_set_status', { p_item: itemId, p_status: status, p_reason: reason });
+  if (error) throw new Error('Could not change the status: ' + error.message);
+  revalidatePath(`/homes/${homeId}/inventory`);
+}
+
+// Correct the name, SKU, serial number or IMEI. Administrators only; the old values are kept in the history.
+export async function correctInventoryItem(formData) {
+  const { supabase } = await requireUser(['admin']);
+  const itemId = String(formData.get('item_id') ?? '');
+  const homeId = String(formData.get('home_id') ?? '');
+  const reason = String(formData.get('reason') ?? '').trim();
+  if (!reason) throw new Error('Write why the numbers are being corrected.');
+  const { error } = await supabase.rpc('inventory_correct', {
+    p_item: itemId,
+    p_name: String(formData.get('item') ?? ''),
+    p_sku: String(formData.get('sku') ?? ''),
+    p_serial: String(formData.get('serial_no') ?? ''),
+    p_imei: String(formData.get('imei') ?? ''),
+    p_reason: reason,
+  });
+  if (error) throw new Error('Could not save the correction: ' + error.message);
   revalidatePath(`/homes/${homeId}/inventory`);
 }
