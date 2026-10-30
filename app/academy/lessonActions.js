@@ -3,6 +3,8 @@
 // so the quiz only opens after the whole lesson has actually played.
 import { requireUser } from '@/lib/auth';
 import { levelOf } from '@/lib/levels';
+import { courseByKey } from '@/lib/courses/catalog';
+import { savePaperworkPdf } from '@/lib/paperworkPdf';
 
 const SETUP = 'Lesson tracking isn’t switched on yet. Please tell the office (setup file: academy-integrity.sql).';
 
@@ -31,8 +33,22 @@ export async function setLessonLength(key, seconds) {
 
 // Grade any course quiz inside the database (answer keys are never sent to the app or the browser).
 export async function gradeInDatabase(key, answers) {
-  const { supabase } = await requireUser(['admin', 'manager', 'staff']);
+  const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const { data, error } = await supabase.rpc('grade_course', { p_key: key, p_answers: answers && typeof answers === 'object' ? answers : {} });
   if (error) return { error: /grade_course/.test(error.message) ? SETUP : 'Could not grade your quiz: ' + error.message };
+  if (data?.passed) {
+    // A PDF record of the pass goes into the person's staff file (and later OneDrive).
+    const course = key === 'orientation' ? { trainingTitle: 'New Staff Orientation (Evergreen Academy course)' } : courseByKey(key);
+    const at = new Date().toISOString();
+    await savePaperworkPdf({
+      person: { id: user.id, full_name: profile.full_name }, kind: 'course', sourceId: `${key}:${user.id}:${at}`,
+      title: `${course?.trainingTitle ?? key} - course passed`, at,
+      lines: [
+        `Evergreen Academy course: ${course?.trainingTitle ?? key}`,
+        `Result: ${data.score} of ${data.total} correct (${data.percent}%). Passed.`,
+        data.expires_on ? `Refresher due by ${data.expires_on}.` : 'No refresher date set for this course.',
+      ],
+    });
+  }
   return data;
 }

@@ -7,6 +7,7 @@ import { COURSE, SLIDES, QUESTIONS } from '@/lib/courses/orientation';
 import CoursePlayer from './CoursePlayer';
 import VideoLesson from './VideoLesson';
 import VideoUpload from './VideoUpload';
+import { courseVideoLink } from '@/lib/videoLink';
 
 export default async function OrientationCourse({ searchParams }) {
   const sp = await searchParams;
@@ -27,11 +28,13 @@ export default async function OrientationCourse({ searchParams }) {
   // The training video lives in private storage; a signed link lets the browser stream it.
   // Use the newest .mp4 in the orientation folder (uploaded here, or straight into Supabase Storage).
   const { data: files } = await supabase.storage.from('academy-media').list('orientation', { limit: 50, sortBy: { column: 'updated_at', order: 'desc' } });
-  const latest = (files ?? []).find((f) => /\.mp4$/i.test(f.name));
+  // A OneDrive link (Academy -> Course videos) comes first; otherwise the newest uploaded .mp4.
+  const linked = await courseVideoLink(supabase, COURSE.key);
+  const latest = linked ? null : (files ?? []).find((f) => /\.mp4$/i.test(f.name));
   const { data: vid } = latest
     ? await supabase.storage.from('academy-media').createSignedUrl(`orientation/${latest.name}`, 6 * 3600)
     : { data: null };
-  const videoUrl = vid?.signedUrl ?? null;
+  const videoUrl = linked ?? vid?.signedUrl ?? null;
   const showVideo = videoUrl && !sp?.slides;
 
   return (

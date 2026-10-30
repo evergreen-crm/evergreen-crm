@@ -2,6 +2,7 @@
 import { requireUser } from '@/lib/auth';
 import OnboardingView from './OnboardingView';
 import OrientationPlan from './OrientationPlan';
+import PaperworkList from '@/app/components/PaperworkList';
 import { plainError } from '@/lib/plain';
 
 export default async function MyOnboarding({ searchParams }) {
@@ -28,6 +29,7 @@ export default async function MyOnboarding({ searchParams }) {
       <OrientationPlan items={planItems} sign={signRow} fullName={profile.full_name} startDate={staffDet?.hire_date ?? null} />
       <OnboardingView supabase={supabase} onb={onb} person={profile}
         viewer={{ isSelf: true, isBoss: false }} notice={sp.error ? { bad: true, text: plainError(sp.error) } : sp.saved ? { bad: false, text: 'Saved.' } : null} />
+      <PaperworkList supabase={supabase} profileId={user.id} title="My signed paperwork and course records (PDF)" />
     </>
   );
 }

@@ -1,6 +1,7 @@
 'use server';
 import { createAdminClient, adminKey } from '@/lib/supabase/admin';
 import { createReferenceRequests, cleanRefs, refErrors } from '@/lib/references';
+import { savePaperworkPdf } from '@/lib/paperworkPdf';
 // Staff onboarding: sending the request, filling in, signing, reviewing, certificates.
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -122,6 +123,14 @@ export async function submitItem(formData) {
   const { error } = await supabase.from('onboarding_items').update(patch).eq('id', id);
   if (error) fail('Could not save: ' + error.message);
   await supabase.from('onboardings').update({ status: 'In progress' }).eq('profile_id', user.id).eq('status', 'Sent');
+  if (tpl.kind === 'sign') {
+    // A PDF copy of the signed paper goes into the person's staff file (and later OneDrive).
+    await savePaperworkPdf({
+      person: { id: user.id, full_name: profile.full_name }, kind: 'signed', sourceId: `${id}:${patch.signed_at}`,
+      title: tpl.title, lines: [tpl.statement ?? ''], at: patch.signed_at,
+      signature: { image: item.onboardings?.signature_image, name: patch.signed_name, at: patch.signed_at },
+    });
+  }
   if (tpl.kind === 'refs' && adminKey()) {
     try {
       await createReferenceRequests(createAdminClient(), { profileId: user.id, aboutName: profile.full_name, position: profile.position ?? profile.job_title ?? null, refs: data.refs, createdBy: user.id });

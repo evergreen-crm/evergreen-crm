@@ -8,6 +8,7 @@ import { courseByKey } from '@/lib/courses/catalog';
 import { CONTENT } from '@/lib/courses/content';
 import CoursePlayer from '@/app/academy/orientation/CoursePlayer';
 import VideoLesson from '@/app/academy/orientation/VideoLesson';
+import { courseVideoLink } from '@/lib/videoLink';
 import { gradeCourse } from './actions';
 import { renewMonthsFor } from '@/lib/onboarding';
 
@@ -29,11 +30,13 @@ export default async function CoursePage({ params, searchParams }) {
       : Promise.resolve({ data: [] }),
     supabase.storage.from('academy-media').list(`courses/${key}`, { limit: 20, sortBy: { column: 'updated_at', order: 'desc' } }),
   ]);
-  const latest = (files ?? []).find((f) => /\.mp4$/i.test(f.name));
+  // A OneDrive link (Academy -> Course videos) comes first; otherwise the newest uploaded .mp4.
+  const linked = await courseVideoLink(supabase, key);
+  const latest = linked ? null : (files ?? []).find((f) => /\.mp4$/i.test(f.name));
   const { data: vid } = latest
     ? await supabase.storage.from('academy-media').createSignedUrl(`courses/${key}/${latest.name}`, 6 * 3600)
     : { data: null };
-  const videoUrl = vid?.signedUrl ?? null;
+  const videoUrl = linked ?? vid?.signedUrl ?? null;
   const showVideo = videoUrl && !sp?.slides;
   const best = (mine ?? []).find((a) => a.passed);
   const { data: ready } = await supabase.rpc('lesson_ready', { p_key: key });
