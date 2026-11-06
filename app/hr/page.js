@@ -30,7 +30,7 @@ export default async function HrPage({ searchParams }) {
 
   const totals = summarize(certs ?? []);
 
-  // Staff ID check: the number (EVG-YYMM-POS-P-NNNN) is only right once the hire date is entered,
+  // Staff ID check: the number (ECC-YYMM-POS-P-NNNN) is only right once the hire date is entered,
   // and issued cards printed with an older number need reprinting.
   const current = (people ?? []).filter((p) => p.active && !['Resigned', 'Terminated', 'Retired'].includes(detailsById[p.id]?.employment_status ?? 'Active'));
   const noHire = current.filter((p) => !detailsById[p.id]?.hire_date);
@@ -57,7 +57,7 @@ export default async function HrPage({ searchParams }) {
       {(noHire.length > 0 || reprint.length > 0) && (
         <section className="card" id="staff-id-check">
           <h2>🪪 Staff ID check</h2>
-          <p className="muted small">Staff IDs are made automatically: <strong>EVG-YYMM-POS-P-NNNN</strong> = year and month of hire · position · program (M MCFD, C CLBC, B both) · permanent staff number. They update themselves when the hire date, program or position changes.</p>
+          <p className="muted small">Staff IDs are made automatically: <strong>ECC-YYMM-POS-P-NNNN</strong> (for example ECC-2611-YW-M-0010) = Evergreen Community Care · year and month of hire · position · program (M MCFD, C CLBC, B both) · permanent staff number. They update themselves when the hire date, program or position changes.</p>
           {noHire.length > 0 && <p><span className="badge warn">{noHire.length} without a hire date</span> Their ID uses the account start month until the real hire date is entered:{' '}
             {noHire.map((p, i) => <span key={p.id}>{i ? ', ' : ''}<Link href={`/hr/${p.id}#details`}>{p.full_name}</Link></span>)}</p>}
           {reprint.length > 0 && <p><span className="badge warn">🖨 {reprint.length} card{reprint.length > 1 ? 's' : ''} to reprint</span> Printed with an old staff ID:{' '}

@@ -1,6 +1,7 @@
 'use server';
 // Policy library: add policies, publish new versions (version control), sign digitally.
 import { revalidatePath } from 'next/cache';
+import { savePaperworkPdf } from '@/lib/paperworkPdf';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 
@@ -83,10 +84,27 @@ export async function signPolicy(formData) {
   if (!typed || norm(typed) !== norm(profile.full_name)) {
     back(`To sign, type your full name exactly as it is on your account: "${profile.full_name}". If your name is wrong, ask the admin to correct it.`);
   }
-  const { error } = await supabase.from('policy_acks').insert({
-    policy_id: policyId, policy_version_id: text(formData, 'version_id'), profile_id: user.id, signed_name: typed,
-  });
+  const versionId = text(formData, 'version_id');
+  const { data: ack, error } = await supabase.from('policy_acks').insert({
+    policy_id: policyId, policy_version_id: versionId, profile_id: user.id, signed_name: typed,
+  }).select('id, signed_at').single();
   if (error) back(error.code === '23505' ? 'You already signed this version.' : 'Could not sign: ' + error.message);
+  // A signed PDF copy goes into the person's staff file (staff can't reopen it; HR and leaders can).
+  const [{ data: pol }, { data: ver }, { data: onb }] = await Promise.all([
+    supabase.from('policies').select('title, code').eq('id', policyId).maybeSingle(),
+    supabase.from('policy_versions').select('version_label, effective_date').eq('id', versionId).maybeSingle(),
+    supabase.from('onboardings').select('signature_image').eq('profile_id', user.id).maybeSingle(),
+  ]);
+  await savePaperworkPdf({
+    person: { id: user.id, full_name: profile.full_name }, kind: 'signed', sourceId: `policy:${ack.id}`,
+    title: `Policy signed: ${pol?.title ?? 'Policy'}${ver?.version_label ? ` v${ver.version_label}` : ''}`,
+    lines: [
+      `${pol?.code ? pol.code + ' · ' : ''}${pol?.title ?? ''}, version ${ver?.version_label ?? '—'}${ver?.effective_date ? `, effective ${ver.effective_date}` : ''}.`,
+      'I confirm I have read and understood this policy, and I agree to follow it.',
+    ],
+    at: ack.signed_at,
+    signature: { image: onb?.signature_image ?? null, name: typed, at: ack.signed_at },
+  });
   revalidatePath('/policies'); revalidatePath(`/policies/${policyId}`); revalidatePath('/onboarding');
   redirect(`/policies/${policyId}?signed=1#sign`);
 }
