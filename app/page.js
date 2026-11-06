@@ -7,8 +7,9 @@ export default async function HomePage() {
   const { supabase, profile } = await requireUser();
   if (profile.role !== 'family') redirect('/portal');
 
-  const { data: residents } = await supabase
-    .from('residents').select('id, first_name, last_name, homes(name)').order('last_name');
+  // Families get only a safe card of their own family member (supabase/family-safe-resident.sql).
+  const { data: cards } = await supabase.rpc('family_residents');
+  const residents = (cards ?? []).map((r) => ({ ...r, homes: { name: r.home_name } }));
 
   return (
     <main>

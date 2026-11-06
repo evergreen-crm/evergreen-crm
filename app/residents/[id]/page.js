@@ -53,11 +53,17 @@ export default async function ResidentPage({ params, searchParams }) {
 
   const canEdit = ['admin', 'manager'].includes(profile.role);
   const canEditResident = profile.role === 'admin' || levelOf(profile) >= 2;
-  const { data: resident } = await supabase
-    .from('residents')
-    .select(isStaff ? '*, homes(id, name)' : 'id, first_name, last_name, preferred_name, status, homes(id, name)')
-    .eq('id', id)
-    .maybeSingle();
+  // Staff read the full record (by their access level). Families get only a safe card of their own
+  // family member: name, status and house (supabase/family-safe-resident.sql).
+  let resident;
+  if (isStaff) {
+    ({ data: resident } = await supabase.from('residents').select('*, homes(id, name)').eq('id', id).maybeSingle());
+  } else {
+    const { data: cards } = await supabase.rpc('family_residents');
+    const c = (cards ?? []).find((r) => r.id === id);
+    resident = c ? { id: c.id, first_name: c.first_name, last_name: c.last_name, preferred_name: c.preferred_name,
+      status: c.status, home_id: c.home_id, homes: { id: c.home_id, name: c.home_name } } : null;
+  }
 
   // Not allowed to see them = looks the same as not existing.
   if (!resident) notFound();
