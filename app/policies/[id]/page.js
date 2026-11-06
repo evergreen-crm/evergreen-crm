@@ -8,7 +8,7 @@ import { fmtDate, fmtDateTime } from '@/lib/options';
 import { signPolicy, updatePolicy, restoreVersion } from '@/app/policies/actions';
 import PolicyUpload from '@/app/policies/PolicyUpload';
 import PrintButton from '@/app/PrintButton';
-import { personLabel, canHR } from '@/lib/levels';
+import { personLabel, canHR, levelOf } from '@/lib/levels';
 import { plainError } from '@/lib/plain';
 
 function nextVersion(label) {
@@ -38,6 +38,19 @@ export default async function PolicyPage({ params, searchParams }) {
   const current = versions?.find((v) => v.id === p.current_version_id);
   const myAck = acks?.find((a) => a.profile_id === user.id && a.policy_version_id === current?.id);
   const myOld = acks?.filter((a) => a.profile_id === user.id && a.policy_version_id !== current?.id) ?? [];
+  // Frontline staff can't reopen a policy they've already signed: it's kept in their staff file.
+  if (myAck && p.require_signature && !isAdmin && !isBoss && levelOf(profile) < 2) {
+    return (
+      <main>
+        <p className="small"><Link href="/policies">← Policies</Link></p>
+        <h1>{p.title}</h1>
+        <section className="card">
+          <p><strong>✓ You signed this policy</strong> on {fmtDateTime(myAck.signed_at)}. Your signature is kept in your staff file.</p>
+          <p className="small">Have a question about this policy? Ask your Program Coordinator, or use <Link href="/ask">🤖 Ask Evergreen</Link>.</p>
+        </section>
+      </main>
+    );
+  }
   let url = null;
   if (current) {
     const { data } = await supabase.storage.from('policies').createSignedUrl(current.file_path, 3600);
