@@ -56,6 +56,8 @@ export default async function SignList({ searchParams }) {
       </div>
       {sp.sent && <p className="message ok">Sent. Each person got an alert, and it’s on their to-do list.</p>}
       {sp.error && <p className="message error">{sp.error}</p>}
+      {sp.done === 'signed' && <p className="message ok">✓ Signed. The signed copy is saved in your staff file.</p>}
+      {sp.done === 'declined' && <p className="message ok">Declined. The sender has been told.</p>}
 
       <section className="card">
         <h2>Waiting for my signature {waiting.length > 0 && <span className="badge warn">{waiting.length}</span>}</h2>

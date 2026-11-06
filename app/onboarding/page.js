@@ -2,7 +2,7 @@
 import { requireUser } from '@/lib/auth';
 import OnboardingView from './OnboardingView';
 import OrientationPlan from './OrientationPlan';
-import PaperworkList from '@/app/components/PaperworkList';
+import Link from 'next/link';
 import { plainError } from '@/lib/plain';
 
 export default async function MyOnboarding({ searchParams }) {
@@ -24,12 +24,23 @@ export default async function MyOnboarding({ searchParams }) {
       </main>
     );
   }
+  // Once onboarding is complete it's locked: the signed forms are kept in the staff file, not shown to the person.
+  if (onb.status === 'Complete') {
+    return (
+      <main>
+        <h1>My onboarding</h1>
+        <section className="card">
+          <p><strong>✓ Your onboarding is complete.</strong> Everything you filled in and signed is saved in your staff file. HR and your leaders can see it there.</p>
+          <p><Link href="/offer">View my offer letter →</Link></p>
+        </section>
+      </main>
+    );
+  }
   return (
     <>
       <OrientationPlan items={planItems} sign={signRow} fullName={profile.full_name} startDate={staffDet?.hire_date ?? null} />
       <OnboardingView supabase={supabase} onb={onb} person={profile}
         viewer={{ isSelf: true, isBoss: false }} notice={sp.error ? { bad: true, text: plainError(sp.error) } : sp.saved ? { bad: false, text: 'Saved.' } : null} />
-      <PaperworkList supabase={supabase} profileId={user.id} title="My signed paperwork and course records (PDF)" />
     </>
   );
 }

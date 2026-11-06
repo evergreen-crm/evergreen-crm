@@ -23,6 +23,19 @@ export default async function Orientation({ searchParams }) {
     self ? Promise.resolve({ data: false }) : supabase.rpc('orientation_can_tick', { p }),
     supabase.from('profiles').select('full_name').eq('id', p).maybeSingle(),
   ]);
+  // Staff's own orientation is locked once complete: the certificate and records are in the staff file.
+  if (self && status?.complete) {
+    return (
+      <main>
+        <div className="div-banner academy"><span className="div-icon">🎓</span><div><h1>My orientation</h1><p>Complete</p></div></div>
+        <section className="card">
+          <p><strong>Your orientation is complete.</strong> Certificate {status.certificate_no}, {fmtDate(String(status.completed_at).slice(0, 10))}.</p>
+          <p className="small">Your certificate and orientation records are saved in your staff file and your training record.</p>
+          <p><Link href="/academy">Evergreen Academy →</Link> · <Link href="/offer">My offer letter →</Link></p>
+        </section>
+      </main>
+    );
+  }
   if (error) return <main><h1>Orientation</h1><p className="alert">{plainError(error.message)}</p></main>;
   const list = steps ?? [];
   const days = [...new Set(list.map((s) => s.day_number))].sort((a, b) => a - b);
@@ -48,7 +61,7 @@ export default async function Orientation({ searchParams }) {
         <section className="card">
           <h2>🎓 Orientation complete</h2>
           <p>Certificate <strong>{status.certificate_no}</strong> · completed {fmtDate(String(status.completed_at).slice(0, 10))}. It is in {self ? 'your' : 'the'} training record and staff file.</p>
-          <PaperworkList supabase={supabase} profileId={p} title="Certificate and course records (PDF)" />
+          {!self && <PaperworkList supabase={supabase} profileId={p} title="Certificate and course records (PDF)" />}
         </section>
       ) : self ? (
         <p className="small">Work through the steps in order. Online courses tick themselves when you pass the quiz (80%). Your Program Coordinator signs off the other steps. Each day opens when the days before it are done. When everything is done you get one certificate for the whole orientation.</p>

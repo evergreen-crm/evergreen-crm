@@ -96,6 +96,8 @@ export default function SignPanel({ id, token, defaultName = '', fileUrl, fields
     const res = outside ? await signOutside(token, payload) : await signDocument({ id, ...payload });
     setBusy(false);
     if (res?.error) { setMsg(res.error); return; }
+    // Staff: once signed, the document goes to the staff file and leaves their list.
+    if (!outside) { router.push('/sign?done=signed'); return; }
     router.refresh();
   }
   async function decline() {
@@ -103,6 +105,7 @@ export default function SignPanel({ id, token, defaultName = '', fileUrl, fields
     const res = outside ? await declineOutside(token, reason) : await declineDocument({ id, reason });
     setBusy(false);
     if (res?.error) { setMsg(res.error); return; }
+    if (!outside) { router.push('/sign?done=declined'); return; }
     router.refresh();
   }
 
