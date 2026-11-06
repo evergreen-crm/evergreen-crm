@@ -9,7 +9,7 @@
 -- Now (same rule as staff-file-access.sql): HR, Admin and directors company-wide; Program Managers only for
 -- staff in their own houses below their level; staff see their own. Every change is still in the audit log.
 -- Needs staff-file-access.sql (staff_in_my_houses). Run as migration records_protection. Safe to re-run.
--- STATUS Nov 5, 2026: NOT YET RUN on the live database (waiting for Melvin to approve the confirmation).
+-- Applied Nov 5, 2026 (migration records_protection) and re-tested for all 8 test roles.
 -- =====================================================================
 
 -- 1. Incidents are never deleted, except by an Administrator (e.g. removing test data).
