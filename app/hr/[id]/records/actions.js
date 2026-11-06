@@ -1,6 +1,7 @@
 'use server';
 // Saves a staff file record (performance evaluation, supervision, job description acknowledgement).
-// Access is enforced by row-level security on staff_file_records (Program Managers and up, and admins).
+// Access is enforced by row-level security on staff_file_records (supabase/staff-file-access.sql):
+// HR, Admin and directors for everyone; Program Managers for staff in their houses below them.
 import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/auth';
 

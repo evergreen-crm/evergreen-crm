@@ -55,10 +55,11 @@ export async function savePersonal(formData) {
     .eq('profile_id', user.id).neq('status', 'Complete');
   if (error) throw new Error('Could not save: ' + error.message);
   if (personal.emergency_name) {
-    await supabase.from('staff_details').update({
-      emergency_contact: `${personal.emergency_name}${personal.emergency_relationship ? ` (${personal.emergency_relationship})` : ''}`,
-      emergency_phone: personal.emergency_phone ?? null,
-    }).eq('profile_id', user.id);
+    // Staff can't edit their HR details; this function changes only their own emergency contact (ID card).
+    await supabase.rpc('set_my_emergency_contact', {
+      p_contact: `${personal.emergency_name}${personal.emergency_relationship ? ` (${personal.emergency_relationship})` : ''}`,
+      p_phone: personal.emergency_phone ?? null,
+    });
   }
   refreshFor(user.id);
 }

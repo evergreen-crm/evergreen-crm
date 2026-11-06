@@ -5,7 +5,7 @@ import { requireUser } from '@/lib/auth';
 import { fmtDate, todayISO } from '@/lib/options';
 import { staffFileGaps, EVALUATION_EVERY_MONTHS, SUPERVISION_EVERY_MONTHS } from '@/lib/mcfdStaffFile';
 import { addMonthsISO } from '@/lib/onboarding';
-import { levelOf } from '@/lib/levels';
+import { levelOf, canHR } from '@/lib/levels';
 import { addStaffRecord } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -28,7 +28,8 @@ export default async function StaffRecords({ params }) {
 
   const today = todayISO();
   const gaps = staffFileGaps(records ?? [], details, today);
-  const canWrite = profile.role === 'admin' || levelOf(profile) >= 3;
+  // HR, Admin and Program Managers and up; the database limits PMs to staff in their own houses.
+  const canWrite = profile.role === 'admin' || canHR(profile) || levelOf(profile) >= 3;
   const sorted = (records ?? []);
   const next = (kind) => sorted.filter((r) => r.kind === kind).map((r) => r.next_due_on).filter(Boolean).sort().pop();
 
