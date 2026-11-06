@@ -10,11 +10,11 @@ export default async function MyOnboarding({ searchParams }) {
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const { data: onb } = await supabase.from('onboardings').select('*').eq('profile_id', user.id).maybeSingle();
   const { data: signRow } = await supabase.from('onboarding_items')
-    .select('id, signed_name, signed_at, status').eq('onboarding_id', onb.id).eq('item_key', 'orientation').maybeSingle();
+    .select('id, signed_name, signed_at, status').eq('onboarding_id', onb?.id ?? '00000000-0000-0000-0000-000000000000').eq('item_key', 'orientation').maybeSingle();
   const { data: staffDet } = await supabase.from('staff_details').select('hire_date').eq('profile_id', user.id).maybeSingle();
   const { data: planItems } = await supabase.from('orientation_plan_items')
-    .select('id, day_number, sort, start_time, end_time, kind, title, notes, quiz_no, pass_mark')
-    .order('day_number').order('sort');
+    .select('id, day_number, sort, start_time, end_time, kind, title, notes, quiz_no, pass_mark, program')
+    .eq('active', true).order('day_number').order('sort');
   if (!onb) {
     return (
       <main>

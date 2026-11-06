@@ -57,7 +57,7 @@ export default async function Academy({ searchParams }) {
           <h2 style={{ margin: 0 }}>🎬 Evergreen Academy courses</h2>
           <span className="row" style={{ gap: 12 }}>
             <Link href="/academy/plan" className="button">📅 My 90-day training plan</Link>
-            {levelOf(profile) >= 6 && <Link href="/academy/videos" className="small">Upload course videos →</Link>}
+            {profile.role === 'admin' && <Link href="/academy/videos" className="small">Course videos (upload, versions) →</Link>}
           </span>
         </div>
         <p className="muted small" style={{ marginTop: 4 }}>Short video lessons with Dr. Sarah and a final quiz (pass 80%). Passing adds the course to your training record.</p>

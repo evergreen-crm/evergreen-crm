@@ -39,11 +39,13 @@ export default async function RootLayout({ children }) {
     after(() => maybeFlushUrgent()); // Step 7: urgent alert emails, at most once a minute
   }
   let psRole = null;
+  let orientation = null;
   let todo = { total: 0, overdue: 0 };
   let sosHome = null;
   if (profile && profile.role !== 'family') {
     ({ data: onb } = await supabase.from('onboardings').select('status').eq('profile_id', profile.id).maybeSingle());
     ({ data: psRole } = await supabase.rpc('prescreen_role'));
+    try { ({ data: orientation } = await supabase.rpc('orientation_status')); } catch {}
     try { todo = todoCount(await getMyTodos(supabase, profile)); } catch {}
     // The house for the 🆘 button: where I'm clocked in now, or my own house.
     try {
@@ -70,7 +72,7 @@ export default async function RootLayout({ children }) {
             {(() => {
               const staffLike = profile.role !== 'family';
               // The simple menu (lib/menu.js): my home tiles first, then More. 🔍 Find searches every page I can open.
-              const menu = staffLike ? buildMenu(profile, { onCall: sosHome?.on_call_phone ?? null, psRole, onboarding: onb && onb.status !== 'Complete' }) : null;
+              const menu = staffLike ? buildMenu(profile, { onCall: sosHome?.on_call_phone ?? null, psRole, orientation, onboarding: onb && onb.status !== 'Complete' }) : null;
               const groups = profile.role === 'family'
                 ? [{ title: 'Family', items: [{ href: '/', label: 'My family member', icon: '👪', color: '#0b5a34' }, { href: '/notifications', label: 'Alerts', icon: '🔔', color: '#b3261e', badge: unread || null }] }]
                 : [

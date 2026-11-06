@@ -25,7 +25,8 @@ export default async function PortalHome() {
   let onCall = null;
   if (profile.home_id) { const { data: h } = await supabase.from('homes').select('on_call_phone').eq('id', profile.home_id).maybeSingle(); onCall = h?.on_call_phone ?? null; }
   const { data: psRole } = await supabase.rpc('prescreen_role');
-  const menu = buildMenu(profile, { onCall, psRole });
+  const { data: orientation } = await supabase.rpc('orientation_status');
+  const menu = buildMenu(profile, { onCall, psRole, orientation });
   const sections = await loadMySections(supabase, profile, { psRole });
 
   const { data: rows } = await supabase.from('records').select('division, area, status, due_date');

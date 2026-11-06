@@ -8,7 +8,7 @@ import { courseByKey } from '@/lib/courses/catalog';
 import { CONTENT } from '@/lib/courses/content';
 import CoursePlayer from '@/app/academy/orientation/CoursePlayer';
 import VideoLesson from '@/app/academy/orientation/VideoLesson';
-import { courseVideoLink } from '@/lib/videoLink';
+import { currentCourseVideo } from '@/lib/videoLink';
 import { gradeCourse } from './actions';
 import { renewMonthsFor } from '@/lib/onboarding';
 
@@ -21,22 +21,16 @@ export default async function CoursePage({ params, searchParams }) {
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const isBoss = canHR(profile) || levelOf(profile) >= 3;
 
-  const [{ data: mine }, { data: recent }, { data: files }] = await Promise.all([
+  const [{ data: mine }, { data: recent }, video] = await Promise.all([
     supabase.from('course_attempts').select('id, score, total, passed, created_at')
       .eq('profile_id', user.id).eq('course_key', key).order('created_at', { ascending: false }).limit(10),
     isBoss
       ? supabase.from('course_attempts').select('id, score, total, passed, created_at, person:profile_id(full_name)')
         .eq('course_key', key).order('created_at', { ascending: false }).limit(25)
       : Promise.resolve({ data: [] }),
-    supabase.storage.from('academy-media').list(`courses/${key}`, { limit: 20, sortBy: { column: 'updated_at', order: 'desc' } }),
+    currentCourseVideo(supabase, key),   // the current version (Academy -> Course videos)
   ]);
-  // A OneDrive link (Academy -> Course videos) comes first; otherwise the newest uploaded .mp4.
-  const linked = await courseVideoLink(supabase, key);
-  const latest = linked ? null : (files ?? []).find((f) => /\.mp4$/i.test(f.name));
-  const { data: vid } = latest
-    ? await supabase.storage.from('academy-media').createSignedUrl(`courses/${key}/${latest.name}`, 6 * 3600)
-    : { data: null };
-  const videoUrl = linked ?? vid?.signedUrl ?? null;
+  const videoUrl = video.url;
   const showVideo = videoUrl && !sp?.slides;
   const best = (mine ?? []).find((a) => a.passed);
   const { data: ready } = await supabase.rpc('lesson_ready', { p_key: key });
@@ -69,7 +63,7 @@ export default async function CoursePage({ params, searchParams }) {
             courseKey={key} ready={!!ready} slidesHref={`/academy/course/${key}?slides=1`} />
         : <CoursePlayer slides={content.SLIDES} questions={content.QUESTIONS} passPercent={course.passPercent} grade={grade} storeKey={`ecc-course-${key}-seen`} courseKey={key} ready={!!ready} />}
       {videoUrl && sp?.slides && <p className="small no-print"><Link href={`/academy/course/${key}`}>← Back to the video</Link></p>}
-      {!videoUrl && levelOf(profile) >= 6 && <p className="muted small no-print">No video uploaded yet — staff see the narrated slides. Upload videos in <Link href="/academy/videos">Academy → Course videos</Link>.</p>}
+      {!videoUrl && profile.role === 'admin' && <p className="muted small no-print">No video uploaded yet — staff see the narrated slides. Upload videos in <Link href="/academy/videos">Academy → Course videos</Link>.</p>}
 
       <p className="muted small">Based on {course.source}.</p>
 

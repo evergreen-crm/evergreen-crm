@@ -6,8 +6,7 @@ import { fmtDate } from '@/lib/options';
 import { COURSE, SLIDES, QUESTIONS } from '@/lib/courses/orientation';
 import CoursePlayer from './CoursePlayer';
 import VideoLesson from './VideoLesson';
-import VideoUpload from './VideoUpload';
-import { courseVideoLink } from '@/lib/videoLink';
+import { currentCourseVideo } from '@/lib/videoLink';
 
 export default async function OrientationCourse({ searchParams }) {
   const sp = await searchParams;
@@ -23,18 +22,10 @@ export default async function OrientationCourse({ searchParams }) {
       : Promise.resolve({ data: [] }),
   ]);
   const best = (mine ?? []).find((a) => a.passed);
-  const canUpload = levelOf(profile) >= 6;   // CSO, CEO and Administrator only
+  const canUpload = profile.role === 'admin';   // course videos: Admin only (Academy -> Course videos)
   const { data: ready } = await supabase.rpc('lesson_ready', { p_key: COURSE.key });
-  // The training video lives in private storage; a signed link lets the browser stream it.
-  // Use the newest .mp4 in the orientation folder (uploaded here, or straight into Supabase Storage).
-  const { data: files } = await supabase.storage.from('academy-media').list('orientation', { limit: 50, sortBy: { column: 'updated_at', order: 'desc' } });
-  // A OneDrive link (Academy -> Course videos) comes first; otherwise the newest uploaded .mp4.
-  const linked = await courseVideoLink(supabase, COURSE.key);
-  const latest = linked ? null : (files ?? []).find((f) => /\.mp4$/i.test(f.name));
-  const { data: vid } = latest
-    ? await supabase.storage.from('academy-media').createSignedUrl(`orientation/${latest.name}`, 6 * 3600)
-    : { data: null };
-  const videoUrl = linked ?? vid?.signedUrl ?? null;
+  // The current video version (Academy -> Course videos): an uploaded file or a OneDrive link.
+  const { url: videoUrl } = await currentCourseVideo(supabase, COURSE.key);
   const showVideo = videoUrl && !sp?.slides;
 
   return (
@@ -56,7 +47,7 @@ export default async function OrientationCourse({ searchParams }) {
 
       <p className="muted small">Based on the {COURSE.source}. This course is an introduction — it does not replace reading the manual and your in-person orientation with your Program Coordinator.</p>
 
-      {canUpload && <VideoUpload hasVideo={!!videoUrl} />}
+      {canUpload && <p className="small no-print"><Link href="/academy/videos#c-orientation">Upload a new version of this video →</Link></p>}
 
       {(mine ?? []).length > 0 && (
         <section className="card">

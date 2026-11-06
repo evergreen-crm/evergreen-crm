@@ -15,7 +15,8 @@ export default async function Hub({ params }) {
     onCall = data?.on_call_phone ?? null;
   }
   const { data: psRole } = await supabase.rpc('prescreen_role');
-  const menu = buildMenu(profile, { onCall, psRole });
+  const { data: orientation } = await supabase.rpc('orientation_status');
+  const menu = buildMenu(profile, { onCall, psRole, orientation });
   const tile = menu.tiles.find((t) => t.key === key);
   const hub = menu.hubs[key];
   if (!tile || !hub) redirect('/more');
