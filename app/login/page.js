@@ -1,7 +1,7 @@
 'use client';
 // Login with a 6-digit code sent to your email OR cell phone.
 // Only people an admin has added can log in (no self sign-up).
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [step, setStep] = useState('enter-contact'); // then 'enter-code'
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const checking = useRef(false); // stops the same code being sent twice (Enter + tap, or phone autofill)
   const [signedOut, setSignedOut] = useState(null);
   useEffect(() => { setSignedOut(new URLSearchParams(window.location.search).get('signedout')); }, []);
 
@@ -47,6 +48,8 @@ export default function LoginPage() {
 
   async function verifyCode(e) {
     e.preventDefault();
+    if (checking.current) return;
+    checking.current = true;
     setBusy(true);
     setMessage('');
     const params =
@@ -54,9 +57,13 @@ export default function LoginPage() {
         ? { email: contact.trim(), token: code.trim(), type: 'email' }
         : { phone: cleanPhone(contact), token: code.trim(), type: 'sms' };
     const { error } = await supabase.auth.verifyOtp(params);
-    setBusy(false);
     if (error) {
-      setMessage('That code is wrong or has expired. Try again or send a new code. (Details: ' + error.message + ')');
+      // A code can only be used once. If it was already accepted (sent twice), the person is signed in: carry on.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) { router.push('/'); router.refresh(); return; }
+      checking.current = false;
+      setBusy(false);
+      setMessage('That code is wrong or has expired. Check the newest email or text, or send a new code. (Details: ' + error.message + ')');
       return;
     }
     router.push('/');

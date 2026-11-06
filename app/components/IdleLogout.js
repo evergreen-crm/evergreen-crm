@@ -1,9 +1,16 @@
 'use client';
 // Inactivity timer: signs the person out after IDLE_MINUTES with no use (mouse, keys, touch, scrolling).
 // One minute before, a warning with "Stay signed in" appears. Works across tabs: using any tab counts.
+// Computers (often shared at the house): 15 minutes. Phones and tablets (the staff member's own, with its own
+// screen lock): 12 hours, so staff can clock in and clock out of a shift without a new sign-in code each time.
 import { useEffect, useRef, useState } from 'react';
 
 export const IDLE_MINUTES = 15;
+export const PHONE_IDLE_MINUTES = 12 * 60;
+const isPhone = () => {
+  try { return window.matchMedia('(pointer: coarse)').matches && Math.min(window.screen.width, window.screen.height) <= 900; }
+  catch { return false; }
+};
 const WARN_SECONDS = 60;
 const KEY = 'evg-last-activity';
 
@@ -13,9 +20,12 @@ const writeLast = (t) => { try { localStorage.setItem(KEY, String(t)); } catch {
 export default function IdleLogout() {
   const last = useRef(Date.now());
   const [left, setLeft] = useState(null); // seconds left while warning, else null
+  const [minutes, setMinutes] = useState(IDLE_MINUTES);
 
   useEffect(() => {
-    const limit = IDLE_MINUTES * 60 * 1000;
+    const mins = isPhone() ? PHONE_IDLE_MINUTES : IDLE_MINUTES;
+    setMinutes(mins);
+    const limit = mins * 60 * 1000;
     let lastWrite = 0;
     const touch = () => {
       const now = Date.now();
@@ -42,7 +52,7 @@ export default function IdleLogout() {
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 1000, display: 'grid', placeItems: 'center', padding: 16 }}>
       <div className="card" style={{ maxWidth: 380, textAlign: 'center' }}>
         <h2 style={{ marginTop: 0 }}>⏱ Still there?</h2>
-        <p>You haven’t used the portal for {IDLE_MINUTES} minutes. For privacy you will be signed out in <strong>{left} seconds</strong>.</p>
+        <p>You haven’t used the portal for {minutes >= 60 ? `${minutes / 60} hours` : `${minutes} minutes`}. For privacy you will be signed out in <strong>{left} seconds</strong>.</p>
         <button onClick={stay} autoFocus>Stay signed in</button>{' '}
         <a href="/auth/signout?reason=idle" className="button secondary">Sign out now</a>
       </div>
