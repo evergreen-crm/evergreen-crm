@@ -6,7 +6,8 @@ import { requireUser } from '@/lib/auth';
 import { fmtDate } from '@/lib/options';
 import { plainError } from '@/lib/plain';
 import PrintButton from '@/app/PrintButton';
-import { firstName, welcomeIntro, WELCOME_SECTIONS, WELCOME_CLOSING, WELCOME_FOOTNOTE, WELCOME_SIGNATURE, WELCOME_ORG, WELCOME_ACK } from '@/lib/boardWelcome';
+import { firstName, welcomeIntro, welcomeSections, WELCOME_CLOSING, WELCOME_FOOTNOTE, WELCOME_SIGNATURE, WELCOME_ORG, WELCOME_ACK } from '@/lib/boardWelcome';
+import { levelOf, groupOf } from '@/lib/levels';
 import { acceptWelcome } from '../actions';
 
 export const dynamic = 'force-dynamic';
@@ -34,7 +35,7 @@ export default async function BoardWelcome({ searchParams }) {
         {welcomeIntro(profile.full_name).map((t) => <p key={t}>{t}</p>)}
       </section>
 
-      {WELCOME_SECTIONS.map((s) => (
+      {welcomeSections(levelOf(profile) >= 3 || (levelOf(profile) === 2 && !groupOf(profile))).map((s) => (
         <section key={s.key} className={`card bw-section bw-${s.key}`}>
           <h2>{s.title}</h2>
           <p>{s.lead}</p>

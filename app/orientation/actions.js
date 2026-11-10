@@ -8,6 +8,7 @@ import { savePaperworkPdf } from '@/lib/paperworkPdf';
 import { fmtDate } from '@/lib/options';
 import { sendEmail, emailReady } from '@/lib/email';
 import { createAdminClient, adminKey } from '@/lib/supabase/admin';
+import { levelOf, groupOf } from '@/lib/levels';
 import { welcomeEmail } from '@/lib/boardWelcome';
 
 const SITE = (process.env.SITE_URL || 'https://evergreen-crm-azure.vercel.app').replace(/\/$/, '');
@@ -55,7 +56,7 @@ async function boardWelcomeEmail(p, certificateNo, pdfId) {
   try {
     if (!emailReady() || !adminKey()) return;
     const admin = createAdminClient();
-    const { data: person } = await admin.from('profiles').select('id, full_name, email, active').eq('id', p).maybeSingle();
+    const { data: person } = await admin.from('profiles').select('id, full_name, email, active, role, level, staff_group').eq('id', p).maybeSingle();
     if (!person?.active) return;
     let to = person.email;
     if (!to) { const { data: au } = await admin.auth.admin.getUserById(p); to = au?.user?.email ?? null; }
@@ -66,7 +67,7 @@ async function boardWelcomeEmail(p, certificateNo, pdfId) {
       const { data: file } = row?.file_path ? await admin.storage.from('staff-files').download(row.file_path) : { data: null };
       if (file) attachments = [{ filename: `Evergreen-Orientation-Certificate-${certificateNo}.pdf`, content: Buffer.from(await file.arrayBuffer()).toString('base64') }];
     }
-    const mail = welcomeEmail({ fullName: person.full_name, certificateNo: attachments ? certificateNo : null, href: `${SITE}/orientation/welcome` });
+    const mail = welcomeEmail({ fullName: person.full_name, certificateNo: attachments ? certificateNo : null, href: `${SITE}/orientation/welcome`, isLeader: levelOf(person) >= 3 || (levelOf(person) === 2 && !groupOf(person)) });
     await sendEmail({ to, ...mail, attachments });
   } catch {}
 }
