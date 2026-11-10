@@ -2,6 +2,7 @@
 // quiz is passed. Other steps are signed off by the Program Coordinator. One certificate when everything is done.
 // Leaders open a team member's orientation with ?p=<id> (from /orientation/team).
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { fmtDate } from '@/lib/options';
 import { plainError } from '@/lib/plain';
@@ -25,12 +26,15 @@ export default async function Orientation({ searchParams }) {
   ]);
   // Staff's own orientation is locked once complete: the certificate and records are in the staff file.
   if (self && status?.complete) {
+    // The Board of Directors' welcome message comes first, until it is accepted.
+    if (status.welcome_ack === false) redirect('/orientation/welcome');
     return (
       <main>
         <div className="div-banner academy"><span className="div-icon">🎓</span><div><h1>My orientation</h1><p>Complete</p></div></div>
         <section className="card">
           <p><strong>Your orientation is complete.</strong> Certificate {status.certificate_no}, {fmtDate(String(status.completed_at).slice(0, 10))}.</p>
           <p className="small">Your certificate and orientation records are saved in your staff file and your training record.</p>
+          <p><Link className="button" href="/orientation/welcome">Read the Board of Directors’ welcome message</Link></p>
           <p><Link href="/academy">Evergreen Academy →</Link> · <Link href="/offer">My offer letter →</Link></p>
         </section>
       </main>
@@ -61,6 +65,7 @@ export default async function Orientation({ searchParams }) {
         <section className="card">
           <h2>🎓 Orientation complete</h2>
           <p>Certificate <strong>{status.certificate_no}</strong> · completed {fmtDate(String(status.completed_at).slice(0, 10))}. It is in {self ? 'your' : 'the'} training record and staff file.</p>
+          {!self && status.welcome_ack !== undefined && <p className="small">Board of Directors’ welcome message: {status.welcome_ack_at ? `accepted ${fmtDate(String(status.welcome_ack_at).slice(0, 10))}` : 'not accepted yet (it opens when they next sign in)'}.</p>}
           {!self && <PaperworkList supabase={supabase} profileId={p} title="Certificate and course records (PDF)" />}
         </section>
       ) : self ? (

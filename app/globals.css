@@ -1092,3 +1092,23 @@ button.danger-soft { background: #b3261e; color: #fff; }
 .doc-form h2 { font-size: 26px; }
 .doc-form .small, .doc-form .message { font-size: 17px; }
 .doc-form input[type='checkbox'] { width: 26px; height: 26px; }
+
+/* Board of Directors' welcome message (/orientation/welcome): a letter, not a form. */
+.board-welcome { max-width: 780px; margin: 0 auto; }
+.bw-hero { text-align: center; padding: 28px 20px 24px; margin: 8px 0 16px; border-radius: 14px; color: #fff;
+  background: linear-gradient(160deg, var(--green-dark), var(--green) 60%, #1f7a4d); }
+.bw-hero img { height: 64px; background: #fff; border-radius: 50%; padding: 6px; }
+.bw-hero h1 { color: #fff; margin: 6px 0 10px; font-size: clamp(1.5rem, 4.5vw, 2.2rem); line-height: 1.2; text-wrap: balance; }
+.bw-eyebrow { margin: 12px 0 0; font-size: .8rem; letter-spacing: .14em; text-transform: uppercase; opacity: .9; }
+.bw-cert { margin: 0; font-size: .9rem; opacity: .92; }
+.bw-letter p, .bw-section p, .bw-section li { font-size: 1.05rem; line-height: 1.6; }
+.bw-section h2 { color: var(--green-dark); font-size: 1.25rem; }
+.bw-section ul { margin: 8px 0 0; padding-left: 22px; } .bw-section li { margin-bottom: 8px; }
+.bw-lines { border-left: 5px solid var(--red); } .bw-lines h2 { color: var(--red); }
+.bw-law { border-left: 5px solid var(--navy); } .bw-law h2 { color: var(--navy); }
+.bw-sign { margin-top: 18px; font-size: 1.1rem; }
+.bw-accept { border: 2px solid var(--green); display: flex; flex-direction: column; gap: 14px; }
+.bw-accept label { display: flex; gap: 12px; align-items: flex-start; font-size: 1.05rem; font-weight: 600; }
+.bw-accept input[type='checkbox'] { width: 24px; height: 24px; flex: none; margin-top: 2px; }
+.bw-accept button { align-self: flex-start; font-size: 1.05rem; padding: 12px 22px; }
+@media print { .bw-hero { background: none; color: #000; border-bottom: 3px solid #000; border-radius: 0; } .bw-hero h1 { color: #000; } }

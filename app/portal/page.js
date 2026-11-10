@@ -1,5 +1,6 @@
 // Portal home: the seven Evergreen divisions in a grid, each with its areas.
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { visibleDivisions, getGrants, isBoss } from '@/lib/portal';
 import { isDone } from '@/lib/divisions';
@@ -26,6 +27,8 @@ export default async function PortalHome() {
   if (profile.home_id) { const { data: h } = await supabase.from('homes').select('on_call_phone').eq('id', profile.home_id).maybeSingle(); onCall = h?.on_call_phone ?? null; }
   const { data: psRole } = await supabase.rpc('prescreen_role');
   const { data: orientation } = await supabase.rpc('orientation_status');
+  // Orientation just completed: the Board of Directors' welcome message opens first, until it is accepted.
+  if (orientation?.complete && orientation.welcome_ack === false) redirect('/orientation/welcome');
   const menu = buildMenu(profile, { onCall, psRole, orientation });
   const sections = await loadMySections(supabase, profile, { psRole });
 
