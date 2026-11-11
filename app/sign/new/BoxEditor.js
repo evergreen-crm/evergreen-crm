@@ -9,7 +9,8 @@ const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 let seq = 0;
 const newId = () => `b${Date.now().toString(36)}${(seq++).toString(36)}`;
 
-export default function BoxEditor({ data, people, boxes, setBoxes, onViewports }) {
+// The PDF comes from data (bytes, a new upload) or url (a saved file).
+export default function BoxEditor({ data, url, people, boxes, setBoxes, onViewports }) {
   const [who, setWho] = useState(people[0]?.key ?? '');
   const [tool, setTool] = useState('signature');
   const [sel, setSel] = useState(null);
@@ -141,7 +142,7 @@ export default function BoxEditor({ data, people, boxes, setBoxes, onViewports }
       </aside>
 
       <div className="box-page-col">
-        <PdfPages source={{ data }} overlay={overlay} onLoad={onViewports} onPageClick={(page, x, y, vp) => { setSel(null); addAt(page, x, y, vp); }} />
+        <PdfPages source={data ? { data } : { url }} overlay={overlay} onLoad={onViewports} onPageClick={(page, x, y, vp) => { setSel(null); addAt(page, x, y, vp); }} />
       </div>
     </div>
   );

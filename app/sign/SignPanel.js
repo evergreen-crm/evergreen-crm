@@ -44,7 +44,8 @@ function trimmed(c) {
   return out.toDataURL('image/png');
 }
 
-export default function SignPanel({ id, token, defaultName = '', fileUrl, fields = [], slot }) {
+// submit (optional): another place to send the signature (policies). It gets { name, image, agent, values } and returns { error } or { ok }.
+export default function SignPanel({ id, token, defaultName = '', fileUrl, fields = [], slot, submit }) {
   const outside = !!token;
   const [sig, setSig] = useState(null);          // the signature placed in the boxes
   const [draft, setDraft] = useState(null);      // what's on the pop-up pad right now
@@ -93,9 +94,10 @@ export default function SignPanel({ id, token, defaultName = '', fileUrl, fields
     if (missing.length) { setMsg(`Please fill in ${missing.length} more yellow box${missing.length === 1 ? '' : 'es'} — tap “Next box”.`); return; }
     setBusy(true); setMsg(null);
     const payload = { name, image: sig, agent: navigator.userAgent, values };
-    const res = outside ? await signOutside(token, payload) : await signDocument({ id, ...payload });
+    const res = submit ? await submit(payload) : outside ? await signOutside(token, payload) : await signDocument({ id, ...payload });
     setBusy(false);
     if (res?.error) { setMsg(res.error); return; }
+    if (submit) { router.refresh(); return; }
     // Staff: once signed, the document goes to the staff file and leaves their list.
     if (!outside) { router.push('/sign?done=signed'); return; }
     router.refresh();
