@@ -36,7 +36,10 @@ export default async function SignRequestPage({ params, searchParams }) {
 
   const { data: url } = await supabase.storage.from('sign-docs').createSignedUrl(r.file_path, 3600);
   const fileUrl = url?.signedUrl ?? null;
-  const finishedUrl = r.filled_path ? (await supabase.storage.from('sign-docs').createSignedUrl(r.filled_path, 3600, { download: `${r.title.replace(/[^\w\- ]+/g, '').slice(0, 60) || 'document'} - signed.pdf` })).data?.signedUrl : null;
+  // The finished PDF: one link to download it, one to view or print it inline (signatures inside the boxes and on the certificate).
+  const signedName = `${r.title.replace(/[^\w\- ]+/g, '').slice(0, 60) || 'document'} - signed.pdf`;
+  const finishedUrl = r.filled_path ? (await supabase.storage.from('sign-docs').createSignedUrl(r.filled_path, 3600, { download: signedName })).data?.signedUrl : null;
+  const finishedViewUrl = r.filled_path ? (await supabase.storage.from('sign-docs').createSignedUrl(r.filled_path, 3600)).data?.signedUrl : null;
   const isPdf = /pdf/i.test(r.file_type ?? '') || /\.pdf$/i.test(r.file_name);
   const isImg = /^image\//i.test(r.file_type ?? '') || /\.(jpe?g|png|webp)$/i.test(r.file_name);
   const signed = list.filter((s) => s.status === 'Signed').length;
@@ -66,18 +69,23 @@ export default async function SignRequestPage({ params, searchParams }) {
         <section className="card no-print" style={{ borderLeft: '5px solid var(--green)' }}>
           <h2 style={{ margin: 0 }}>✅ Finished document</h2>
           <p className="small">Every box filled in, with a signing certificate on the last page{r.filled_hash ? <> · <span className="muted" style={{ wordBreak: 'break-all' }}>SHA-256 {r.filled_hash.slice(0, 16)}…</span></> : null}.</p>
-          <a className="button" href={finishedUrl}>⬇ Download the finished PDF</a>
+          <div className="row">
+            <a className="button" href={finishedUrl}>⬇ Download the finished PDF</a>
+            {finishedViewUrl && <a className="button secondary" href={finishedViewUrl} target="_blank" rel="noreferrer">🖨 Print the signed document</a>}
+          </div>
+          <p className="muted small" style={{ margin: '6px 0 0' }}>Printing this page leaves out the document, so use the print button. It opens the signed PDF with every signature inside its box.</p>
         </section>
       )}
 
       {showViewer && (
         <section className="card no-print">
           <div className="title-row">
-            <h2 style={{ margin: 0 }}>📄 {r.file_name} <span className="muted small">{size(r.file_size)}</span></h2>
-            {fileUrl && <a className="button secondary" href={fileUrl} target="_blank" rel="noreferrer">Open the original</a>}
+            <h2 style={{ margin: 0 }}>📄 {r.file_name} <span className="muted small">{size(r.file_size)}</span>{finishedViewUrl ? <span className="badge" style={{ marginLeft: 8 }}>signed copy</span> : null}</h2>
+            {finishedViewUrl ? <a className="button secondary" href={finishedViewUrl} target="_blank" rel="noreferrer">Open the signed copy</a>
+              : fileUrl && <a className="button secondary" href={fileUrl} target="_blank" rel="noreferrer">Open the original</a>}
           </div>
           {!fileUrl ? <p className="message error">The document couldn’t be opened. Refresh the page; if it still fails, tell the office.</p>
-            : isPdf ? <iframe src={fileUrl} title={r.file_name} style={{ width: '100%', height: '70vh', border: '1px solid var(--line)', borderRadius: 8, marginTop: 8, background: '#fff' }} />
+            : isPdf ? <iframe src={finishedViewUrl ?? fileUrl} title={r.file_name} style={{ width: '100%', height: '70vh', border: '1px solid var(--line)', borderRadius: 8, marginTop: 8, background: '#fff' }} />
             : isImg ? <img src={fileUrl} alt={r.file_name} style={{ maxWidth: '100%', border: '1px solid var(--line)', borderRadius: 8, marginTop: 8 }} />
             : <p className="small">Word documents can’t be shown here. Tap <strong>Open the original</strong> to download and read it, then come back to sign.</p>}
         </section>
