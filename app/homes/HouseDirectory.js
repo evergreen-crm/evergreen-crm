@@ -43,7 +43,7 @@ export default function HouseDirectory({ homeId, contacts, staff, canEdit }) {
           <section key={lvl} className="card">
             <h3>{title} ({byLevel[lvl]?.length ?? 0})</h3>
             {(byLevel[lvl] ?? []).length === 0 && <p className="muted small">None listed.</p>}
-            <ul className="small">{(byLevel[lvl] ?? []).map((p) => <li key={p.id}>{p.full_name}{p.position ? ` · ${p.position}` : ''}</li>)}</ul>
+            <ul className="small">{(byLevel[lvl] ?? []).map((p) => <li key={p.id}>{p.full_name}{p.position ? ` · ${p.position}` : ''}{canEdit && lvl < 3 && <> · <a href={`/hr/${p.id}/employment`}>📄 Job and offer letter</a></>}</li>)}</ul>
           </section>
         ))}
       </div>

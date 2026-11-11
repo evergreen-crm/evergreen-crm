@@ -3,11 +3,15 @@
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireHR } from '@/lib/auth';
 import { renewMonthsFor, addMonthsISO } from '@/lib/onboarding';
+import { emailOfferLink } from '@/lib/offerEmail';
 
 const text = (formData, key) => {
   const v = formData.get(key);
   return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
 };
+
+// Hours each week (1 to 60), or blank.
+const hoursOf = (formData) => { const n = Number(text(formData, 'hours_per_week')); return n > 0 && n <= 60 ? n : null; };
 
 export async function saveStaffDetails(formData) {
   const { supabase } = await requireHR();
@@ -16,6 +20,7 @@ export async function saveStaffDetails(formData) {
     profile_id: profileId,
     position: text(formData, 'position'),
     employment_type: text(formData, 'employment_type'),
+    hours_per_week: hoursOf(formData),
     hire_date: text(formData, 'hire_date'),
     emergency_contact: text(formData, 'emergency_contact'),
     emergency_phone: text(formData, 'emergency_phone'),
@@ -27,6 +32,9 @@ export async function saveStaffDetails(formData) {
   // The program was chosen on purpose (record-gaps.sql); ignore if that setup hasn't run yet.
   await supabase.from('staff_details').update({ program_confirmed: true }).eq('profile_id', profileId);
   await supabase.rpc('scan_record_gaps', { p_trigger: 'now' });
+  // Position + full-time / part-time + start date: the offer letter is written and sent automatically (auto-offer.sql).
+  const { data: offer } = await supabase.rpc('auto_offer', { p_profile: profileId });
+  if (offer?.status === 'sent') await emailOfferLink(offer.id);
   revalidatePath(`/hr/${profileId}`);
   revalidatePath('/hr');
   revalidatePath('/records');

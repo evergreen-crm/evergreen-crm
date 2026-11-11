@@ -186,6 +186,7 @@ export default async function StaffHrPage({ params, searchParams }) {
                 <option>Casual</option>
               </select>
             </label>
+            <label>Hours each week<input type="number" step="0.5" min="1" max="60" name="hours_per_week" defaultValue={details?.hours_per_week ?? ''} placeholder="36 full-time · 20 part-time" /></label>
             <label>Hire date<input type="date" name="hire_date" defaultValue={details?.hire_date ?? ''} /></label>
             <label>Program
               <select name="program" defaultValue={details?.program ?? 'Both'}>
@@ -200,6 +201,7 @@ export default async function StaffHrPage({ params, searchParams }) {
             <label>Emergency phone<input name="emergency_phone" type="tel" inputMode="tel" defaultValue={details?.emergency_phone ?? ''} /></label>
           </div>
           <label>Notes<textarea name="notes" rows={2} defaultValue={details?.notes ?? ''} /></label>
+          <p className="small muted">With the position, full-time or part-time and the hire date filled in, saving writes the offer letter and sends it to them to sign. The wage comes from <Link href="/hr/pay-rates">💲 Pay rates</Link>. Simple version of this form: <Link href={`/hr/${person.id}/employment`}>📄 Job and offer letter</Link>.</p>
           <button>Save details</button>
         </form>
       ) : (
