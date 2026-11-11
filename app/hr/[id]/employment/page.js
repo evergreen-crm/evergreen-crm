@@ -8,6 +8,7 @@ import { canHR, levelOf, groupOf } from '@/lib/levels';
 import { plainStatus, plainError } from '@/lib/plain';
 import { fmtDate } from '@/lib/options';
 import { saveJob } from './actions';
+import OfferVersionUpload from './OfferVersionUpload';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Job and offer letter · Evergreen' };
@@ -27,6 +28,15 @@ export default async function JobAndOffer({ params, searchParams }) {
   ]);
   if (!person) notFound();
   const mine = person.id === user.id;
+  // Uploaded offer letters: every version is kept (supabase/offer-uploads.sql). Leaders only, never the person.
+  const { data: uploads } = mine ? { data: [] } : await supabase.from('offer_uploads')
+    .select('id, version, file_path, file_name, file_size, note, uploaded_at, who:uploaded_by(full_name)').eq('profile_id', id).order('version', { ascending: false });
+  const links = {};
+  if ((uploads ?? []).length) {
+    const { data: signed } = await supabase.storage.from('staff-files').createSignedUrls(uploads.map((u) => u.file_path), 3600);
+    (signed ?? []).forEach((s, i) => { if (s?.signedUrl) links[uploads[i].id] = s.signedUrl; });
+  }
+  const size = (n) => (n == null ? '' : n < 1048576 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1048576).toFixed(1)} MB`);
   const list = positions ?? [];
   const posList = details?.position && !list.includes(details.position) ? [details.position, ...list] : list;
   const day = (ts) => (ts ? fmtDate(new Date(new Date(ts).getTime() - 7 * 3600e3).toISOString().slice(0, 10)) : '');
@@ -85,6 +95,25 @@ export default async function JobAndOffer({ params, searchParams }) {
         </ul>
         <p className="small muted">Open a letter to read it, print it or save it as a PDF. A signed letter is also saved as a PDF in the person’s staff file.</p>
       </section>
+
+      {!mine && (
+        <section className="card" id="uploads">
+          <h2 style={{ marginTop: 0 }}>Uploaded offer letters</h2>
+          <p className="small">Have your own offer letter file? Upload it here. Every upload is kept as a new version; nothing is replaced or deleted. Only leaders see these files, not {person.full_name}.</p>
+          {!(uploads ?? []).length && <p className="muted small">No uploaded versions yet.</p>}
+          <ul className="list compact">
+            {(uploads ?? []).map((u, i) => (
+              <li key={u.id}>
+                {links[u.id]
+                  ? <a href={links[u.id]} target="_blank" rel="noreferrer"><strong>Version {u.version}</strong> · {u.file_name} <span className="muted small">· {size(u.file_size)} · {day(u.uploaded_at)}{u.who?.full_name ? ` · ${u.who.full_name}` : ''}{u.note ? ` · ${u.note}` : ''}</span></a>
+                  : <span><strong>Version {u.version}</strong> · {u.file_name} <span className="muted small">· {day(u.uploaded_at)}{u.note ? ` · ${u.note}` : ''}</span></span>}
+                {i === 0 && <span className="badge">Latest</span>}
+              </li>
+            ))}
+          </ul>
+          <OfferVersionUpload profileId={id} nextVersion={((uploads ?? [])[0]?.version ?? 0) + 1} />
+        </section>
+      )}
     </main>
   );
 }

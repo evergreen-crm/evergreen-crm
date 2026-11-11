@@ -201,7 +201,7 @@ export default async function StaffHrPage({ params, searchParams }) {
             <label>Emergency phone<input name="emergency_phone" type="tel" inputMode="tel" defaultValue={details?.emergency_phone ?? ''} /></label>
           </div>
           <label>Notes<textarea name="notes" rows={2} defaultValue={details?.notes ?? ''} /></label>
-          <p className="small muted">With the position, full-time or part-time and the hire date filled in, saving writes the offer letter and sends it to them to sign. The wage comes from <Link href="/hr/pay-rates">💲 Pay rates</Link>. Simple version of this form: <Link href={`/hr/${person.id}/employment`}>📄 Job and offer letter</Link>.</p>
+          <p className="small muted">With the position, full-time or part-time and the hire date filled in, saving writes the offer letter and sends it to them to sign. The wage comes from <Link href="/hr/pay-rates">💲 Pay rates</Link>. Simple version of this form, and where you upload your own offer letter versions: <Link href={`/hr/${person.id}/employment`}>📄 Job and offer letter</Link>.</p>
           <button>Save details</button>
         </form>
       ) : (

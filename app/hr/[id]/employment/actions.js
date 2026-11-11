@@ -44,3 +44,13 @@ export async function saveJob(fd) {
   revalidatePath(`/hr/${id}/employment`);
   go(id, offerMessage(res, mailed));
 }
+
+// After the browser uploaded a file to <person>/paperwork/offers/: record it as the next version (never replaces one).
+export async function recordOfferUpload({ profileId, path, name, size, note }) {
+  const { supabase } = await requireUser(['admin', 'manager', 'staff']);
+  const { data, error } = await supabase.rpc('add_offer_upload', {
+    p_profile: profileId, p_path: path, p_name: name, p_size: Number(size) || null, p_note: typeof note === 'string' ? note : null });
+  if (error) return { error: error.message };
+  revalidatePath(`/hr/${profileId}/employment`);
+  return { ok: true, version: data?.version };
+}
