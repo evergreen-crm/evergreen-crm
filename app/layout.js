@@ -95,6 +95,7 @@ export default async function RootLayout({ children }) {
                 <nav>
                   <NavMenu groups={groups} find={menu ? [...sectionFindItems(sections), ...menu.all] : null} />
                   {staffLike && <Link href="/todo" className={`navquick todo-count${todo.overdue ? ' late' : ''}`} title={todo.overdue ? `${todo.overdue} overdue` : 'My to-do'}>✅ <b>{todo.total}</b><span> To-do</span></Link>}
+                  {staffLike && <Link href="/id#checkin" className="navquick clock-quick" title="Clock in or out">⏰ <span>Clock in / out</span></Link>}
                   {staffLike && <Link href="/id" className="navquick">🪪 <span>My ID</span></Link>}
                   {onb && onb.status !== 'Complete' && <Link href="/onboarding" className="nav-alert">My onboarding</Link>}
                   {staffLike && <Link href="/ask" className="help-btn" title="Ask Evergreen — policy and how-to questions">🤖<span> Ask</span></Link>}

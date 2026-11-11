@@ -8,7 +8,8 @@ import { headers } from 'next/headers';
 import { requireUser } from '@/lib/auth';
 import { canHR } from '@/lib/levels';
 import { sendEmail, emailReady } from '@/lib/email';
-import { offerHtml } from '@/lib/offerLetter';
+import { offerHtml, offerLines } from '@/lib/offerLetter';
+import { savePaperworkPdf } from '@/lib/paperworkPdf';
 
 const text = (fd, k) => { const v = fd.get(k); return typeof v === 'string' && v.trim() !== '' ? v.trim() : null; };
 const go = (path, msg, bad) => redirect(`${path}${path.includes('?') ? '&' : '?'}${bad ? 'error' : 'ok'}=${encodeURIComponent(msg)}`);
@@ -72,13 +73,20 @@ export async function withdrawOffer(fd) {
 }
 
 export async function acceptOffer(fd) {
-  const { supabase } = await requireUser(['admin', 'manager', 'staff']);
+  const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
   const id = text(fd, 'id');
   if (fd.get('agree') !== 'on') go(`/offer/${id}`, 'Tick the box to confirm you accept the offer.', true);
   const h = await headers();
   const ip = (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || h.get('x-real-ip') || null;
   const { error } = await supabase.rpc('accept_offer', { p_id: id, p_name: text(fd, 'signed_name'), p_ip: ip, p_agent: h.get('user-agent') });
   if (error) go(`/offer/${id}`, error.message, true);
+  // Keep a signed PDF in their staff file (never blocks the signing).
+  const { data: o } = await supabase.from('offer_letters').select('*').eq('id', id).maybeSingle();
+  if (o?.status === 'Accepted') {
+    await savePaperworkPdf({ person: { id: profile.id, full_name: profile.full_name }, kind: 'signed', sourceId: `offer-${id}`,
+      title: `Signed offer letter: ${o.position}`, lines: offerLines(o, profile.full_name),
+      signature: { image: o.signature_image, name: o.signed_name, at: o.accepted_at }, at: o.accepted_at });
+  }
   revalidatePath(`/offer/${id}`); revalidatePath('/onboarding');
   go(`/offer/${id}`, 'Thank you — you accepted the offer. Your signed offer letter is saved in your portal. Welcome to Evergreen!');
 }
