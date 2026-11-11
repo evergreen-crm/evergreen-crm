@@ -96,7 +96,7 @@ export async function remakeFinished(id) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);
   const { data: ok } = await supabase.rpc('can_manage_sign_request', { rid: id });
   if (!ok) return { error: 'Only the sender or a manager at this house can do that.' };
-  const res = await finishRequest(id);
+  const res = await finishRequest(id, { email: false });
   revalidatePath(`/sign/${id}`);
   return res;
 }

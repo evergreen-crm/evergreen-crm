@@ -74,6 +74,7 @@ export default async function SignRequestPage({ params, searchParams }) {
             {finishedViewUrl && <a className="button secondary" href={finishedViewUrl} target="_blank" rel="noreferrer">🖨 Print the signed document</a>}
           </div>
           <p className="muted small" style={{ margin: '6px 0 0' }}>Printing this page leaves out the document, so use the print button. It opens the signed PDF with every signature inside its box.</p>
+          {manage && <div style={{ marginTop: 10 }}><SenderTools id={r.id} waiting={0} open={false} remake made /></div>}
         </section>
       )}
 
