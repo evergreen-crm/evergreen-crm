@@ -183,7 +183,7 @@ export default function SendForm({ people, categories, preset, minDue, defaultDu
           <legend><strong>Where they sign</strong> <span className="badge">{boxes.length} box{boxes.length === 1 ? '' : 'es'}</span></legend>
           {!signers.length ? <p className="muted small">Choose who signs (above), then mark where each person signs on the page.</p>
             : <>
-                <p className="small" style={{ marginTop: 0 }}><strong>Required:</strong> put a ✍️ <strong>Signature</strong> box where each person signs. You can also add initials, date, name, text and checkbox boxes. Drag to move, drag the corner to resize, click a box to change or remove it.</p>
+                <p className="small" style={{ marginTop: 0 }}><strong>Required:</strong> put a ✍️ <strong>Signature</strong> box where each person signs. You can also add initials, date, name, text and checkbox boxes. The box tools are on the left. Drag a box to move it, drag its corner to resize, and remove it with its ✕ mark, a double-click, or the Delete key.</p>
                 <p className="small" style={{ margin: '0 0 6px' }}>{signers.map((p) => {
                   const ok = boxes.some((b) => b.who === p.key && b.type === 'signature');
                   return <span key={p.key} className={`badge ${ok ? '' : 'warn'}`} style={{ marginRight: 4 }}>{ok ? '✓' : '✍️ needs a signature box:'} {p.short}</span>;

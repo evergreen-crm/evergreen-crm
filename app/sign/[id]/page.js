@@ -22,8 +22,13 @@ export default async function SignRequestPage({ params, searchParams }) {
     .select('*, sender:created_by(full_name), canceller:cancelled_by(full_name), home:home_id(name)').eq('id', id).maybeSingle();
   if (!r) notFound();
   const { data: signers } = await supabase.from('sign_request_signers')
-    .select('id, profile_id, slot, status, viewed_at, signed_at, signed_name, signature_image, decline_reason, declined_at, reminded_at, signer_ip, ext_name, ext_email, ext_role, ext_org, ext_phone, ext_notes, profiles(full_name, homes(name))')
+    .select('id, profile_id, slot, status, viewed_at, signed_at, signed_name, signature_image, decline_reason, declined_at, reminded_at, signer_ip, ext_name, ext_email, ext_role, ext_org, ext_phone, ext_notes')
     .eq('request_id', id);
+  // Staff names come from a separate query: there is no foreign key from signers to profiles to embed.
+  const staffIds = [...new Set((signers ?? []).map((s) => s.profile_id).filter(Boolean))];
+  const { data: staff } = staffIds.length ? await supabase.from('profiles').select('id, full_name, homes(name)').in('id', staffIds) : { data: [] };
+  const staffById = Object.fromEntries((staff ?? []).map((p) => [p.id, p]));
+  for (const s of signers ?? []) s.profiles = s.profile_id ? staffById[s.profile_id] ?? null : null;
   const list = (signers ?? []).sort((a, b) => (a.profile_id ? 0 : 1) - (b.profile_id ? 0 : 1) || signerName(a).localeCompare(signerName(b)));
   const me = list.find((s) => s.profile_id === profile.id);
   const manage = canManageRequest(profile, r);
@@ -118,7 +123,7 @@ export default async function SignRequestPage({ params, searchParams }) {
       )}
 
       {manage && <SenderTools id={r.id} waiting={list.filter((s) => s.status === 'Waiting').length} canCancel
-        open={r.status === 'Open'} remake={r.status === 'Complete' && isPdf && !r.filled_path} />}
+        open={r.status === 'Open'} remake={r.status === 'Complete' && isPdf} made={!!r.filled_path} />}
     </main>
   );
 }

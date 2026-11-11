@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { remindSigners, cancelRequest, remakeFinished } from '@/app/sign/actions';
 
-export default function SenderTools({ id, waiting, canCancel, open = true, remake = false }) {
+export default function SenderTools({ id, waiting, canCancel, open = true, remake = false, made = false }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
   const [cancelling, setCancelling] = useState(false);
@@ -35,8 +35,8 @@ export default function SenderTools({ id, waiting, canCancel, open = true, remak
   if (!open) {
     return remake ? (
       <section className="card no-print">
-        <p className="small">The finished PDF wasn’t made yet.</p>
-        <button type="button" onClick={rebuild} disabled={busy}>{busy ? 'Making it…' : '📄 Make the finished PDF'}</button>
+        <p className="small">{made ? 'Make the finished PDF again so every signature shows in its box.' : 'The finished PDF wasn’t made yet.'}</p>
+        <button type="button" onClick={rebuild} disabled={busy}>{busy ? 'Making it…' : made ? '🔁 Make the finished PDF again' : '📄 Make the finished PDF'}</button>
         {msg && <p className={`message ${msg.bad ? 'error' : 'ok'}`}>{msg.text}</p>}
       </section>
     ) : null;
