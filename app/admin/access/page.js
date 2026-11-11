@@ -41,7 +41,7 @@ export default async function AccessPage() {
     <main>
       <p className="small no-print"><Link href="/s/adm">← Admin</Link></p>
       <h1>👤 Access &amp; departments</h1>
-      <p className="small">Pick a department for each person, then press <strong>Save</strong>. The box underneath shows exactly which menu sections they’ll see. The administrator and CEO always see everything.</p>
+      <p className="small">Pick a department for each person, then press <strong>Save</strong>. The box underneath shows exactly which menu sections they’ll see. Someone with no department sees every section their job allows; choosing a department narrows their menu. The administrator and CEO always see everything.</p>
       {error && <p className="message">Could not load people: {error.message}</p>}
       <AccessList rows={rows} sections={sections} homes={homeRows ?? []} />
     </main>
