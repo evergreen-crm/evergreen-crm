@@ -1117,3 +1117,11 @@ button.danger-soft { background: #b3261e; color: #fff; }
 .topbar .clock-quick { background: var(--green); color: #fff; padding: 6px 12px; border-radius: 999px; font-weight: 700; }
 .topbar .clock-quick:hover { background: var(--green-dark); color: #fff; }
 @media (max-width: 720px) { .topbar .clock-quick { padding: 4px 8px; } }
+/* 🔍 Find results: where the page sits, and "How do I…?" steps */
+.findbox-hits .findbox-where { display: block; margin: 2px 0 0 28px; font-size: .8rem; }
+.findbox-how { padding: 6px 10px; border-top: 1px solid var(--line); }
+.findbox-how summary { padding: 6px 0; }
+.findbox-how ol { margin: 6px 0 10px; padding-left: 22px; line-height: 1.5; }
+.findbox-how a.button { display: inline-block; padding: 8px 14px; background: var(--green); color: #fff; border-radius: 8px; font-weight: 600; }
+.findbox-how a.button:hover { background: var(--green-dark); }
+.findbox-none { padding: 10px; }
