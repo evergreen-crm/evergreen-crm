@@ -13,7 +13,7 @@ const initialsOf = (n) => String(n).trim().split(/\s+/).filter(Boolean).map((w) 
 const todayText = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Etc/GMT+7', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
 // A drawing pad. Calls onChange(image) after each stroke (or null when cleared).
-function SigPad({ onChange, clearRef }) {
+export function SigPad({ onChange, clearRef }) {
   const canvas = useRef(null);
   const drawing = useRef(false);
   useEffect(() => {
@@ -45,7 +45,7 @@ function trimmed(c) {
 }
 
 // submit (optional): another place to send the signature (policies). It gets { name, image, agent, values } and returns { error } or { ok }.
-export default function SignPanel({ id, token, defaultName = '', fileUrl, fields = [], slot, submit }) {
+export default function SignPanel({ id, token, defaultName = '', fileUrl, fields = [], slot, submit, canDecline = true }) {
   const outside = !!token;
   const [sig, setSig] = useState(null);          // the signature placed in the boxes
   const [draft, setDraft] = useState(null);      // what's on the pop-up pad right now
@@ -212,7 +212,7 @@ export default function SignPanel({ id, token, defaultName = '', fileUrl, fields
           <button type="button" onClick={sign} disabled={busy || !read || !sig || !name.trim() || missing.length > 0}>{busy ? 'Signing…' : '✍️ Finish and sign'}</button>
           {!signInBoxes && <button type="button" className="secondary" onClick={() => clearInline.current?.()} disabled={busy}>Clear</button>}
           {missing.length > 0 && total > 0 && <button type="button" className="secondary" onClick={goNext}>➜ Next box ({missing.length} left)</button>}
-          <button type="button" className="link" onClick={() => setMode('decline')} disabled={busy}>I won’t sign this</button>
+          {canDecline && <button type="button" className="link" onClick={() => setMode('decline')} disabled={busy}>I won’t sign this</button>}
         </div>
         <p className="muted small">Signing electronically is the same as signing on paper. Once you sign, it can’t be changed.</p>
         {msg && <p className="message error">{msg}</p>}

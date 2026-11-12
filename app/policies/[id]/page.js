@@ -6,6 +6,7 @@ import { POLICY_CATEGORIES, appliesTo } from '@/lib/onboarding';
 import ProgramBadge from '@/app/components/ProgramBadge';
 import { fmtDate, fmtDateTime } from '@/lib/options';
 import { updatePolicy, restoreVersion } from '@/app/policies/actions';
+import { makeSignedCopy } from '@/app/policies/signActions';
 import PolicySign from '@/app/policies/PolicySign';
 import PolicyUpload from '@/app/policies/PolicyUpload';
 import { createAdminClient, adminKey } from '@/lib/supabase/admin';
@@ -40,6 +41,16 @@ export default async function PolicyPage({ params, searchParams }) {
   const current = versions?.find((v) => v.id === p.current_version_id);
   const myAck = acks?.find((a) => a.profile_id === user.id && a.policy_version_id === current?.id);
   const myOld = acks?.filter((a) => a.profile_id === user.id && a.policy_version_id !== current?.id) ?? [];
+  // Signed copies (the policy with the signature inside its last page): the viewer's own, and for managers all.
+  // They open in the browser, where they can be printed or saved.
+  const copyUrls = {};
+  if (adminKey()) {
+    const admin = createAdminClient();
+    for (const a of (acks ?? []).filter((x) => x.finished_path && (isBoss || x.profile_id === user.id))) {
+      const { data: s } = await admin.storage.from('staff-files').createSignedUrl(a.finished_path, 3600);
+      if (s?.signedUrl) copyUrls[a.id] = s.signedUrl;
+    }
+  }
   // Frontline staff can't reopen a policy they've already signed: it's kept in their staff file.
   if (myAck && p.require_signature && !isAdmin && !isBoss && levelOf(profile) < 2) {
     return (
@@ -47,7 +58,8 @@ export default async function PolicyPage({ params, searchParams }) {
         <p className="small"><Link href="/policies">← Policies</Link></p>
         <h1>{p.title}</h1>
         <section className="card">
-          <p><strong>✓ You signed this policy</strong> on {fmtDateTime(myAck.signed_at)}. Your signature is kept in your staff file.</p>
+          <p><strong>✓ You signed this policy</strong> on {fmtDateTime(myAck.signed_at)}. Your signature is inside the policy, kept in your staff file.</p>
+          {copyUrls[myAck.id] && <p><a className="button" href={copyUrls[myAck.id]} target="_blank" rel="noreferrer">🖨 Open my signed copy (print or save)</a></p>}
           <p className="small">Have a question about this policy? Ask your Program Coordinator, or use <Link href="/ask">🤖 Ask Evergreen</Link>.</p>
         </section>
       </main>
@@ -60,15 +72,6 @@ export default async function PolicyPage({ params, searchParams }) {
   }
   const isPdf = current && (current.file_type === 'application/pdf' || /\.pdf$/i.test(current.file_name ?? current.file_path));
   const signedCurrent = (pid) => acks?.find((a) => a.profile_id === pid && a.policy_version_id === current?.id);
-  // Signed copies (the policy with signatures in its boxes, plus the signing record): links for the viewer's own, and for managers all.
-  const copyUrls = {};
-  if (adminKey()) {
-    const admin = createAdminClient();
-    for (const a of (acks ?? []).filter((x) => x.finished_path && (isBoss || x.profile_id === user.id))) {
-      const { data: s } = await admin.storage.from('staff-files').createSignedUrl(a.finished_path, 3600, { download: `${(p.code || p.title).replace(/[^\w\- ]+/g, '').slice(0, 40)} - signed.pdf` });
-      if (s?.signedUrl) copyUrls[a.id] = s.signedUrl;
-    }
-  }
   const boxesReady = Array.isArray(current?.fields) && current.fields.some((f) => f.type === 'signature');
 
   return (
@@ -80,7 +83,9 @@ export default async function PolicyPage({ params, searchParams }) {
           <h1>{p.title}</h1>
           <p><ProgramBadge program={p.applies_to} /> {[p.code, p.category, current && `Version ${current.version_label}`, current?.effective_date && `effective ${fmtDate(current.effective_date)}`].filter(Boolean).join(' · ')}</p>
         </div>
-        <span className="no-print"><PrintButton label="Print" /></span>
+        <span className="no-print">{myAck && copyUrls[myAck.id]
+          ? <a className="button" href={copyUrls[myAck.id]} target="_blank" rel="noreferrer">🖨 Print my signed copy</a>
+          : <PrintButton label="Print" />}</span>
       </div>
       {!p.active && <p className="alert">This policy is archived.</p>}
       {p.description && <p>{p.description}</p>}
@@ -106,17 +111,16 @@ export default async function PolicyPage({ params, searchParams }) {
             <div className="signed">
               {myAck.signature_image ? <img src={myAck.signature_image} alt="" /> : onb?.signature_image && <img src={onb.signature_image} alt="" />}
               <span>✓ Signed by <strong>{myAck.signed_name}</strong> on {fmtDateTime(myAck.signed_at)} — version {current.version_label}</span>
-              {copyUrls[myAck.id] && <p><a className="button" href={copyUrls[myAck.id]} target="_blank" rel="noreferrer">⬇ Download the signed copy</a></p>}
+              {myAck.witnessed_name && <span className="small"> · witnessed by {myAck.witnessed_name}</span>}
+              {copyUrls[myAck.id] && <p><a className="button" href={copyUrls[myAck.id]} target="_blank" rel="noreferrer">🖨 Open my signed copy (print or save)</a></p>}
             </div>
-          ) : !boxesReady ? (
-            <p className="alert">This version isn’t set up for signing yet. {isAdmin ? <Link href={`/policies/${p.id}/boxes?version=${current.id}`}>Place the signature boxes</Link> : 'Ask your administrator to set it up.'}</p>
           ) : !isPdf ? (
             <p className="alert">This version can’t be signed on screen. Ask your administrator to upload a PDF.</p>
           ) : (
             <>
               {myOld.length > 0 && <p className="alert">This policy was updated. Please read the new version and sign again.</p>}
-              <p className="small">Read the policy above. Tick the box, fill in each yellow box, draw your signature in the ✍️ Sign here box, then choose Finish and sign. Your signed copy goes straight to your staff file.</p>
-              <PolicySign policyId={p.id} versionId={current.id} fileUrl={url} fields={current.fields} defaultName={profile.full_name ?? ''} />
+              <p className="small">Read the policy above. {boxesReady ? 'Fill in each yellow box and draw your signature in the ✍️ Sign here box.' : 'Tick the box, type your name and draw your signature.'} Your signature is placed inside the policy, on its last page, and the signed copy goes straight to your staff file. Please sign within 14 days.</p>
+              <PolicySign policyId={p.id} versionId={current.id} fileUrl={url} fields={boxesReady ? current.fields : []} defaultName={profile.full_name ?? ''} />
             </>
           )}
         </section>
@@ -135,7 +139,10 @@ export default async function PolicyPage({ params, searchParams }) {
                 return (
                   <tr key={x.id}>
                     <td>{x.full_name}</td><td>{personLabel(x)}</td><td><ProgramBadge program={progOf(x)} /></td>
-                    <td>{a ? <>✓ {a.signed_name} · {fmtDateTime(a.signed_at)}{copyUrls[a.id] && <> · <a href={copyUrls[a.id]} target="_blank" rel="noreferrer">signed copy</a></>}</> : <span className="badge bad">Not signed</span>}</td>
+                    <td>{a ? <>✓ {a.signed_name} · {fmtDateTime(a.signed_at)}{a.witnessed_name && <> · witnessed by {a.witnessed_name}</>}
+                      {copyUrls[a.id] ? <> · <a href={copyUrls[a.id]} target="_blank" rel="noreferrer">signed copy</a></>
+                        : isPdf && <form action={makeSignedCopy} style={{ display: 'inline' }}><input type="hidden" name="ack_id" value={a.id} /><input type="hidden" name="policy_id" value={p.id} /> · <button className="link small">Make the signed copy</button></form>}</>
+                      : <span className="badge bad">Not signed</span>}</td>
                   </tr>
                 );
               })}
@@ -184,7 +191,7 @@ export default async function PolicyPage({ params, searchParams }) {
       {/* ---------- Admin ---------- */}
       {isAdmin && (
         <>
-          {current && <p className="card no-print">✍️ <Link href={`/policies/${p.id}/boxes?version=${current.id}`}>Signature boxes for version {current.version_label}</Link> {boxesReady ? <span className="badge">set up</span> : <span className="badge bad">not set up — staff can’t sign yet</span>}</p>}
+          {current && <p className="card no-print">✍️ <Link href={`/policies/${p.id}/boxes?version=${current.id}`}>Signature boxes for version {current.version_label}</Link> {boxesReady ? <span className="badge">boxes placed</span> : <span className="muted small">optional. Without boxes, the signature goes in a strip on the last page.</span>}</p>}
           <PolicyUpload mode="version" policyId={p.id} suggestedVersion={nextVersion(current?.version_label)} />
           <details className="card no-print">
             <summary><strong>Edit policy details</strong></summary>

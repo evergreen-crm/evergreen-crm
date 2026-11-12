@@ -1,12 +1,15 @@
 'use server';
-// Policies signed inside boxes on the policy PDF. The admin places the boxes for each version (saveVersionBoxes);
-// staff draw their signature in the boxes (signPolicy). The signed copy is made at once and kept in the staff file.
+// Policies are signed inside the policy PDF. Nothing has to be set up: the signature is stamped in a strip on
+// the policy's last page. If the admin placed boxes on a version (saveVersionBoxes), staff sign in those boxes.
+// The signed copy is made at once and kept in the staff file. When a person has signed every policy,
+// their sign-off record is made and their house's leader is asked to witness it (lib/policyRecords.js).
 import { revalidatePath } from 'next/cache';
 import { randomUUID, createHash } from 'node:crypto';
 import { requireUser } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { buildPolicySignedPdf, EMPLOYER } from '@/lib/policySignPdf';
-import { groupOf, groupName, levelOf, levelName } from '@/lib/levels';
+import { groupOf, groupName, levelOf, levelName, canHR } from '@/lib/levels';
+import { ensurePolicyRecord, remakeSignedCopy } from '@/lib/policyRecords';
 
 const TYPES = ['signature', 'initials', 'date', 'name', 'text', 'checkbox'];
 const norm = (v) => (v ?? '').toLowerCase().replace(/[^a-z]+/g, ' ').trim();
@@ -41,9 +44,11 @@ export async function signPolicy({ policy_id, version_id, name, image, values, a
 
   const { data: pol } = await supabase.from('policies').select('id, title, code, current_version_id, require_signature').eq('id', policy_id).maybeSingle();
   if (!pol || pol.current_version_id !== version_id) return { error: 'This version is no longer the current one. Please reload the page.' };
-  const { data: ver } = await supabase.from('policy_versions').select('id, version_label, effective_date, file_path, fields').eq('id', version_id).maybeSingle();
-  const fields = Array.isArray(ver?.fields) ? ver.fields : [];
-  if (!fields.some((f) => f.type === 'signature')) return { error: 'This policy isn’t set up for signing yet. Ask the administrator to place the signature boxes.' };
+  const { data: ver } = await supabase.from('policy_versions').select('id, version_label, effective_date, file_path, file_name, fields').eq('id', version_id).maybeSingle();
+  if (!ver?.file_path || !(/\.pdf$/i.test(ver.file_path) || /\.pdf$/i.test(ver.file_name ?? ''))) return { error: 'This version can’t be signed on screen. Ask your administrator to upload a PDF.' };
+  // Boxes are optional. Without a signature box, the signature goes in the strip on the last page.
+  const placed = Array.isArray(ver?.fields) ? ver.fields : [];
+  const fields = placed.some((f) => f.type === 'signature') ? placed : [];
 
   const vals = values && typeof values === 'object' ? values : {};
   const cleaned = {};
@@ -82,10 +87,22 @@ export async function signPolicy({ policy_id, version_id, name, image, values, a
 
   const { error } = await supabase.from('policy_acks').insert({
     id: ackId, policy_id, policy_version_id: version_id, profile_id: user.id, signed_name: name.trim(),
-    signature_image: image, field_values: cleaned, finished_path: path, finished_hash: hash,
+    signature_image: image, field_values: fields.length ? cleaned : null, finished_path: path, finished_hash: hash,
   });
   if (error) { await admin.storage.from('staff-files').remove([path]); return { error: error.code === '23505' ? 'You already signed this version.' : 'Could not sign: ' + error.message }; }
   await admin.from('paperwork_pdfs').insert({ profile_id: user.id, kind: 'signed', title: `Policy signed: ${pol.title}${ver.version_label ? ` v${ver.version_label}` : ''}`.slice(0, 300), source_id: `policy:${ackId}`, file_path: path, sha256: hash });
-  revalidatePath('/policies'); revalidatePath(`/policies/${policy_id}`); revalidatePath('/onboarding');
-  return { ok: true, employer: EMPLOYER };
+  // Everything signed now? Make the sign-off record and ask the house's leader to witness it.
+  let record = null;
+  try { record = await ensurePolicyRecord(admin, user.id); } catch { /* the daily check will make it */ }
+  revalidatePath('/policies'); revalidatePath(`/policies/${policy_id}`); revalidatePath('/onboarding'); revalidatePath('/policies/records');
+  return { ok: true, employer: EMPLOYER, allSigned: record?.status === 'created' || record?.status === 'exists' };
+}
+
+// HR, managers and the Administrator: make a signed copy for a signature saved before signed copies existed.
+export async function makeSignedCopy(fd) {
+  const { profile } = await requireUser(['admin', 'manager', 'staff']);
+  const ackId = String(fd.get('ack_id') ?? ''); const policyId = String(fd.get('policy_id') ?? '');
+  if (!canHR(profile) || !ackId) return;
+  await remakeSignedCopy(createAdminClient(), ackId);
+  revalidatePath(`/policies/${policyId}`);
 }

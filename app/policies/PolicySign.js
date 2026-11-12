@@ -5,5 +5,5 @@ import { signPolicy } from '@/app/policies/signActions';
 
 export default function PolicySign({ policyId, versionId, fileUrl, fields, defaultName }) {
   const submit = (payload) => signPolicy({ policy_id: policyId, version_id: versionId, agree: true, ...payload });
-  return <SignPanel fileUrl={fileUrl} fields={fields} slot="staff" defaultName={defaultName} submit={submit} />;
+  return <SignPanel fileUrl={fileUrl} fields={fields} slot="staff" defaultName={defaultName} submit={submit} canDecline={false} />;
 }

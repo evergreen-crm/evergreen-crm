@@ -79,6 +79,7 @@ export default async function PoliciesPage({ searchParams }) {
       ))}
       {shown.length === 0 && <p className="muted">{isAdmin ? 'No policies yet — add your first one below.' : 'No policies have been added yet.'}</p>}
 
+      <p className="no-print"><Link className="button secondary" href="/policies/records">📝 Policy sign-off records</Link></p>
       {canHR(profile) && (
         <p className="no-print"><Link className="button secondary" href="/policies/report">🖨 Print all policies — read & signature report</Link></p>
       )}
