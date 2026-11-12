@@ -11,7 +11,7 @@ import WitnessForm from '../WitnessForm';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;   // witnessing remakes each signed policy with the witness added
 export const metadata = { title: 'Policy sign-off record · Evergreen' };
-const STAGE = { 1: 'Program Coordinator', 2: 'Program Manager', 3: 'Directors' };
+const STAGE = { 1: 'Program Coordinator and Program Manager', 2: 'Program Manager', 3: 'Directors' };
 
 export default async function PolicyRecord({ params }) {
   const { id } = await params;

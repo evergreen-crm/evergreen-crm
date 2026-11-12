@@ -11,7 +11,7 @@ import { todayISO } from '@/lib/options';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Policy sign-off records · Evergreen' };
-const STAGE = { 1: 'Program Coordinator', 2: 'Program Manager', 3: 'Directors' };
+const STAGE = { 1: 'Program Coordinator and Program Manager', 2: 'Program Manager', 3: 'Directors' };
 
 export default async function PolicyRecords({ searchParams }) {
   const sp = await searchParams;
@@ -45,7 +45,7 @@ export default async function PolicyRecords({ searchParams }) {
     <main>
       <p className="small no-print"><Link href="/policies">← Policies</Link></p>
       <h1>📝 Policy sign-off records</h1>
-      <p className="small">Staff sign each policy within {POLICY_DAYS} days. When someone has signed them all, one record is made here. Their Program Coordinator checks the signed copies and signs once as witness. If that isn’t done in {WITNESS_DAYS} days it also goes to the Program Manager, then to the directors.</p>
+      <p className="small">Staff sign each policy within {POLICY_DAYS} days. When someone has signed them all, one record is made here. Their Program Coordinator and Program Manager are told right away; either one checks the signed copies and signs once as witness. If that isn’t done in {WITNESS_DAYS} days it goes to the directors.</p>
       {error && <p className="message">Sign-off records aren’t switched on yet (setup file: policy-records.sql).</p>}
       <section className="card">
         <h2 style={{ marginTop: 0 }}>Still to sign ({unsigned.length}){sp?.person ? <> <Link className="small" href="/policies/records">show everyone</Link></> : null}</h2>
