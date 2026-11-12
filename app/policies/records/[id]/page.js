@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth';
 import { createAdminClient, adminKey } from '@/lib/supabase/admin';
 import { fmtDate, fmtDateTime } from '@/lib/options';
 import { WITNESS_DAYS } from '@/lib/policyDue';
+import { canHR, levelOf } from '@/lib/levels';
 import WitnessForm from '../WitnessForm';
 
 export const dynamic = 'force-dynamic';
@@ -26,7 +27,9 @@ export default async function PolicyRecord({ params }) {
   const items = Array.isArray(r.items) ? r.items : [];
   // Links to the signed copies and the record (the viewer was already allowed to see this record).
   const links = {}; let recordUrl = null;
-  if (adminKey()) {
+  // Frontline staff can't reopen their own signed policies (they use the binder in the house).
+  const lockedForMe = mine && profile.role !== 'admin' && !canHR(profile) && levelOf(profile) < 2;
+  if (adminKey() && !lockedForMe) {
     const admin = createAdminClient();
     const { data: acks } = await admin.from('policy_acks').select('id, finished_path').in('id', items.map((i) => i.ack_id));
     for (const a of acks ?? []) {
@@ -63,7 +66,7 @@ export default async function PolicyRecord({ params }) {
             <tr key={it.ack_id}>
               <td>{i + 1}</td><td className="small">{it.code ?? '—'}</td><td>{it.title}</td><td>{it.version_label ? `v${it.version_label}` : '—'}</td>
               <td className="small">{fmtDateTime(it.signed_at)}</td>
-              <td>{links[it.ack_id] ? <a href={links[it.ack_id]} target="_blank" rel="noreferrer">Open</a> : <span className="badge warn">No copy yet</span>}</td>
+              <td>{lockedForMe ? <span className="muted small">🔒 On file</span> : links[it.ack_id] ? <a href={links[it.ack_id]} target="_blank" rel="noreferrer">Open</a> : <span className="badge warn">No copy yet</span>}</td>
             </tr>
           ))}</tbody>
         </table>

@@ -1,7 +1,7 @@
 // One staff member's HR record: details, certifications, training.
 import PaperworkList from '@/app/components/PaperworkList';
 import Link from 'next/link';
-import { personLabel, canHR } from '@/lib/levels';
+import { personLabel, canHR, levelOf } from '@/lib/levels';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { CERT_TYPES, certStatus } from '@/lib/hr';
@@ -370,7 +370,7 @@ export default async function StaffHrPage({ params, searchParams }) {
       )}
 
       {/* ---------- Signed paperwork and course-pass PDFs ---------- */}
-      <PaperworkList supabase={supabase} profileId={id} />
+      <PaperworkList supabase={supabase} profileId={id} lockPolicies={profile.role !== 'admin' && !canHR(profile) && levelOf(profile) < 2} />
     </main>
   );
 }

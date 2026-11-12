@@ -58,9 +58,9 @@ export default async function PolicyPage({ params, searchParams }) {
         <p className="small"><Link href="/policies">← Policies</Link></p>
         <h1>{p.title}</h1>
         <section className="card">
-          <p><strong>✓ You signed this policy</strong> on {fmtDateTime(myAck.signed_at)}. Your signature is inside the policy, kept in your staff file.</p>
-          {copyUrls[myAck.id] && <p><a className="button" href={copyUrls[myAck.id]} target="_blank" rel="noreferrer">🖨 Open my signed copy (print or save)</a></p>}
-          <p className="small">Have a question about this policy? Ask your Program Coordinator, or use <Link href="/ask">🤖 Ask Evergreen</Link>.</p>
+          <p><strong>✓ You signed this policy</strong> on {fmtDateTime(myAck.signed_at)}{myAck.witnessed_name ? `, witnessed by ${myAck.witnessed_name}` : ''}. Your signature is inside the policy, kept in your staff file.</p>
+          <p>🔒 Signed policies are confidential and are locked here after signing. To read this policy again, use the staff binder or the residential binder in your house.</p>
+          <p className="small">Need your signed copy? Ask your Program Coordinator or HR. Have a question about this policy? Ask your Program Coordinator, or use <Link href="/ask">🤖 Ask Evergreen</Link>.</p>
         </section>
       </main>
     );
