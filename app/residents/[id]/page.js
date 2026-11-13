@@ -17,6 +17,7 @@ import PrintButton from '@/app/PrintButton';
 import Mar from './Mar';
 import Goals from './Goals';
 import Plan from './Plan';
+import FormsTab from './Forms';
 import Logs from './Logs';
 import Money from './Money';
 import Documents from './Documents';
@@ -29,6 +30,7 @@ const TABS = [
   { key: 'notes', label: 'Daily notes', family: true },
   { key: 'mar', label: 'Medications' },
   { key: 'plan', label: 'Plan' },
+  { key: 'forms', label: 'Forms' },
   { key: 'goals', label: 'Goals', family: true },
   { key: 'logs', label: 'Logs' },
   { key: 'money', label: 'Money' },
@@ -252,6 +254,8 @@ export default async function ResidentPage({ params, searchParams }) {
           <Plan supabase={supabase} resident={resident} canEdit={canEditResident} isStaff={isStaff} month={sp.month} />
         </section>
       )}
+
+      {isStaff && tab === 'forms' && <FormsTab supabase={supabase} resident={resident} />}
 
       {(tab === 'goals' || (isStaff && tab === 'all')) && (
         <>
