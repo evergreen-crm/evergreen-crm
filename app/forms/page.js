@@ -1,5 +1,5 @@
 // 📋 Forms: every form from Evergreen's MCFD and CLBC manuals that is completed inside the CRM.
-// Forms Batch 1 (daily care and safety) is here; Batches 2–4 are added to lib/policyForms.js.
+// Forms Batches 1–2 are here (lib/policyForms.js); Batches 3–4 are added the same way.
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { POLICY_FORMS, FORM_AREAS } from '@/lib/policyForms';
@@ -29,7 +29,7 @@ export default async function Forms({ searchParams }) {
               {forms.map(([k, f]) => (
                 <li key={k} style={{ padding: '6px 0', borderBottom: '1px solid var(--line, #eee)' }}>
                   <Link href={`/forms/${k}`}><strong>{f.icon} {f.label}</strong></Link>{' '}
-                  <span className="badge">{PROGRAM[f.program]}</span> <span className="badge">{f.scope === 'house' ? 'House' : 'Person'}</span>
+                  <span className="badge">{PROGRAM[f.program]}</span> <span className="badge">{f.scope === 'house' ? 'House' : f.scope === 'staff' ? 'Staff file' : 'Person'}</span>
                   <div className="muted">{f.source}{f.signs ? ` · ${f.signs}` : ''}</div>
                 </li>
               ))}
