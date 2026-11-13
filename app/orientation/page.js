@@ -66,7 +66,7 @@ export default async function Orientation({ searchParams }) {
           <h2>🎓 Orientation complete</h2>
           <p>Certificate <strong>{status.certificate_no}</strong> · completed {fmtDate(String(status.completed_at).slice(0, 10))}. It is in {self ? 'your' : 'the'} training record and staff file.</p>
           {!self && status.welcome_ack !== undefined && <p className="small">Board of Directors’ welcome message: {status.welcome_ack_at ? `accepted ${fmtDate(String(status.welcome_ack_at).slice(0, 10))}` : 'not accepted yet (it opens when they next sign in)'}.</p>}
-          {!self && <PaperworkList supabase={supabase} profileId={p} title="Certificate and course records (PDF)" />}
+          {!self && <PaperworkList supabase={supabase} profileId={p} title="Certificate and course records (PDF)" lockPolicies />}
         </section>
       ) : self ? (
         <p className="small">Work through the steps in order. Online courses tick themselves when you pass the quiz (80%). Your Program Coordinator signs off the other steps. Each day opens when the days before it are done. When everything is done you get one certificate for the whole orientation.</p>

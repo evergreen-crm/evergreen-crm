@@ -6,7 +6,7 @@ import { requireUser } from '@/lib/auth';
 import { createAdminClient, adminKey } from '@/lib/supabase/admin';
 import { fmtDate, fmtDateTime } from '@/lib/options';
 import { WITNESS_DAYS } from '@/lib/policyDue';
-import { canHR, levelOf } from '@/lib/levels';
+import { canPullPolicyFiles } from '@/lib/levels';
 import WitnessForm from '../WitnessForm';
 
 export const dynamic = 'force-dynamic';
@@ -25,17 +25,16 @@ export default async function PolicyRecord({ params }) {
     supabase.from('policy_record_events').select('id, at, event, detail').eq('record_id', id).order('at'),
   ]);
   const items = Array.isArray(r.items) ? r.items : [];
-  // Links to the signed copies and the record (the viewer was already allowed to see this record).
+  // Signed copies are locked for the person who signed them. They open (through /policies/copy/<id>, logged) for
+  // HR, directors and the Administrator, and for the witness only while the record is waiting for a witness.
+  const canPull = canPullPolicyFiles(profile);
+  const canOpen = canPull || (canWitness === true && r.status === 'awaiting_witness');
   const links = {}; let recordUrl = null;
-  // Frontline staff can't reopen their own signed policies (they use the binder in the house).
-  const lockedForMe = mine && profile.role !== 'admin' && !canHR(profile) && levelOf(profile) < 2;
-  if (adminKey() && !lockedForMe) {
+  if (adminKey()) {
     const admin = createAdminClient();
-    const { data: acks } = await admin.from('policy_acks').select('id, finished_path').in('id', items.map((i) => i.ack_id));
-    for (const a of acks ?? []) {
-      if (!a.finished_path) continue;
-      const { data: s } = await admin.storage.from('staff-files').createSignedUrl(a.finished_path, 3600);
-      if (s?.signedUrl) links[a.id] = s.signedUrl;
+    if (canOpen) {
+      const { data: acks } = await admin.from('policy_acks').select('id, finished_path').in('id', items.map((i) => i.ack_id));
+      for (const a of acks ?? []) if (a.finished_path) links[a.id] = `/policies/copy/${a.id}`;
     }
     if (r.file_path) recordUrl = (await admin.storage.from('staff-files').createSignedUrl(r.file_path, 3600)).data?.signedUrl ?? null;
   }
@@ -58,6 +57,18 @@ export default async function PolicyRecord({ params }) {
         <p className={`message${waitingDays >= WITNESS_DAYS ? '' : ' ok'}`}>⏳ Waiting for the witness review. With: <strong>{STAGE[r.stage]}</strong> (day {waitingDays + 1} of {WITNESS_DAYS}). If it isn’t signed in {WITNESS_DAYS} days it also goes to the next level.</p>
       )}
 
+      {canPull && (
+        <section className="card no-print">
+          <h2 style={{ marginTop: 0 }}>📦 Full policy file</h2>
+          <p className="small">Everything for {r.person?.full_name} in one download: the witness record and each signed policy with the signatures inside. For audits and investigations. Every download is written to the security audit log.</p>
+          <p className="row">
+            <a className="button" href={`/policies/records/${r.id}/file`}>⬇ Download as one ZIP file</a>
+            <a className="button secondary" href={`/policies/records/${r.id}/file?format=pdf`}>⬇ Download as one PDF</a>
+          </p>
+        </section>
+      )}
+      {!canOpen && <p className="card muted small">🔒 Signed policies are locked after signing. To read a policy, use the staff binder or the residential binder in the house. HR, a director or the Administrator can open a signed copy.</p>}
+
       <section>
         <h2>Policies signed</h2>
         <table>
@@ -66,7 +77,7 @@ export default async function PolicyRecord({ params }) {
             <tr key={it.ack_id}>
               <td>{i + 1}</td><td className="small">{it.code ?? '—'}</td><td>{it.title}</td><td>{it.version_label ? `v${it.version_label}` : '—'}</td>
               <td className="small">{fmtDateTime(it.signed_at)}</td>
-              <td>{lockedForMe ? <span className="muted small">🔒 On file</span> : links[it.ack_id] ? <a href={links[it.ack_id]} target="_blank" rel="noreferrer">Open</a> : <span className="badge warn">No copy yet</span>}</td>
+              <td>{!canOpen ? <span className="muted small">🔒 On file</span> : links[it.ack_id] ? <a href={links[it.ack_id]} target="_blank" rel="noreferrer">Open</a> : <span className="badge warn">No copy yet</span>}</td>
             </tr>
           ))}</tbody>
         </table>

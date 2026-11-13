@@ -11,7 +11,7 @@ import PolicySign from '@/app/policies/PolicySign';
 import PolicyUpload from '@/app/policies/PolicyUpload';
 import { createAdminClient, adminKey } from '@/lib/supabase/admin';
 import PrintButton from '@/app/PrintButton';
-import { personLabel, canHR, levelOf } from '@/lib/levels';
+import { personLabel, canHR, canPullPolicyFiles } from '@/lib/levels';
 import { plainError } from '@/lib/plain';
 
 function nextVersion(label) {
@@ -41,18 +41,14 @@ export default async function PolicyPage({ params, searchParams }) {
   const current = versions?.find((v) => v.id === p.current_version_id);
   const myAck = acks?.find((a) => a.profile_id === user.id && a.policy_version_id === current?.id);
   const myOld = acks?.filter((a) => a.profile_id === user.id && a.policy_version_id !== current?.id) ?? [];
-  // Signed copies (the policy with the signature inside its last page): the viewer's own, and for managers all.
-  // They open in the browser, where they can be printed or saved.
+  // Signed copies (the policy with the signature inside its last page) open through /policies/copy/<id>, which
+  // checks who is asking and logs it. Only HR, directors and the Administrator can pull one.
+  const canPull = canPullPolicyFiles(profile);
   const copyUrls = {};
-  if (adminKey()) {
-    const admin = createAdminClient();
-    for (const a of (acks ?? []).filter((x) => x.finished_path && (isBoss || x.profile_id === user.id))) {
-      const { data: s } = await admin.storage.from('staff-files').createSignedUrl(a.finished_path, 3600);
-      if (s?.signedUrl) copyUrls[a.id] = s.signedUrl;
-    }
-  }
-  // Frontline staff can't reopen a policy they've already signed: it's kept in their staff file.
-  if (myAck && p.require_signature && !isAdmin && !isBoss && levelOf(profile) < 2) {
+  if (canPull) for (const a of (acks ?? []).filter((x) => x.finished_path)) copyUrls[a.id] = `/policies/copy/${a.id}`;
+  // Nobody can reopen a policy they have signed (frontline, coordinators and managers alike): it is kept in
+  // their staff file and they read it in the binder. HR, directors and the Administrator are not locked.
+  if (myAck && p.require_signature && !canPull) {
     return (
       <main>
         <p className="small"><Link href="/policies">← Policies</Link></p>
@@ -60,7 +56,7 @@ export default async function PolicyPage({ params, searchParams }) {
         <section className="card">
           <p><strong>✓ You signed this policy</strong> on {fmtDateTime(myAck.signed_at)}{myAck.witnessed_name ? `, witnessed by ${myAck.witnessed_name}` : ''}. Your signature is inside the policy, kept in your staff file.</p>
           <p>🔒 Signed policies are confidential and are locked here after signing. To read this policy again, use the staff binder or the residential binder in your house.</p>
-          <p className="small">Need your signed copy? Ask your Program Coordinator or HR. Have a question about this policy? Ask your Program Coordinator, or use <Link href="/ask">🤖 Ask Evergreen</Link>.</p>
+          <p className="small">Need your signed copy? Ask HR. Have a question about this policy? Ask your Program Coordinator, or use <Link href="/ask">🤖 Ask Evergreen</Link>.</p>
         </section>
       </main>
     );

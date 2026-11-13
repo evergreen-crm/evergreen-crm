@@ -5,14 +5,14 @@ import { TZ } from '@/lib/options';
 
 const day = (ts) => new Date(ts).toLocaleDateString('en-CA', { timeZone: TZ, year: 'numeric', month: 'short', day: 'numeric' });
 
-// lockPolicies: signed policies are listed but can't be opened (frontline staff looking at their own file).
+// Signed policies open only through /policies/copy/<id> (checked and logged). lockPolicies: show them as locked.
 export default async function PaperworkList({ supabase, profileId, title = 'Signed paperwork and course records (PDF)', lockPolicies = false }) {
   const { data: rows, error } = await supabase.from('paperwork_pdfs')
     .select('id, kind, title, file_path, source_id, created_at, onedrive_status')
     .eq('profile_id', profileId).order('created_at', { ascending: false }).limit(200);
   if (error) return null;
   const isPolicy = (r) => String(r.source_id ?? '').startsWith('policy:');
-  const links = await paperworkLinks((rows ?? []).filter((r) => !(lockPolicies && isPolicy(r))));
+  const links = await paperworkLinks((rows ?? []).filter((r) => !isPolicy(r)));
   return (
     <section className="card">
       <h2>{title}</h2>
@@ -26,7 +26,7 @@ export default async function PaperworkList({ supabase, profileId, title = 'Sign
                 <td className="small">{day(r.created_at)}</td>
                 <td>{r.title}</td>
                 <td className="small">{r.kind === 'signed' ? 'Signed paper' : 'Course passed'}</td>
-                <td>{lockPolicies && isPolicy(r) ? <span className="muted small">🔒 On file</span> : links[r.id] ? <a href={links[r.id]} target="_blank" rel="noreferrer">Open</a> : <span className="muted small">—</span>}</td>
+                <td>{isPolicy(r) ? (lockPolicies ? <span className="muted small">🔒 On file</span> : <a href={`/policies/copy/${String(r.source_id).slice(7)}`} target="_blank" rel="noreferrer">Open</a>) : links[r.id] ? <a href={links[r.id]} target="_blank" rel="noreferrer">Open</a> : <span className="muted small">—</span>}</td>
               </tr>
             ))}</tbody>
           </table>

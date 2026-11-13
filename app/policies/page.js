@@ -1,5 +1,6 @@
 // Policy library: every Evergreen policy, its current version and whether you've signed it.
 import { canHR, levelOf } from '@/lib/levels';
+import { canPullPolicyFiles } from '@/lib/levels';
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { POLICY_CATEGORIES, appliesTo, PROGRAMS } from '@/lib/onboarding';
@@ -22,8 +23,8 @@ export default async function PoliciesPage({ searchParams }) {
   const prog = sp.program ?? '';
   const forMe = (p) => appliesTo(p.applies_to, myProgram);
   const signedFor = (p) => myAcks?.find((a) => a.policy_version_id === p.current?.id);
-  // Frontline staff: once a policy is signed it leaves their list. The signature is kept in their staff file.
-  const hideSigned = profile.role !== 'admin' && !canHR(profile) && levelOf(profile) < 2;
+  // Once a policy is signed it is locked and leaves the person's list (everyone except HR, directors and the Administrator).
+  const hideSigned = !canPullPolicyFiles(profile);
   const shown = (policies ?? []).filter((p) => (sp.archived ? !p.active : p.active))
     .filter((p) => !prog || (p.applies_to ?? 'Both') === prog || (prog !== 'Both' && p.applies_to === 'Both'))
     .filter((p) => !hideSigned || !(p.require_signature && signedFor(p)));
@@ -35,7 +36,7 @@ export default async function PoliciesPage({ searchParams }) {
     <main>
       <div className="div-banner" style={{ '--div': '#5a3d8a' }}>
         <span className="div-icon">📘</span>
-        <div><h1>Policies</h1><p>{hideSigned ? 'Read and sign the policies waiting for you. Signed policies are kept in your staff file.' : 'Read every Evergreen policy and sign it digitally. Policies can’t be edited here.'}</p></div>
+        <div><h1>Policies</h1><p>{hideSigned ? 'Read and sign the policies waiting for you. Signed policies are locked after signing and kept in your staff file. To read one again, use the binder in the house.' : 'Read every Evergreen policy and sign it digitally. Policies can’t be edited here.'}</p></div>
         <span className="no-print"><PrintButton label="Print" /></span>
       </div>
 
