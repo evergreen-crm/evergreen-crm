@@ -15,8 +15,9 @@ export async function saveFormEntry(fd) {
   const type = ENTRY_TYPES[kind];
   const residentId = val(fd, 'resident_id');
   const homeId = val(fd, 'home_id');
+  const staffId = val(fd, 'subject_profile_id');
   const task = val(fd, 'task');
-  const q = new URLSearchParams({ ...(residentId ? { resident: residentId } : {}), ...(homeId && !residentId ? { home: homeId } : {}), ...(task ? { task } : {}) });
+  const q = new URLSearchParams({ ...(residentId ? { resident: residentId } : {}), ...(staffId ? { staff: staffId } : {}), ...(homeId && !residentId && !staffId ? { home: homeId } : {}), ...(task ? { task } : {}) });
   const back = (k, msg) => redirect(`/forms/${kind}?${q}&${k}=${encodeURIComponent(msg)}`);
   if (!type) redirect('/forms?error=' + encodeURIComponent('Unknown form.'));
 
@@ -28,6 +29,7 @@ export async function saveFormEntry(fd) {
   }
   const { data: row, error } = await supabase.from('entries').insert({
     kind, home_id: homeId, resident_id: type.scope === 'resident' ? residentId : null,
+    ...(type.scope === 'staff' ? { subject_profile_id: staffId } : {}),
     entry_date: val(fd, 'entry_date') ?? todayISO(), entry_time: val(fd, 'entry_time') ?? nowTime(),
     data, share_with_family: false, created_by: user.id,
   }).select('id').single();
