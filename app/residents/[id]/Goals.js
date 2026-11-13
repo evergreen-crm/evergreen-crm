@@ -1,5 +1,6 @@
 // "Goals" tab: care plan goals and daily progress.
-import { GOAL_DOMAINS, fmtDate } from '@/lib/options';
+import { fmtDate } from '@/lib/options';
+import { areasFor, streamOf } from '@/lib/plans';
 import { addGoal, setGoalStatus, recordGoalReview } from '@/app/residents/modules';
 import { addGoalStep, toggleGoalStep } from '@/app/document/actions';
 import { todayISO, addDaysISO } from '@/lib/options';
@@ -24,6 +25,8 @@ export default async function Goals({ supabase, resident, canEdit, isStaff, isAd
   const active = (goals ?? []).filter((g) => g.status === 'Active');
   const names = Object.fromEntries((goals ?? []).map((g) => [g.id, g.title]));
   const path = `/residents/${resident.id}`;
+  const stream = streamOf(resident);
+  const areas = areasFor(stream);
 
   return (
     <section>
@@ -106,7 +109,10 @@ export default async function Goals({ supabase, resident, canEdit, isStaff, isAd
                 <form action={setGoalStatus} className="row no-print">
                   <input type="hidden" name="id" value={g.id} />
                   <input type="hidden" name="resident_id" value={resident.id} />
-                  <select name="status" defaultValue={g.status}><option>Active</option><option>Achieved</option><option>Discontinued</option></select>
+                  <select name="status" defaultValue={g.status} aria-label="Status"><option>Active</option><option>Achieved</option><option>Discontinued</option></select>
+                  <select name="domain" defaultValue={g.domain ?? ''} aria-label={stream === 'CLBC' ? 'Quality-of-life area' : 'Plan of care domain'}>
+                    {['', ...areas, ...(g.domain && !areas.includes(g.domain) ? [g.domain] : [])].map((d) => <option key={d} value={d}>{d || (stream === 'CLBC' ? 'Choose area…' : 'Choose domain…')}</option>)}
+                  </select>
                   <button className="secondary">Update</button>
                 </form>
               )}
@@ -122,7 +128,7 @@ export default async function Goals({ supabase, resident, canEdit, isStaff, isAd
             <input type="hidden" name="resident_id" value={resident.id} />
             <label>Goal<input name="title" required placeholder="e.g., Make own breakfast" /></label>
             <div className="row">
-              <label>Area<select name="domain" defaultValue="">{['', ...GOAL_DOMAINS].map((d) => <option key={d} value={d}>{d || '—'}</option>)}</select></label>
+              <label>{stream === 'CLBC' ? 'Quality-of-life area (CLBC)' : 'Plan of care domain (MCFD)'}<select name="domain" defaultValue="">{['', ...areas].map((d) => <option key={d} value={d}>{d || '—'}</option>)}</select></label>
               <label>Target date<input type="date" name="target_date" /></label>
               <label>Next review date<input type="date" name="review_date" defaultValue={addDaysISO(todayISO(), 90)} /></label>
             </div>

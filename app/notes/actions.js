@@ -35,6 +35,7 @@ export async function saveNote(fd) {
     shift: SHIFTS.includes(s(fd, 'shift')) ? s(fd, 'shift') : 'Day',
     mood: s(fd, 'mood'), meals: s(fd, 'meals'), activities: s(fd, 'activities'), note,
     share_with_family: fd.get('share_with_family') === 'on',
+    goal_ids: (s(fd, 'goal_ids') ?? '').split(',').filter((x) => /^[0-9a-f-]{36}$/i.test(x)),
     signed_at: sign ? new Date().toISOString() : null,
   };
   const id = s(fd, 'note_id');

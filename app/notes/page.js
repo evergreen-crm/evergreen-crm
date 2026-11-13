@@ -30,8 +30,12 @@ export default async function Notes({ searchParams }) {
   const { data: people } = await supabase.from('residents').select('id, first_name, preferred_name, last_name, allergies').eq('home_id', home.id).neq('status', 'discharged').order('first_name');
   const ids = (people ?? []).map((p) => p.id);
   const { data: notes } = ids.length
-    ? await supabase.from('shift_notes').select('id, resident_id, author_id, shift, mood, meals, activities, note, share_with_family, signed_at, created_at, profiles(full_name)').in('resident_id', ids).gte('created_at', since).order('created_at')
+    ? await supabase.from('shift_notes').select('id, resident_id, author_id, shift, mood, meals, activities, note, share_with_family, goal_ids, signed_at, created_at, profiles(full_name)').in('resident_id', ids).gte('created_at', since).order('created_at')
     : { data: [] };
+  const { data: goalRows } = ids.length
+    ? await supabase.from('goals').select('id, resident_id, title').in('resident_id', ids).eq('status', 'Active').order('created_at')
+    : { data: [] };
+  const goalsOf = (rid) => (goalRows ?? []).filter((g) => g.resident_id === rid);
   const list = people ?? [];
   const byRes = {};
   for (const n of notes ?? []) (byRes[n.resident_id] ??= []).push(n);
@@ -82,10 +86,10 @@ export default async function Notes({ searchParams }) {
             {signed && !draft ? (
               <details>
                 <summary className="small">Write another note for {r.preferred_name || r.first_name}</summary>
-                <NoteCard resident={r} shift={now.shift} day={todayISO()} homeId={home.id} action={saveNote} compact justSaved={sp?.saved === r.id} />
+                <NoteCard resident={r} shift={now.shift} day={todayISO()} homeId={home.id} action={saveNote} compact justSaved={sp?.saved === r.id} goals={goalsOf(r.id)} />
               </details>
             ) : (
-              <NoteCard resident={r} draft={draft} shift={now.shift} day={todayISO()} homeId={home.id} nextId={nextAfter(r.id)} action={saveNote} justSaved={sp?.saved === r.id} />
+              <NoteCard resident={r} draft={draft} shift={now.shift} day={todayISO()} homeId={home.id} nextId={nextAfter(r.id)} action={saveNote} justSaved={sp?.saved === r.id} goals={goalsOf(r.id)} />
             )}
             <p className="small muted" style={{ marginBottom: 0 }}>
               <Link href={`/residents/${r.id}?tab=mar`}>💊 Medication</Link> · <Link href={`/residents/${r.id}?tab=incidents&new=1`}>⚠️ Incident</Link> · <Link href={`/residents/${r.id}?tab=notes`}>All notes</Link>

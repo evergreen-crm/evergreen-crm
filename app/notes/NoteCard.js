@@ -9,7 +9,7 @@ const read = (k) => { try { return JSON.parse(localStorage.getItem(k) ?? 'null')
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 const drop = (k) => { try { localStorage.removeItem(k); } catch {} };
 
-export default function NoteCard({ resident, draft, shift, day, homeId, nextId, justSaved, action, compact, returnTo }) {
+export default function NoteCard({ resident, draft, shift, day, homeId, nextId, justSaved, action, compact, returnTo, goals }) {
   const k = key(resident.id, day);
   const [v, setV] = useState(() => ({
     shift: draft?.shift ?? shift,
@@ -18,6 +18,7 @@ export default function NoteCard({ resident, draft, shift, day, homeId, nextId, 
     acts: draft?.activities ? draft.activities.split(',').map((x) => x.trim()).filter(Boolean) : [],
     note: draft?.note ?? '',
     share: !!draft?.share_with_family,
+    goalIds: draft?.goal_ids ?? [],
   }));
   const [restored, setRestored] = useState(false);
   const first = useRef(true);
@@ -48,6 +49,7 @@ export default function NoteCard({ resident, draft, shift, day, homeId, nextId, 
       <input type="hidden" name="mood" value={v.mood} />
       <input type="hidden" name="meals" value={v.meals} />
       <input type="hidden" name="activities" value={v.acts.join(', ')} />
+      <input type="hidden" name="goal_ids" value={(v.goalIds ?? []).join(',')} />
 
       {restored && <p className="message ok small" style={{ margin: '0 0 8px' }}>We kept what you typed before — check it and save.</p>}
 
@@ -75,6 +77,15 @@ export default function NoteCard({ resident, draft, shift, day, homeId, nextId, 
           <button type="button" key={a} className={`nc-chip${v.acts.includes(a) ? ' on' : ''}`} onClick={() => toggleAct(a)}>{a}</button>))}
         </div>
       </div>
+      {(goals ?? []).length > 0 && (
+        <div className="nc-row">
+          <span className="nc-label">Worked on goal</span>
+          <div className="nc-chips">{goals.map((g) => {
+            const on = (v.goalIds ?? []).includes(g.id);
+            return <button type="button" key={g.id} className={`nc-chip${on ? ' on' : ''}`} onClick={() => set({ goalIds: on ? v.goalIds.filter((x) => x !== g.id) : [...(v.goalIds ?? []), g.id] })}>🎯 {g.title}</button>;
+          })}</div>
+        </div>
+      )}
       <label className="nc-note">
         <span className="nc-label">Note about {name}{!v.note && <button type="button" className="link small" onClick={() => set({ note: NOTE_PROMPTS })}> · use prompts</button>}</span>
         <textarea name="note" rows={compact ? 3 : 5} required value={v.note} onChange={(e) => set({ note: e.target.value })}
