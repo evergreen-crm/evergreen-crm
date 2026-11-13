@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { personLabel, canHR, levelOf } from '@/lib/levels';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
+import ScopeForms from '@/app/forms/ScopeForms';
 import { CERT_TYPES, certStatus } from '@/lib/hr';
 import { trainingsFor } from '@/lib/onboarding';
 import ProgramBadge from '@/app/components/ProgramBadge';
@@ -241,6 +242,10 @@ export default async function StaffHrPage({ params, searchParams }) {
           </form>
         </details>
       )}
+
+      {/* ---------- Forms (orientation, acknowledgements, safety, medication authorization) ---------- */}
+      <h2>Forms</h2>
+      <ScopeForms supabase={supabase} scope="staff" id={person.id} program={details?.program} name={person.full_name} />
 
       {/* ---------- Certifications ---------- */}
       <h2>Certifications</h2>

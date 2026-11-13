@@ -14,6 +14,7 @@ import { levelOf } from '@/lib/levels';
 import RecordChecks from '@/app/homes/RecordChecks';
 import EntryList from '@/app/components/EntryList';
 import HouseRecords from '@/app/homes/HouseRecords';
+import ScopeForms from '@/app/forms/ScopeForms';
 import { recordsFor } from '@/lib/records';
 
 export default async function HomePage({ params, searchParams }) {
@@ -71,7 +72,7 @@ export default async function HomePage({ params, searchParams }) {
   const { data: todayRecords } = records.length
     ? await supabase.from('entries').select('resident_id, kind').eq('home_id', id).eq('entry_date', today).in('kind', recordKinds)
     : { data: null };
-  const TABS = [['dashboard', '📊 Dashboard'], ['residents', 'Residents'], ['commbook', 'Shift log'], ['safety', 'Fire drills & safety'],
+  const TABS = [['dashboard', '📊 Dashboard'], ['residents', 'Residents'], ['commbook', 'Shift log'], ['safety', 'Fire drills & safety'], ['forms', '📋 Forms'],
     ...(records.length ? [['records', '📝 Records by section']] : [])];
 
   const current = residents?.filter((r) => r.status !== 'discharged') ?? [];
@@ -167,6 +168,8 @@ export default async function HomePage({ params, searchParams }) {
           <EntryList entries={houseEntries} path={path} isAdmin={isAdmin} empty="No messages yet." />
         </section>
       )}
+
+      {tab === 'forms' && <ScopeForms supabase={supabase} scope="house" id={id} program={home.program} name={home.name} />}
 
       {tab === 'records' && (
         <HouseRecords layout="full" homeId={id} program={home.program} records={records} residents={current} todayEntries={todayRecords ?? []} recent={recentRows ?? []} />
