@@ -58,7 +58,7 @@ export default async function ActionItem({ params, searchParams }) {
           <dt>Raised</dt><dd>{fmtDateTime(it.created_at)} {it.auto ? '· by the automatic check' : `· by ${pName[it.created_by] ?? '—'}`}</dd>
         </dl>
         {it.details && <p>{it.details}</p>}
-        {it.link && <p><Link className="button secondary" href={it.link}>Go to the record to fix it →</Link></p>}
+        {it.link && <p><Link className={it.link.startsWith('/forms/') ? 'button' : 'button secondary'} href={it.link}>{it.link.startsWith('/forms/') ? '📋 Fill in the form →' : 'Go to the record to fix it →'}</Link></p>}
       </section>
 
       {(it.evidence_note || it.approved_at || it.closed_at) && (
