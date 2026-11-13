@@ -26,21 +26,26 @@ export default async function FormPage({ params, searchParams }) {
   if (!type) notFound();
   const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
   const isPerson = type.scope === 'resident';
-  const [{ data: people }, { data: homes }] = await Promise.all([
+  const isStaff = type.scope === 'staff';
+  const [{ data: people }, { data: homes }, { data: staffList }] = await Promise.all([
     isPerson ? supabase.from('residents').select('id, first_name, preferred_name, last_name, home_id').is('discharge_date', null).order('first_name') : Promise.resolve({ data: [] }),
     supabase.from('homes').select('id, name').order('name'),
+    isStaff ? supabase.from('profiles').select('id, full_name, home_id').eq('active', true).neq('role', 'family').order('full_name') : Promise.resolve({ data: [] }),
   ]);
   const person = isPerson ? (people ?? []).find((r) => r.id === sp.resident) : null;
-  const homeId = isPerson ? person?.home_id : (sp.home || profile.home_id || homes?.[0]?.id);
+  const worker = isStaff ? (staffList ?? []).find((p) => p.id === sp.staff) : null;
+  const homeId = isPerson ? person?.home_id : isStaff ? (worker?.home_id || profile.home_id || homes?.[0]?.id) : (sp.home || profile.home_id || homes?.[0]?.id);
   const home = (homes ?? []).find((h) => h.id === homeId);
-  const ready = isPerson ? !!person : !!home;
+  const ready = isPerson ? !!person : isStaff ? !!worker : !!home;
   const { data: past } = ready
     ? await (isPerson
       ? supabase.from('entries').select('id, entry_date, entry_time, data, author:created_by(full_name)').eq('kind', kind).eq('resident_id', person.id)
+      : isStaff
+      ? supabase.from('entries').select('id, entry_date, entry_time, data, author:created_by(full_name)').eq('kind', kind).eq('subject_profile_id', worker.id)
       : supabase.from('entries').select('id, entry_date, entry_time, data, author:created_by(full_name)').eq('kind', kind).eq('home_id', homeId).is('resident_id', null))
       .order('entry_date', { ascending: false }).order('created_at', { ascending: false }).limit(30)
     : { data: [] };
-  const who = person ? `${person.preferred_name || person.first_name} ${person.last_name ?? ''}` : home?.name;
+  const who = person ? `${person.preferred_name || person.first_name} ${person.last_name ?? ''}` : worker ? worker.full_name : home?.name;
   const short = type.fields.filter((f) => f.type !== 'textarea');
   const long = type.fields.filter((f) => f.type === 'textarea');
 
@@ -56,7 +61,9 @@ export default async function FormPage({ params, searchParams }) {
 
       <form method="get" className="row no-print">
         {sp.task && <input type="hidden" name="task" value={sp.task} />}
-        {isPerson
+        {isStaff
+          ? <label>Staff member<select name="staff" defaultValue={worker?.id ?? ''} required><option value="">Choose the staff member…</option>{(staffList ?? []).map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}</select></label>
+          : isPerson
           ? <label>Person<select name="resident" defaultValue={person?.id ?? ''} required><option value="">Choose the person…</option>{(people ?? []).map((r) => <option key={r.id} value={r.id}>{r.preferred_name || r.first_name} {r.last_name ?? ''}</option>)}</select></label>
           : <label>House<select name="home" defaultValue={homeId ?? ''} required>{(homes ?? []).map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}</select></label>}
         <button className="secondary">{ready ? 'Change' : 'Open the form'}</button>
@@ -68,6 +75,7 @@ export default async function FormPage({ params, searchParams }) {
           <input type="hidden" name="kind" value={kind} />
           <input type="hidden" name="home_id" value={homeId ?? ''} />
           {person && <input type="hidden" name="resident_id" value={person.id} />}
+          {worker && <input type="hidden" name="subject_profile_id" value={worker.id} />}
           {sp.task && <input type="hidden" name="task" value={sp.task} />}
           <div className="row">
             <label>Date<input type="date" name="entry_date" required defaultValue={todayISO()} /></label>
