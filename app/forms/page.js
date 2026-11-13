@@ -12,13 +12,20 @@ const PROGRAM = { BOTH: 'MCFD & CLBC', MCFD: 'MCFD', CLBC: 'CLBC' };
 export default async function Forms({ searchParams }) {
   const sp = (await searchParams) ?? {};
   await requireUser(['admin', 'manager', 'staff']);
-  const list = Object.entries(POLICY_FORMS);
+  const prog = ['MCFD', 'CLBC'].includes(sp.program) ? sp.program : null;
+  const list = Object.entries(POLICY_FORMS).filter(([, f]) => !prog || f.program === 'BOTH' || f.program === prog);
   const also = ['fire_drill', 'safety_check', 'mcfd_restraint', 'mcfd_incident'].filter((k) => ENTRY_TYPES[k]);
   return (
     <main className="report">
       <h1>📋 Forms</h1>
       <p className="small muted">Every form from Evergreen’s MCFD and CLBC policy manuals is filled in here, not on paper. Each one is saved to the person’s or the house’s file. When a reminder task asks for a form, its “Fill in the form” button opens it, and saving the form completes the task. Upload only outside papers (doctor’s notes, court orders, IEPs) on the person’s Documents tab.</p>
       {sp.error && <p className="message error">{plainError(sp.error)}</p>}
+      <p className="row no-print">
+        <Link className={`button${!prog ? '' : ' secondary'}`} href="/forms">All forms</Link>
+        <Link className={`button${prog === 'MCFD' ? '' : ' secondary'}`} href="/forms?program=MCFD">MCFD (youth)</Link>
+        <Link className={`button${prog === 'CLBC' ? '' : ' secondary'}`} href="/forms?program=CLBC">CLBC (adults)</Link>
+      </p>
+      <p className="small muted">Tip: the easiest way is from the person’s page → <strong>Forms</strong> tab. It shows only the forms for that person’s program (MCFD or CLBC).</p>
       {FORM_AREAS.map((area) => {
         const forms = list.filter(([, f]) => f.area === area);
         if (!forms.length) return null;
