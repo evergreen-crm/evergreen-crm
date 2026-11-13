@@ -16,6 +16,7 @@ import Incidents from './Incidents';
 import PrintButton from '@/app/PrintButton';
 import Mar from './Mar';
 import Goals from './Goals';
+import Plan from './Plan';
 import Logs from './Logs';
 import Money from './Money';
 import Documents from './Documents';
@@ -27,6 +28,7 @@ const TABS = [
   { key: 'overview', label: 'Overview', family: true },
   { key: 'notes', label: 'Daily notes', family: true },
   { key: 'mar', label: 'Medications' },
+  { key: 'plan', label: 'Plan' },
   { key: 'goals', label: 'Goals', family: true },
   { key: 'logs', label: 'Logs' },
   { key: 'money', label: 'Money' },
@@ -57,7 +59,7 @@ export default async function ResidentPage({ params, searchParams }) {
   // family member: name, status and house (supabase/family-safe-resident.sql).
   let resident;
   if (isStaff) {
-    ({ data: resident } = await supabase.from('residents').select('*, homes(id, name)').eq('id', id).maybeSingle());
+    ({ data: resident } = await supabase.from('residents').select('*, homes(id, name, program)').eq('id', id).maybeSingle());
   } else {
     const { data: cards } = await supabase.rpc('family_residents');
     const c = (cards ?? []).find((r) => r.id === id);
@@ -86,9 +88,12 @@ export default async function ResidentPage({ params, searchParams }) {
   const { data: missingNow } = isStaff ? await supabase.from('missing_episodes').select('id, status, started_at')
     .eq('resident_id', id).neq('status', 'Closed').order('started_at', { ascending: false }).limit(1).maybeSingle() : { data: null };
 
+  const { data: activeGoals } = isStaff && tab === 'notes'
+    ? await supabase.from('goals').select('id, title').eq('resident_id', id).eq('status', 'Active').order('created_at')
+    : { data: [] };
   const { data: notes } = await supabase
     .from('shift_notes')
-    .select('id, note_date, shift, mood, meals, activities, note, share_with_family, signed_at, author_id, profiles(full_name)')
+    .select('id, note_date, shift, mood, meals, activities, note, share_with_family, goal_ids, signed_at, author_id, profiles(full_name)')
     .eq('resident_id', id)
     .order('created_at', { ascending: false })
     .limit(100);
@@ -194,7 +199,7 @@ export default async function ResidentPage({ params, searchParams }) {
           <section className="card">
             <h2 style={{ marginTop: 0 }}>{myDraft ? 'Finish your draft note' : 'New daily note'}</h2>
             <NoteCard resident={resident} draft={myDraft} shift={shiftNow(null).shift} day={todayISO()} homeId={resident.home_id}
-              action={saveNote} returnTo="resident" justSaved={sp.saved === resident.id} />
+              action={saveNote} returnTo="resident" justSaved={sp.saved === resident.id} goals={activeGoals} />
             <p className="muted small">Signed notes are locked and can’t be edited. Drafts can be changed until you sign. <Link href={`/notes?home=${resident.home_id}`}>Everyone at the house on one screen →</Link></p>
           </section>
         );
@@ -237,6 +242,15 @@ export default async function ResidentPage({ params, searchParams }) {
           {tab === 'all' && <h2 className="page-break">Medications (<Abbr t="MAR" />)</h2>}
           <Mar supabase={supabase} resident={resident} canEdit={canEdit} date={sp.mdate} />
         </>
+      )}
+
+      {isStaff && (tab === 'plan' || tab === 'all') && (
+        <section>
+          {tab === 'all' && <h2 className="page-break">Plan</h2>}
+          {tab === 'plan' && sp.ok && <p className="message ok">{sp.ok}</p>}
+          {tab === 'plan' && sp.error && <p className="message error">{sp.error}</p>}
+          <Plan supabase={supabase} resident={resident} canEdit={canEditResident} isStaff={isStaff} month={sp.month} />
+        </section>
       )}
 
       {(tab === 'goals' || (isStaff && tab === 'all')) && (
