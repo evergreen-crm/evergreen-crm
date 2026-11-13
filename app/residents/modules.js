@@ -104,7 +104,9 @@ export async function recordGoalReview(formData) {
 export async function setGoalStatus(formData) {
   const { supabase } = await requireUser(['admin', 'manager']);
   const residentId = text(formData, 'resident_id');
-  const { error } = await supabase.from('goals').update({ status: text(formData, 'status') }).eq('id', text(formData, 'id'));
+  const patch = { status: text(formData, 'status') };
+  if (formData.has('domain')) patch.domain = text(formData, 'domain');
+  const { error } = await supabase.from('goals').update(patch).eq('id', text(formData, 'id'));
   if (error) throw new Error('Could not update goal: ' + error.message);
   refresh(residentId);
 }
