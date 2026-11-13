@@ -9,6 +9,7 @@ import { fmtDate, todayISO, nowTime } from '@/lib/options';
 import { plainError } from '@/lib/plain';
 import PrintButton from '@/app/PrintButton';
 import { saveFormEntry } from '../actions';
+import { streamOf } from '@/lib/plans';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,11 +29,13 @@ export default async function FormPage({ params, searchParams }) {
   const isPerson = type.scope === 'resident';
   const isStaff = type.scope === 'staff';
   const [{ data: people }, { data: homes }, { data: staffList }] = await Promise.all([
-    isPerson ? supabase.from('residents').select('id, first_name, preferred_name, last_name, home_id').is('discharge_date', null).order('first_name') : Promise.resolve({ data: [] }),
+    isPerson ? supabase.from('residents').select('id, first_name, preferred_name, last_name, home_id, program, care_type, homes(program)').is('discharge_date', null).order('first_name') : Promise.resolve({ data: [] }),
     supabase.from('homes').select('id, name').order('name'),
     isStaff ? supabase.from('profiles').select('id, full_name, home_id').eq('active', true).neq('role', 'family').order('full_name') : Promise.resolve({ data: [] }),
   ]);
-  const person = isPerson ? (people ?? []).find((r) => r.id === sp.resident) : null;
+  // An MCFD-only form lists only MCFD people; a CLBC-only form only CLBC people.
+  const eligible = (people ?? []).filter((r) => !type.program || type.program === 'BOTH' || streamOf(r) === type.program);
+  const person = isPerson ? eligible.find((r) => r.id === sp.resident) : null;
   const worker = isStaff ? (staffList ?? []).find((p) => p.id === sp.staff) : null;
   const homeId = isPerson ? person?.home_id : isStaff ? (worker?.home_id || profile.home_id || homes?.[0]?.id) : (sp.home || profile.home_id || homes?.[0]?.id);
   const home = (homes ?? []).find((h) => h.id === homeId);
@@ -53,7 +56,7 @@ export default async function FormPage({ params, searchParams }) {
     <main className="report">
       <p className="small no-print"><Link href="/forms">← All forms</Link>{person && <> · <Link href={`/residents/${person.id}`}>{who}’s page</Link></>}</p>
       <div className="title-row"><h1>{type.icon} {type.label}</h1><span className="no-print"><PrintButton /></span></div>
-      {type.source && <p className="small muted">Evergreen policy: {type.source}{type.signs ? ` · ${type.signs}` : ''}</p>}
+      {type.source && <p className="small muted">{type.program && <span className="badge">{type.program === 'BOTH' ? 'MCFD & CLBC' : `${type.program} only`}</span>} Evergreen policy: {type.source}{type.signs ? ` · ${type.signs}` : ''}</p>}
       {type.intro && <p className="message small">{type.intro}</p>}
       {sp.ok && <p className="message ok">{sp.ok}</p>}
       {sp.error && <p className="message error">{plainError(sp.error)}</p>}
@@ -64,7 +67,7 @@ export default async function FormPage({ params, searchParams }) {
         {isStaff
           ? <label>Staff member<select name="staff" defaultValue={worker?.id ?? ''} required><option value="">Choose the staff member…</option>{(staffList ?? []).map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}</select></label>
           : isPerson
-          ? <label>Person<select name="resident" defaultValue={person?.id ?? ''} required><option value="">Choose the person…</option>{(people ?? []).map((r) => <option key={r.id} value={r.id}>{r.preferred_name || r.first_name} {r.last_name ?? ''}</option>)}</select></label>
+          ? <label>Person<select name="resident" defaultValue={person?.id ?? ''} required><option value="">Choose the person…</option>{eligible.map((r) => <option key={r.id} value={r.id}>{r.preferred_name || r.first_name} {r.last_name ?? ''}</option>)}</select></label>
           : <label>House<select name="home" defaultValue={homeId ?? ''} required>{(homes ?? []).map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}</select></label>}
         <button className="secondary">{ready ? 'Change' : 'Open the form'}</button>
       </form>
