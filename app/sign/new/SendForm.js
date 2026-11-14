@@ -3,7 +3,7 @@
 // 1. the document (lib/uploadRules.js: 10 MB, single-file zips unpacked, photos made smaller),
 // 2. who signs — staff, and outside people by email (name, occupation, organization, phone),
 // 3. on a PDF, boxes placed on the page for each person (signature, initials, date, name, text, checkbox).
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { prepareOne, contentTypeFor, MAX_LABEL } from '@/lib/uploadRules';
@@ -18,7 +18,7 @@ const ROLES = ['Social worker', 'Guardianship worker', 'Resource worker', 'CLBC 
 const blankOutside = () => ({ name: '', email: '', role: '', org: '', phone: '', notes: '' });
 const shortName = (n) => { const parts = String(n).trim().split(/\s+/); return parts.length > 1 ? `${parts[0]} ${parts.at(-1)[0]}.` : parts[0] || '?'; };
 
-export default function SendForm({ people, categories, preset, minDue, defaultDue, userId, outsideOk, houses, defaultHouse, pickHouse }) {
+export default function SendForm({ people, categories, preset, minDue, defaultDue, userId, outsideOk, houses, defaultHouse, pickHouse, prefill = null }) {
   const [chosen, setChosen] = useState(new Set(preset));
   const [filter, setFilter] = useState('');
   const [outside, setOutside] = useState([]);
@@ -53,6 +53,25 @@ export default function SendForm({ people, categories, preset, minDue, defaultDu
   const toggle = (id) => setChosen((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const setHouse = (list, on) => setChosen((s) => { const n = new Set(s); list.forEach((p) => (on ? n.add(p.id) : n.delete(p.id))); return n; });
   const setOut = (i, k, v) => setOutside((l) => l.map((o, j) => (j === i ? { ...o, [k]: v } : o)));
+
+  // Opened from a file already in the portal (an uploaded offer letter): load it so nothing has to be uploaded again.
+  useEffect(() => {
+    if (!prefill?.url) return;
+    let off = false;
+    (async () => {
+      try {
+        const res = await fetch(prefill.url);
+        if (!res.ok) throw new Error('not found');
+        const blob = await res.blob();
+        const file = new File([blob], prefill.name, { type: blob.type || contentTypeFor(prefill.name) });
+        const isPdf = /\.pdf$/i.test(file.name);
+        if (off) return;
+        setDoc({ file, isPdf, data: isPdf ? await file.arrayBuffer() : null, note: `Loaded from the staff file: ${prefill.name}` });
+        if (isPdf) setPlacing(true);
+      } catch { if (!off) setMsg('The file could not be loaded. Choose it below instead.'); }
+    })();
+    return () => { off = true; };
+  }, [prefill?.url]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function pickFile(e) {
     const picked = e.target.files?.[0];
@@ -113,9 +132,9 @@ export default function SendForm({ people, categories, preset, minDue, defaultDu
   return (
     <form onSubmit={onSubmit} className="card">
       <div className="row">
-        <label>Title (what they’re signing)<input name="title" required maxLength={200} placeholder="e.g., Consent to share information — J.D." /></label>
+        <label>Title (what they’re signing)<input name="title" required maxLength={200} defaultValue={prefill?.title ?? ''} placeholder="e.g., Consent to share information — J.D." /></label>
         <label>Type
-          <select name="category" defaultValue="Other">{categories.map((c) => <option key={c}>{c}</option>)}</select>
+          <select name="category" defaultValue={prefill?.category ?? 'Other'}>{categories.map((c) => <option key={c}>{c}</option>)}</select>
         </label>
         <label>Sign by<input type="date" name="due" min={minDue} defaultValue={defaultDue} /></label>
         {pickHouse && (
@@ -128,7 +147,8 @@ export default function SendForm({ people, categories, preset, minDue, defaultDu
         )}
       </div>
       <label>Document (a PDF lets you place boxes on the page; Word or a photo is fine too, max {MAX_LABEL})
-        <input type="file" name="file" required accept=".pdf,.doc,.docx,image/*,.zip" onChange={pickFile} />
+        <input type="file" name="file" required={!doc} accept=".pdf,.doc,.docx,image/*,.zip" onChange={pickFile} />
+        {prefill && doc && <p className="small muted">📎 Using <strong>{doc.file.name}</strong> from the staff file. Choose another file only if you want to replace it.</p>}
       </label>
       {doc?.note && <p className="muted small">{doc.note}</p>}
       <label>Message to the people signing (optional)<textarea name="message" rows={3} maxLength={4000} placeholder="Anything they should know before signing" /></label>

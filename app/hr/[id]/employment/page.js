@@ -107,7 +107,7 @@ export default async function JobAndOffer({ params, searchParams }) {
                 {links[u.id]
                   ? <a href={links[u.id]} target="_blank" rel="noreferrer"><strong>Version {u.version}</strong> · {u.file_name} <span className="muted small">· {size(u.file_size)} · {day(u.uploaded_at)}{u.who?.full_name ? ` · ${u.who.full_name}` : ''}{u.note ? ` · ${u.note}` : ''}</span></a>
                   : <span><strong>Version {u.version}</strong> · {u.file_name} <span className="muted small">· {day(u.uploaded_at)}{u.note ? ` · ${u.note}` : ''}</span></span>}
-                {i === 0 && <span className="badge">Latest</span>}
+                <span className="row" style={{ gap: 6 }}>{i === 0 && <span className="badge">Latest</span>}<Link className="button secondary small" href={`/sign/new?offer=${u.id}`}>✍️ Send for signature</Link></span>
               </li>
             ))}
           </ul>

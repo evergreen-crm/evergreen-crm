@@ -23,9 +23,9 @@ const STAGES = [
   ] },
   { id: 'running', icon: '🔁', title: '3. Keeping the house running', intro: 'What is done every day, every month and every year.', groups: [
     ['Every day', [P('Clock in and out', '/id#checkin'), P('My shift checklist', '/checklist'), P('Daily notes', '/notes'), P('Residents: medication record and incidents', '/homes', 'Open the house, then the person'), F('shift_handover'), F('cd_count', 'Controlled drugs'), P('Missing youth protocol', '/missing')]],
-    ['Every week and month', [F('monthly_safety_inspection'), F('emergency_drill'), F('emergency_equipment_check'), F('supervision_record'), F('weekly_planner'), P('Monthly QA review', '/review', 'Due the 10th'), P('Program KPIs', '/kpi'), P('Problems to fix', '/action-items'), P('Timesheets', '/timesheet')]],
-    ['Every quarter and year', [F('personnel_file_audit'), F('program_quality_review'), F('annual_ep_review'), F('annual_health_checklist'), F('schedule_review'), P('Complaints register', '/complaints')]],
-    ['When something happens', [F('abuse_report'), F('health_change_notice'), F('illness_injury_report'), F('med_error_report'), F('restraint_report'), F('ohs_incident_report'), F('barrier_report'), F('corrective_action')]],
+    ['Every week and month', [F('monthly_safety_inspection'), F('emergency_drill'), F('emergency_equipment_check'), F('supervision_record'), F('hr_compliance_report'), F('staffing_review'), F('monthly_financial_review'), F('weekly_planner'), P('Monthly QA review', '/review', 'Due the 10th'), P('Program KPIs', '/kpi'), P('Problems to fix', '/action-items'), P('Timesheets', '/timesheet')]],
+    ['Every quarter and year', [F('personnel_file_audit'), F('team_learning'), F('program_evaluation', 'MCFD'), F('annual_manual_review'), F('staff_details_check'), F('med_competency_check'), F('driver_review'), F('annual_financial_report'), F('program_quality_review'), F('annual_ep_review'), F('annual_health_checklist'), F('schedule_review'), P('Complaints register', '/complaints')]],
+    ['When something happens', [F('abuse_report'), F('health_change_notice'), F('illness_injury_report'), F('med_error_report'), F('restraint_report'), F('ohs_incident_report'), F('barrier_report'), F('corrective_action'), F('funder_notification', 'MCFD')]],
   ] },
   { id: 'closing', icon: '🔚', title: '4. Closing the house', intro: 'When a house closes or a contract ends.', groups: [
     ['The house', [F('house_closing', 'Funder notice, records, property, keys')]],
