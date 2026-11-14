@@ -64,6 +64,7 @@ export default async function PolicyRecord({ params }) {
           <p className="row">
             <a className="button" href={`/policies/records/${r.id}/file`}>⬇ Download as one ZIP file</a>
             <a className="button secondary" href={`/policies/records/${r.id}/file?format=pdf`}>⬇ Download as one PDF</a>
+            <a className="button secondary" href={`/policies/records/${r.id}/file?format=doc`}>⬇ Summary sheet (Word)</a>
           </p>
         </section>
       )}

@@ -8,6 +8,7 @@ import { fmtDate, fmtDateTime } from '@/lib/options';
 import { updatePolicy, restoreVersion } from '@/app/policies/actions';
 import { makeSignedCopy } from '@/app/policies/signActions';
 import PolicySign from '@/app/policies/PolicySign';
+import ConfidentialMark from '@/app/components/ConfidentialMark';
 import PolicyUpload from '@/app/policies/PolicyUpload';
 import { createAdminClient, adminKey } from '@/lib/supabase/admin';
 import PrintButton from '@/app/PrintButton';
@@ -89,7 +90,7 @@ export default async function PolicyPage({ params, searchParams }) {
 
       {current && url && (
         isPdf
-          ? <iframe src={`${url}#toolbar=0`} className="policy-viewer no-print" title={p.title} />
+          ? <ConfidentialMark name={profile.full_name}><iframe src={`${url}#toolbar=0`} className="policy-viewer no-print" title={p.title} /></ConfidentialMark>
           : <p className="card no-print">📄 <a href={url} target="_blank" rel="noreferrer">Open {current.file_name ?? 'the policy'}</a> <span className="muted small">(this file type opens in Word; ask your admin for a PDF to read it on screen)</span></p>
       )}
       {!current && <p className="muted">No file has been uploaded yet.</p>}
@@ -116,7 +117,7 @@ export default async function PolicyPage({ params, searchParams }) {
             <>
               {myOld.length > 0 && <p className="alert">This policy was updated. Please read the new version and sign again.</p>}
               <p className="small">Read the policy above. {boxesReady ? 'Fill in each yellow box and draw your signature in the ✍️ Sign here box.' : 'Tick the box, type your name and draw your signature.'} Your signature is placed inside the policy, on its last page, and the signed copy goes straight to your staff file. Please sign within 14 days.</p>
-              <PolicySign policyId={p.id} versionId={current.id} fileUrl={url} fields={boxesReady ? current.fields : []} defaultName={profile.full_name ?? ''} />
+              <ConfidentialMark name={profile.full_name}><PolicySign policyId={p.id} versionId={current.id} fileUrl={url} fields={boxesReady ? current.fields : []} defaultName={profile.full_name ?? ''} /></ConfidentialMark>
             </>
           )}
         </section>
