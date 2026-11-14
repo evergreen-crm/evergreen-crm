@@ -1,5 +1,5 @@
 // 📋 Forms: every form from Evergreen's MCFD and CLBC manuals that is completed inside the CRM.
-// Forms Batches 1–2 are here (lib/policyForms.js); Batches 3–4 are added the same way.
+// Forms Batches 1–4 and the Phase 4–6 forms are in lib/policyForms.js.
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { POLICY_FORMS, FORM_AREAS } from '@/lib/policyForms';
