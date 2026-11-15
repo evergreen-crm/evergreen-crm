@@ -173,7 +173,7 @@ export async function inviteUser(formData) {
     if (position && ['Full-time', 'Part-time'].includes(type) && /^\d{4}-\d{2}-\d{2}$/.test(hireDate ?? '')) {
       const { error: jobError } = await admin.from('staff_details').upsert({
         profile_id: userId, position, employment_type: type, hire_date: hireDate,
-        hours_per_week: hrs > 0 && hrs <= 60 ? hrs : null, updated_at: new Date().toISOString(),
+        hours_per_week: hrs > 0 && hrs <= 60 ? hrs : null, home_address: (text(formData, 'home_address') ?? '').slice(0, 200) || null, updated_at: new Date().toISOString(),
       });
       if (jobError) offerNote = ' The job details could not be saved, so no offer letter was made: open HR & People → the person → Job.';
       else {

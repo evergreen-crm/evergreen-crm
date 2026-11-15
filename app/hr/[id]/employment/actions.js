@@ -34,7 +34,7 @@ export async function saveJob(fd) {
   if (hours != null && !(hours > 0 && hours <= 60)) go(id, 'Hours each week must be between 1 and 60.', true);
   const { data, error } = await supabase.from('staff_details').upsert({
     profile_id: id, position: text(fd, 'position'), employment_type: type, hours_per_week: hours,
-    hire_date: text(fd, 'hire_date'), updated_at: new Date().toISOString(),
+    hire_date: text(fd, 'hire_date'), home_address: (text(fd, 'home_address') ?? '').slice(0, 200) || null, updated_at: new Date().toISOString(),
   }).select('profile_id');
   if (error || !data?.length) go(id, error?.message ?? 'You can only set this up for staff in your own house.', true);
   const { data: res, error: e2 } = await supabase.rpc('auto_offer', { p_profile: id });

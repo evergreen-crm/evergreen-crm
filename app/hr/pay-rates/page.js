@@ -26,6 +26,7 @@ export default async function PayRates({ searchParams }) {
       <p className="small no-print"><Link href="/s/hr">← HR & People</Link></p>
       <h1>💲 Pay rates</h1>
       <p className="small">One hourly rate for each position. Offer letters take the wage from this table. {canEdit ? 'Saving a rate sends any offer letters that were waiting for it.' : 'Only the Executive Director, CSO, CEO and Administrator can change a rate.'}</p>
+      <p className="small muted">Evergreen sets its rates by the BC Community Social Services wage grid for each position. Check the current grid before entering or changing a rate; rates can be changed here at any time. A letter already signed keeps the rate it was signed with.</p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
       {sp.error && <p className="message">{plainError(sp.error)}</p>}
       {error && <p className="message">Pay rates aren’t switched on yet (setup file: auto-offer.sql).</p>}

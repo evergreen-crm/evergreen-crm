@@ -87,7 +87,8 @@ export default async function AdminPage({ searchParams }) {
             <label>Joining date (first day)<input name="hire_date" type="date" /></label>
             <label>Hours each week (blank = 36 full-time, 20 part-time)<input name="hours_per_week" type="number" min="1" max="60" step="0.5" /></label>
           </div>
-          <p className="muted small">The wage comes from <Link href="/hr/pay-rates">Pay rates</Link>. If the position has no rate yet, the letter waits and is sent the moment the rate is set. The letter needs an email address to be emailed; without one, the person sees it in the portal.</p>
+          <label>Home address (goes on the offer letter)<input name="home_address" maxLength={200} placeholder="Street, city, BC, postal code" /></label>
+          <p className="muted small">The letter shows the house name and address and the name of the Program Coordinator they report to, from the portal. The wage comes from <Link href="/hr/pay-rates">Pay rates</Link>. If the position has no rate yet, the letter waits and is sent the moment the rate is set. The letter needs an email address to be emailed; without one, the person sees it in the portal.</p>
         </fieldset>
         <div className="row">
           <label>

@@ -22,7 +22,7 @@ export default async function JobAndOffer({ params, searchParams }) {
   if (!lead) redirect('/?error=' + encodeURIComponent('Job and offer letters are set up by Program Coordinators, managers and HR.'));
   const [{ data: person }, { data: details }, { data: positions }, { data: offers }] = await Promise.all([
     supabase.from('profiles').select('id, full_name, active, homes(name)').eq('id', id).maybeSingle(),
-    supabase.from('staff_details').select('position, employment_type, hours_per_week, hire_date').eq('profile_id', id).maybeSingle(),
+    supabase.from('staff_details').select('position, employment_type, hours_per_week, hire_date, home_address').eq('profile_id', id).maybeSingle(),
     supabase.rpc('pay_positions'),
     supabase.from('offer_letters').select('id, status, position, employment_type, hours, wage, auto, created_at, issued_at, accepted_at').eq('profile_id', id).order('created_at', { ascending: false }),
   ]);
@@ -74,7 +74,8 @@ export default async function JobAndOffer({ params, searchParams }) {
             </label>
             <label>Start date<input name="hire_date" type="date" required defaultValue={details?.hire_date ?? ''} /></label>
           </div>
-          <p className="small muted">Leave the hours blank to use 36 for full-time or 20 for part-time. The pay comes from Evergreen’s pay rate for the position.</p>
+          <label>Staff member’s home address (goes on the offer letter)<input name="home_address" maxLength={200} defaultValue={details?.home_address ?? ''} placeholder="Street, city, BC, postal code" /></label>
+          <p className="small muted">Leave the hours blank to use 36 for full-time or 20 for part-time. The pay comes from Evergreen’s pay rate for the position. The letter also shows the house name and address and the name of the Program Coordinator (or Manager) they report to, taken from the portal.</p>
           <h2>2. Save</h2>
           <p className="small">When you save, the offer letter is written and sent to {person.full_name} to sign in the portal. It is signed for Evergreen as “Evergreen Community Care Inc., Human Resources”. If you change the job later, the old unsigned letter is withdrawn and a new one is sent.</p>
           <button>Save and send the offer letter</button>
