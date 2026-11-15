@@ -12,8 +12,7 @@ $$;
 revoke execute on function public.policy_file_locked(text) from public, anon;
 grant execute on function public.policy_file_locked(text) to authenticated, service_role;
 
-drop policy if exists "policy files read" on storage.objects;
-create policy "policy files read" on storage.objects for select to authenticated using (
+alter policy "policy files read" on storage.objects using (
   bucket_id = 'policies'
   and app_role() = any (array['admin'::user_role, 'manager'::user_role, 'staff'::user_role])
   and (app_role() = 'admin'
@@ -21,3 +20,7 @@ create policy "policy files read" on storage.objects for select to authenticated
        or (coalesce(app_level(), 0) >= 4 and coalesce(app_group(), '') = '')
        or not policy_file_locked(name))
 );
+
+-- Applied Nov 14, 2026 (migration policy_file_lock_and_frontline_forms), together with:
+-- Frontline staff can fill in forms for their own house (Security settings: Individuals, Frontline: Read -> House).
+update public.section_access set level = 'house', updated_at = now() where section = 'ind' and role = 'fr' and level = 'read';
