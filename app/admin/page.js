@@ -17,6 +17,7 @@ export default async function AdminPage({ searchParams }) {
     supabase.from('residents').select('id, first_name, last_name, homes(name)').order('last_name'),
     getDivisionLevels(supabase),
   ]);
+  const { data: positions } = await supabase.rpc('pay_positions');   // positions for the job and offer letter
   const { data: extraHomes } = await supabase.from('manager_homes').select('profile_id, home_id');
   const extraBy = {};
   for (const m of extraHomes ?? []) (extraBy[m.profile_id] ??= []).push(m.home_id);
@@ -69,6 +70,25 @@ export default async function AdminPage({ searchParams }) {
             </select>
           </label>
         </div>
+        <fieldset style={{ border: '1px solid var(--line, #ddd)', borderRadius: 8, padding: '8px 12px', margin: '8px 0' }}>
+          <legend className="small"><strong>Job (staff)</strong>: fill these in and the offer letter is written and sent automatically</legend>
+          <div className="row">
+            <label>Position
+              <select name="position" defaultValue="">
+                <option value="">—</option>
+                {(positions ?? []).map((x) => <option key={x}>{x}</option>)}
+              </select>
+            </label>
+            <label>Full-time or part-time
+              <select name="employment_type" defaultValue=""><option value="">—</option><option>Full-time</option><option>Part-time</option></select>
+            </label>
+          </div>
+          <div className="row">
+            <label>Joining date (first day)<input name="hire_date" type="date" /></label>
+            <label>Hours each week (blank = 36 full-time, 20 part-time)<input name="hours_per_week" type="number" min="1" max="60" step="0.5" /></label>
+          </div>
+          <p className="muted small">The wage comes from <Link href="/hr/pay-rates">Pay rates</Link>. If the position has no rate yet, the letter waits and is sent the moment the rate is set. The letter needs an email address to be emailed; without one, the person sees it in the portal.</p>
+        </fieldset>
         <div className="row">
           <label>
             Resident (family)

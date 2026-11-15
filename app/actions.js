@@ -85,7 +85,7 @@ export async function addResident(formData) {
 
 export async function inviteUser(formData) {
   // 1. Only an admin may do this (checked with THEIR login, not the secret key).
-  await requireUser(['admin']);
+  const { supabase: mine } = await requireUser(['admin']);
 
   const fullName = text(formData, 'full_name');
   const email = text(formData, 'email')?.toLowerCase() ?? null;
@@ -162,8 +162,38 @@ export async function inviteUser(formData) {
     });
   }
 
+  // 5. Staff with a position, full-time / part-time and a joining date: save the job and let the database write
+  //    and send the offer letter (supabase/auto-offer.sql). The wage comes from the pay rate table.
+  let offerNote = '';
+  if (role !== 'family') {
+    const position = text(formData, 'position');
+    const type = text(formData, 'employment_type');
+    const hireDate = text(formData, 'hire_date');
+    const hrs = Number(text(formData, 'hours_per_week'));
+    if (position && ['Full-time', 'Part-time'].includes(type) && /^\d{4}-\d{2}-\d{2}$/.test(hireDate ?? '')) {
+      const { error: jobError } = await admin.from('staff_details').upsert({
+        profile_id: userId, position, employment_type: type, hire_date: hireDate,
+        hours_per_week: hrs > 0 && hrs <= 60 ? hrs : null, updated_at: new Date().toISOString(),
+      });
+      if (jobError) offerNote = ' The job details could not be saved, so no offer letter was made: open HR & People → the person → Job.';
+      else {
+        const { data: offer, error: offerError } = await mine.rpc('auto_offer', { p_profile: userId });
+        if (offerError) offerNote = ' The job was saved, but the offer letter could not be made: open HR & People → the person → Job and press Save.';
+        else if (offer?.status === 'sent') {
+          const { emailOfferLink } = await import('@/lib/offerEmail');
+          const mailed = email ? await emailOfferLink(offer.id) : false;
+          offerNote = ` Their offer letter was written and sent to them to sign${mailed ? ', with an email link' : ' (they will see it in the portal)'}.`;
+        } else if (offer?.status === 'waiting_rate') offerNote = ` Their offer letter is ready but “${position}” has no pay rate yet. Set it on Pay rates and the letter is sent automatically.`;
+        else offerNote = ' No offer letter was made. Open HR & People → the person → Job to check.';
+      }
+    } else if (position || type || hireDate) {
+      offerNote = ' No offer letter yet: it needs the position, full-time or part-time, and the joining date. Add them on HR & People → the person → Job.';
+    }
+  }
+
   revalidatePath('/admin');
-  redirect('/admin?ok=' + encodeURIComponent(`${fullName} can now sign in with a code.`));
+  revalidatePath('/hr');
+  redirect('/admin?ok=' + encodeURIComponent(`${fullName} can now sign in with a code.${offerNote}`));
 }
 
 // Turn access off (or back on) instantly. Accounts are never deleted,
