@@ -1,4 +1,4 @@
-// PROBATION: 30 / 60 / 90-day reviews (3-month probation) for new hires, then confirmation to full-time.
+// PROBATION: 30 / 60 / 80-day reviews (3-month probation) for new hires, then confirmation to full-time.
 // Program Coordinators see their house; Program Managers, HR and above see everyone; staff see their own.
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
@@ -50,7 +50,7 @@ export default async function Probation({ searchParams }) {
   return (
     <main>
       <h1>📝 Probation reviews</h1>
-      <p className="muted">Probation is 3 months. Every new hire has a <strong>30-day</strong> and <strong>60-day</strong> review (Program Coordinator) and a final <strong>90-day</strong> review (Program Manager or above) that decides: <em>confirm full-time</em>, <em>extend 30 days</em>, or <em>end employment</em>.</p>
+      <p className="muted">Probation is 3 months. Every new hire has a <strong>30-day</strong> and <strong>60-day</strong> review (Program Coordinator) and a final <strong>80-day</strong> review, so the decision is made before the 3-month mark, (Program Manager or above) that decides: <em>confirm full-time</em>, <em>extend 30 days</em>, or <em>end employment</em>.</p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
       {sp.error && <p className="message">{plainError(sp.error)}</p>}
       {error && <NotReady what="First-90-days reviews" file="launch-people.sql" card={false} />}

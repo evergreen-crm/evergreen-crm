@@ -44,13 +44,13 @@ begin
   return h;
 end $function$;
 
--- Probation is 3 months: reviews at 30, 60 and 90 days; the 90-day review is the final one.
+-- Probation is 3 months: reviews at 30, 60 and 80 days; the 80-day review is the final one (decided before the 3-month mark).
 -- (People already booked on 30/90/120 keep their schedule; their last review stays the final one.)
 create or replace function public.book_probation_reviews()
  returns trigger language plpgsql set search_path to 'public', 'extensions', 'pg_temp' as $function$
 begin
   insert into probation_reviews (staff_id, review_day, due_date)
-  select new.staff_id, d, new.hire_date + d from unnest(array[30,60,90]) d
+  select new.staff_id, d, new.hire_date + d from unnest(array[30,60,80]) d
   on conflict do nothing;
   return new;
 end $function$;
@@ -62,7 +62,7 @@ begin
   if new.completed_on is not null and (tg_op = 'INSERT' or old.completed_on is null) then
     if new.rating is null then raise exception 'Choose a rating before completing the review.'; end if;
     select max(review_day) into final_day from probation_reviews where staff_id = new.staff_id;
-    if new.review_day >= 90 and new.review_day = final_day then
+    if new.review_day >= 80 and new.review_day = final_day then
       if app_level() < 3 then raise exception 'The final probation review is completed by a Program Manager or above.'; end if;
       if new.final_decision is null then raise exception 'Final review needs a decision: Confirm full-time, Extend probation, or End employment.'; end if;
       if new.final_decision = 'Confirm full-time' then
@@ -78,7 +78,7 @@ begin
         update staff_probation set status = 'Ended' where staff_id = new.staff_id;
       end if;
     elsif new.final_decision is not null then
-      raise exception 'Only the final (90-day) review has a decision.';
+      raise exception 'Only the final (80-day) review has a decision.';
     end if;
   end if;
   return new;
