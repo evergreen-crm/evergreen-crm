@@ -59,13 +59,20 @@ jobs:
       - name: Wipe the test database's public schema
         run: |
           /usr/lib/postgresql/17/bin/psql "$TEST" -v ON_ERROR_STOP=1 -c "drop schema if exists public cascade; create schema public; grant usage on schema public to anon, authenticated, service_role; grant all on schema public to postgres, service_role;"
-          /usr/lib/postgresql/17/bin/psql "$TEST" -v ON_ERROR_STOP=1 -c "truncate auth.users cascade;" || true
+          /usr/lib/postgresql/17/bin/psql "$TEST" -v ON_ERROR_STOP=1 <<'SQL'
+          do $$ declare r record; begin
+            for r in select schemaname, tablename from pg_tables
+                      where (schemaname = 'auth' and tablename not in ('schema_migrations'))
+                         or (schemaname = 'storage' and tablename in ('objects', 'buckets', 's3_multipart_uploads', 's3_multipart_uploads_parts', 'prefixes'))
+            loop execute format('truncate table %I.%I cascade', r.schemaname, r.tablename); end loop;
+          end $$;
+          SQL
 
       - name: Restore into test
         run: |
           /usr/lib/postgresql/17/bin/psql "$TEST" --single-transaction -v ON_ERROR_STOP=1 \
             --file roles.sql --file schema.sql \
-            --command 'SET session_replication_role = replica' --file data.sql 2>&1 | tail -40
+            --command 'SET session_replication_role = replica' --file data.sql
 
       - name: Copy file-storage permissions
         run: |
