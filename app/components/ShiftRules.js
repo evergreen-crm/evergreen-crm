@@ -28,7 +28,7 @@ export default function ShiftRules({ open = false }) {
       <ul>
         <li>Full-time goes to people who ask for it, in the order above.</li>
         <li>If you want full-time and there’s no spot yet, you go on the full-time waiting list. When a spot opens, the first person on the list is offered it.</li>
-        <li>New staff start part-time during their 90-day probation.</li>
+        <li>New staff start part-time during their 3-month (90-day) probation.</li>
       </ul>
 
       <h3>4. Changes</h3>

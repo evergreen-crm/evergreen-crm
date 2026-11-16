@@ -1,5 +1,5 @@
 'use server';
-// Probation: 30 / 90 / 120-day reviews, then confirmation to full-time.
+// Probation: 30 / 60 / 90-day reviews (3-month probation), then confirmation to full-time.
 // The database decides who may do what (supabase/launch-people.sql).
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -18,7 +18,7 @@ export async function startProbation(fd) {
   // Keep the HR file's hire date in step.
   await supabase.from('staff_details').upsert({ profile_id: staff, hire_date: hire }, { onConflict: 'profile_id' });
   revalidatePath('/probation');
-  back('/probation', 'Added — 30, 90 and 120-day reviews are booked.');
+  back('/probation', 'Added — 30, 60 and 90-day reviews are booked.');
 }
 
 export async function saveReview(fd) {

@@ -29,7 +29,7 @@ export default async function Review({ params, searchParams }) {
     r.reviewer_id ? supabase.from('profiles').select('full_name').eq('id', r.reviewer_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const finalDay = Math.max(...(history ?? [r]).map((x) => x.review_day));
-  const isFinal = r.review_day >= 120 && r.review_day === finalDay;
+  const isFinal = r.review_day >= 90 && r.review_day === finalDay;
   const mine = r.staff_id === user.id;
   const canEdit = !mine && !r.completed_on && (lvl >= 2 || canHR(profile)) && (!isFinal || lvl >= 3);
   const today = todayISO();
