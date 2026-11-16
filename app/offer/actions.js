@@ -110,7 +110,7 @@ export async function emailOffer(fd) {
   const { data: o } = await supabase.from('offer_letters').select('*, profiles!offer_letters_profile_id_fkey(full_name)').eq('id', id).maybeSingle();
   if (!o) go(`/offer/${id}`, 'Offer not found.', true);
   const origin = await siteOrigin();
-  const html = `<p>Hello,</p><p>Here is a copy of ${o.status === 'Accepted' ? 'the signed' : 'the'} Evergreen Community Care offer letter for ${o.profiles?.full_name ?? 'you'}. The original is saved in the portal: <a href="${origin}/offer/${id}">${origin}/offer/${id}</a></p><hr>` + offerHtml(o, { personName: o.profiles?.full_name ?? '', forEmail: true });
+  const html = `<p>Hello,</p><p>Here is a copy of ${o.status === 'Accepted' ? 'the signed' : 'the'} Evergreen Community Care offer letter for ${o.profiles?.full_name ?? 'you'}. The original is saved in the portal: <a href="${origin}/offer/${id}">${origin}/offer/${id}</a></p><hr>` + offerHtml(o, { personName: o.profiles?.full_name ?? '', forEmail: true, logoUrl: `${origin}/logo.png` });
   const res = await sendEmail({ to, subject: `Evergreen offer letter — ${o.position}${o.status === 'Accepted' ? ' (signed)' : ''}`, html });
   if (res.error) go(`/offer/${id}`, res.error, true);
   go(`/offer/${id}`, `A copy was emailed to ${to}.`);

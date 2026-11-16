@@ -23,3 +23,18 @@ export async function savePayRate(fd) {
   revalidatePath('/hr/pay-rates');
   go(`Saved ${position}.${sent.length ? ` ${sent.length} waiting offer ${sent.length === 1 ? 'letter was' : 'letters were'} sent.` : ''}`);
 }
+
+// Link a position to a grid level (blank = use its fixed hourly rate). Sends offer letters that were waiting.
+export async function saveGridLevel(fd) {
+  const { supabase } = await requireUser(['admin', 'manager', 'staff']);
+  const position = text(fd, 'position');
+  const raw = text(fd, 'level');
+  const level = raw == null ? null : Number(raw);
+  if (!position) go('Choose the position.', true);
+  const { data, error } = await supabase.rpc('set_pay_grid_level', { p_position: position, p_level: level });
+  if (error) go(error.message, true);
+  const sent = data?.sent ?? [];
+  for (const id of sent) await emailOfferLink(id);
+  revalidatePath('/hr/pay-rates');
+  go(`${position}: ${level ? `Grid ${level}` : 'fixed rate'}.${sent.length ? ` ${sent.length} waiting offer ${sent.length === 1 ? 'letter was' : 'letters were'} sent.` : ''}`);
+}
