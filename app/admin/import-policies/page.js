@@ -1,4 +1,5 @@
-// One-time: load Evergreen's policy manuals into the Policy library (admin only).
+// Load Evergreen's policy manuals into the Policy library (admin only). Nov 16 2026: the folder holds the
+// November 2026 library versions from D:\MCFD MANUALS\Evergreen Policy Library\CRM Upload (PDF).
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { loadManifest } from './actions';
