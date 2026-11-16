@@ -67,6 +67,13 @@ jobs:
             --file roles.sql --file schema.sql \
             --command 'SET session_replication_role = replica' --file data.sql 2>&1 | tail -40
 
+      - name: Copy file-storage permissions
+        run: |
+          /usr/lib/postgresql/17/bin/psql "$LIVE" -At -v ON_ERROR_STOP=1 -c "select format('create policy %I on storage.objects as %s for %s to %s%s%s;', policyname, permissive, cmd, array_to_string(roles, ', '), case when qual is not null then ' using (' || qual || ')' else '' end, case when with_check is not null then ' with check (' || with_check || ')' else '' end) from pg_policies where schemaname='storage' and tablename='objects'" > storage_policies.sql
+          { echo "set search_path = public, extensions, storage;"; echo "do \$\$ declare r record; begin for r in select policyname from pg_policies where schemaname='storage' and tablename='objects' loop execute format('drop policy %I on storage.objects', r.policyname); end loop; end \$\$;"; cat storage_policies.sql; } > storage_apply.sql
+          /usr/lib/postgresql/17/bin/psql "$TEST" --single-transaction -v ON_ERROR_STOP=1 -f storage_apply.sql
+          echo "Copied $(wc -l < storage_policies.sql) storage permissions."
+
       - name: Make the test copy safe
         run: |
           /usr/lib/postgresql/17/bin/psql "$TEST" -v ON_ERROR_STOP=0 <<'SQL'
