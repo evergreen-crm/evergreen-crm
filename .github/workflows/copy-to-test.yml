@@ -53,7 +53,7 @@ jobs:
         run: |
           supabase db dump --db-url "$LIVE" -f roles.sql --role-only
           supabase db dump --db-url "$LIVE" -f schema.sql
-          supabase db dump --db-url "$LIVE" -f data.sql --use-copy --data-only
+          supabase db dump --db-url "$LIVE" -f data.sql --use-copy --data-only -x storage.buckets_vectors -x storage.vector_indexes -x storage.buckets_analytics -x supabase_migrations.schema_migrations
           ls -la *.sql
 
       - name: Wipe the test database's public schema
@@ -63,7 +63,7 @@ jobs:
 
       - name: Restore into test
         run: |
-          /usr/lib/postgresql/17/bin/psql "$TEST" --single-transaction -v ON_ERROR_STOP=0 \
+          /usr/lib/postgresql/17/bin/psql "$TEST" --single-transaction -v ON_ERROR_STOP=1 \
             --file roles.sql --file schema.sql \
             --command 'SET session_replication_role = replica' --file data.sql 2>&1 | tail -40
 
