@@ -66,6 +66,11 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
+        {process.env.NEXT_PUBLIC_APP_ENV === 'test' && (
+          <div role="note" style={{ background: '#b42318', color: '#fff', textAlign: 'center', padding: '6px 12px', fontWeight: 700, fontSize: 14, position: 'sticky', top: 0, zIndex: 1000 }}>
+            TEST PORTAL · practice data only · no real emails or texts are sent
+          </div>
+        )}
         {profile && (
           <header className="topbar no-print">
             <Link href="/" className="brand"><img src="/logo-mark.png" alt="" /><span>EVERGREEN<small>COMMUNITY CARE</small></span></Link>
