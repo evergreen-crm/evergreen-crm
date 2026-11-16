@@ -1,0 +1,16 @@
+# Keep the TEST portal on the same code as the live portal: every push to main is copied to the "test" branch,
+# which Vercel builds as the test site (it uses the test database through branch-only settings in Vercel).
+name: Sync test branch
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: git push --force origin HEAD:test
