@@ -44,7 +44,7 @@ export default function LoginPage() {
     }
     setStep('enter-code');
     setMessage(process.env.NEXT_PUBLIC_APP_ENV === 'test' && method === 'email'
-      ? 'Test portal: we sent a sign-in link to your email. Open it on this computer to sign in (or enter the code if the email has one).'
+      ? 'Test portal: we sent a sign-in code to your email.'
       : `We sent a 6-digit code to ${method === 'email' ? 'your email' : 'your phone'}.`);
   }
 
@@ -107,13 +107,13 @@ export default function LoginPage() {
       {step === 'enter-code' && (
         <form onSubmit={verifyCode} className="card">
           <label>
-            6-digit code
+            Sign-in code
             <input
               inputMode="numeric"
               autoComplete="one-time-code"
-              maxLength={6}
+              maxLength={10}
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
               required
               autoFocus
             />
