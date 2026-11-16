@@ -44,7 +44,7 @@ export default async function WageGrid({ searchParams }) {
       {error && <p className="message">The wage grid isn’t switched on yet (setup file: offer-letter-v3.sql).</p>}
 
       {!!dates.length && (
-        <p className="small">Grids: {dates.map((d, i) => <span key={d}>{i ? ' · ' : ''}<Link href={`/hr/wage-grid?date=${d}`} className={d === show ? 'badge' : ''}>{fmtDate(d)}{d === inForce ? ' (in force)' : d > today ? ' (future)' : ''}</Link></span>)}</p>
+        <p className="small">Grids: {dates.map((d, i) => <span key={d}>{i ? ' · ' : ''}<Link href={`/hr/wage-grid?date=${d}`} className={d === show ? 'badge' : ''}>{fmtDate(d)}{d === inForce ? (d > today ? ' (starts soon; used for offer letters now)' : ' (in force)') : d > today ? ' (future)' : ''}</Link></span>)}</p>
       )}
 
       {canEdit ? (

@@ -21,8 +21,10 @@ export default async function PayRates({ searchParams }) {
     supabase.from('offer_letters').select('id, position, profiles!offer_letters_profile_id_fkey(full_name)').eq('auto', true).eq('status', 'Draft').is('wage', null),
   ]);
   const today = new Date().toISOString().slice(0, 10);
-  const { data: gridAll } = await supabase.from('wage_grid').select('effective_date, grid_level, step, hourly_rate').lte('effective_date', today).order('effective_date', { ascending: false });
-  const gridDate = gridAll?.[0]?.effective_date ?? null;
+  const { data: gridAll } = await supabase.from('wage_grid').select('effective_date, grid_level, step, hourly_rate').order('effective_date', { ascending: false });
+  const gridDates = [...new Set((gridAll ?? []).map((g) => g.effective_date))];
+  // The grid in force today, or (before the first grid starts) the earliest one, as offer letters do.
+  const gridDate = gridDates.find((d) => d <= today) ?? gridDates[gridDates.length - 1] ?? null;
   const grid = (gridAll ?? []).filter((g) => g.effective_date === gridDate);
   const gridLevels = [...new Set(grid.map((g) => g.grid_level))].sort((a, b) => a - b);
   const step1 = (l) => grid.find((g) => g.grid_level === l && g.step === 1)?.hourly_rate;
