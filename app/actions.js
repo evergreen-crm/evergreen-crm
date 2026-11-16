@@ -85,7 +85,7 @@ export async function addResident(formData) {
 
 export async function inviteUser(formData) {
   // 1. Only an admin may do this (checked with THEIR login, not the secret key).
-  const { supabase: mine } = await requireUser(['admin']);
+  const { supabase: mine, user: me } = await requireUser(['admin']);
 
   const fullName = text(formData, 'full_name');
   const email = text(formData, 'email')?.toLowerCase() ?? null;
@@ -141,8 +141,13 @@ export async function inviteUser(formData) {
     level,
     home_id: !group && (role === 'staff' || role === 'manager') ? homeId : null,
     ...(group ? { staff_group: group } : {}),
+    added_by: me.id,   // who added them: late policy alerts also go to this person
   };
   let { error: profileError } = await admin.from('profiles').insert(profileRow);
+  if (profileError && /added_by/.test(profileError.message)) {
+    delete profileRow.added_by;   // supabase/profiles-added-by.sql not run yet
+    ({ error: profileError } = await admin.from('profiles').insert(profileRow));
+  }
   if (profileError && /level/.test(profileError.message)) {
     // supabase/access-levels.sql not run yet: save without the level.
     delete profileRow.level;
