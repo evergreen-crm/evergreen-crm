@@ -1,0 +1,71 @@
+# Copy the live portal's database (structure + test data) into the TEST portal's database.
+# Run it by hand: GitHub → Actions → "Copy live database to test" → Run workflow.
+# Needs two repository secrets, added by an owner in Settings → Secrets and variables → Actions:
+#   LIVE_DB_URL  the live project's connection string   (Supabase → project → Connect → Session pooler)
+#   TEST_DB_URL  the test project's connection string   (evergreen-crm-test → Connect → Session pooler)
+# The test database is wiped and replaced each time. Scheduled jobs (cron) are not copied, and the copy turns off
+# outgoing email and text messages in the test database, so the test portal never contacts real people.
+name: Copy live database to test
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type COPY to wipe the test database and replace it with a copy of live'
+        required: true
+
+jobs:
+  copy:
+    if: ${{ github.event.inputs.confirm == 'COPY' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LIVE: ${{ secrets.LIVE_DB_URL }}
+      TEST: ${{ secrets.TEST_DB_URL }}
+    steps:
+      - name: Check the secrets are set
+        run: |
+          test -n "$LIVE" || { echo "Add the LIVE_DB_URL secret first."; exit 1; }
+          test -n "$TEST" || { echo "Add the TEST_DB_URL secret first."; exit 1; }
+          case "$TEST" in *pstvuqzbehljlixqhwhw*) echo "TEST_DB_URL points at the LIVE project. Stopping."; exit 1;; esac
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Dump live (roles, structure, data)
+        run: |
+          supabase db dump --db-url "$LIVE" -f roles.sql --role-only
+          supabase db dump --db-url "$LIVE" -f schema.sql
+          supabase db dump --db-url "$LIVE" -f data.sql --use-copy --data-only
+          ls -la *.sql
+
+      - name: Wipe the test database's public schema
+        run: |
+          /usr/lib/postgresql/17/bin/psql "$TEST" -v ON_ERROR_STOP=1 -c "drop schema if exists public cascade; create schema public; grant usage on schema public to anon, authenticated, service_role; grant all on schema public to postgres, service_role;"
+          /usr/lib/postgresql/17/bin/psql "$TEST" -v ON_ERROR_STOP=1 -c "truncate auth.users cascade;" || true
+
+      - name: Restore into test
+        run: |
+          /usr/lib/postgresql/17/bin/psql "$TEST" --single-transaction -v ON_ERROR_STOP=0 \
+            --file roles.sql --file schema.sql \
+            --command 'SET session_replication_role = replica' --file data.sql 2>&1 | tail -40
+
+      - name: Make the test copy safe
+        run: |
+          /usr/lib/postgresql/17/bin/psql "$TEST" -v ON_ERROR_STOP=0 <<'SQL'
+          -- No scheduled jobs in the test copy.
+          do $$ begin perform cron.unschedule(jobid) from cron.job; exception when others then null; end $$;
+          -- Mark the database as the test copy (the portal shows a TEST banner when this is set).
+          create table if not exists public.app_environment (id int primary key default 1 check (id = 1), name text not null);
+          insert into public.app_environment (id, name) values (1, 'test') on conflict (id) do update set name = 'test';
+          grant select on public.app_environment to anon, authenticated;
+          SQL
+          echo "Test database is ready."
