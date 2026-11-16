@@ -1,40 +1,49 @@
 'use server';
-// Pay rates: one hourly rate per position. Only the Executive Director, CSO, CEO and Administrator change them
-// (checked again by the database). Saving a rate sends any offer letters that were waiting for it.
+// Pay setup with approval: Payroll enters a change (pay type, grid level / hourly rate / annual salary, per program);
+// a leader at level 4 to 8 approves or rejects it. Only approved changes are used. The database checks every rule.
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { emailOfferLink } from '@/lib/offerEmail';
 
 const text = (fd, k) => { const v = fd.get(k); return typeof v === 'string' && v.trim() !== '' ? v.trim() : null; };
+const num = (fd, k) => { const v = text(fd, k); return v == null ? null : Number(v.replace(/[$,\s]/g, '')); };
 const go = (msg, bad) => redirect(`/hr/pay-rates?${bad ? 'error' : 'ok'}=${encodeURIComponent(msg)}`);
 
-export async function savePayRate(fd) {
+export async function requestPayChange(fd) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);
-  const position = text(fd, 'position');
-  const raw = text(fd, 'rate');
-  const rate = raw == null ? null : Number(raw);
-  if (!position) go('Enter the position name.', true);
-  if (rate != null && !(rate > 0)) go('Enter the hourly rate as a number, for example 27.50.', true);
-  const { data, error } = await supabase.rpc('set_pay_rate', { p_position: position, p_rate: rate, p_active: fd.get('active') !== '0' });
+  const payType = text(fd, 'pay_type') === 'salary' ? 'salary' : 'hourly';
+  const level = num(fd, 'grid_level');
+  const p = {
+    kind: 'plan', position: text(fd, 'position'), program: text(fd, 'program') ?? 'All', pay_type: payType,
+    grid_level: payType === 'hourly' && level ? level : null,
+    hourly_rate: payType === 'hourly' && !level ? num(fd, 'hourly_rate') : null,
+    annual_salary: payType === 'salary' ? num(fd, 'annual_salary') : null,
+    note: text(fd, 'note'),
+  };
+  if (p.hourly_rate != null && !(p.hourly_rate > 0)) go('Enter the hourly rate as a number, for example 30.22.', true);
+  if (p.annual_salary != null && !(p.annual_salary > 0)) go('Enter the annual salary as a number, for example 72000.', true);
+  const { error } = await supabase.rpc('request_pay_change', { p });
   if (error) go(error.message, true);
-  const sent = data?.sent ?? [];
-  for (const id of sent) await emailOfferLink(id);
   revalidatePath('/hr/pay-rates');
-  go(`Saved ${position}.${sent.length ? ` ${sent.length} waiting offer ${sent.length === 1 ? 'letter was' : 'letters were'} sent.` : ''}`);
+  go(`Sent for approval: ${p.position} (${p.program === 'All' ? 'all programs' : p.program}). A director at level 4 to 8 will approve it.`);
 }
 
-// Link a position to a grid level (blank = use its fixed hourly rate). Sends offer letters that were waiting.
-export async function saveGridLevel(fd) {
+export async function decidePayChange(fd) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);
-  const position = text(fd, 'position');
-  const raw = text(fd, 'level');
-  const level = raw == null ? null : Number(raw);
-  if (!position) go('Choose the position.', true);
-  const { data, error } = await supabase.rpc('set_pay_grid_level', { p_position: position, p_level: level });
+  const id = text(fd, 'id');
+  const approve = text(fd, 'decision') === 'approve';
+  const { data, error } = await supabase.rpc('decide_pay_change', { p_id: id, p_approve: approve, p_note: text(fd, 'note') });
   if (error) go(error.message, true);
-  const sent = data?.sent ?? [];
-  for (const id of sent) await emailOfferLink(id);
+  for (const oid of data?.sent ?? []) await emailOfferLink(oid);
+  revalidatePath('/hr/pay-rates'); revalidatePath('/hr/wage-grid');
+  go(`${approve ? 'Approved' : 'Rejected'}.${data?.sent?.length ? ` ${data.sent.length} waiting offer letter(s) sent.` : ''}`);
+}
+
+export async function cancelPayChange(fd) {
+  const { supabase } = await requireUser(['admin', 'manager', 'staff']);
+  const { error } = await supabase.rpc('cancel_pay_change', { p_id: text(fd, 'id') });
+  if (error) go(error.message, true);
   revalidatePath('/hr/pay-rates');
-  go(`${position}: ${level ? `Grid ${level}` : 'fixed rate'}.${sent.length ? ` ${sent.length} waiting offer ${sent.length === 1 ? 'letter was' : 'letters were'} sent.` : ''}`);
+  go('Request cancelled.');
 }

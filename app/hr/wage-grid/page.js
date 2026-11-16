@@ -16,7 +16,7 @@ export default async function WageGrid({ searchParams }) {
   const sp = (await searchParams) ?? {};
   const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
   if (!(canHR(profile) || canPayroll(profile))) redirect('/?error=' + encodeURIComponent('The wage grid is for HR, Payroll and managers.'));
-  const canEdit = profile.role === 'admin' || (levelOf(profile) >= 5 && !groupOf(profile));
+  const canEdit = profile.role === 'admin' || groupOf(profile) === 'payroll';
   const [{ data: all, error }, { data: positions }] = await Promise.all([
     supabase.from('wage_grid').select('effective_date, grid_level, step, hourly_rate').order('effective_date', { ascending: false }).order('grid_level').order('step'),
     supabase.from('pay_rates').select('position, grid_level, active').eq('active', true).order('sort'),
@@ -51,7 +51,7 @@ export default async function WageGrid({ searchParams }) {
         <form action={saveGrid} className="card">
           <h2 style={{ marginTop: 0 }}>Grid starting {show ? fmtDate(show) : '—'}</h2>
           <label style={{ maxWidth: 260 }}>Starts on<input type="date" name="effective" required defaultValue={show ?? ''} /></label>
-          <p className="small muted">To add next year’s grid, change the date and type the new rates, or use the % form below. Saving replaces the grid for that date.</p>
+          <p className="small muted">To add next year’s grid, change the date and type the new rates, or use the % form below. After approval it replaces the grid for that date.</p>
           <div style={{ overflowX: 'auto' }}>
             <table>
               <thead><tr><th>Grid level</th>{Array.from({ length: maxStep }, (_, i) => <th key={i}>Step {i + 1}</th>)}<th>Evergreen positions</th></tr></thead>
@@ -68,7 +68,7 @@ export default async function WageGrid({ searchParams }) {
               </tbody>
             </table>
           </div>
-          <button>Save grid</button>
+          <button>Send grid for approval</button>
         </form>
       ) : (
         <div style={{ overflowX: 'auto' }}>
@@ -80,7 +80,7 @@ export default async function WageGrid({ searchParams }) {
               ))}
             </tbody>
           </table>
-          <p className="small muted">Only the Executive Director, CSO, CEO and Administrator can change the grid.</p>
+          <p className="small muted">The Payroll team enters grid changes; a director at level 4 to 8 approves them on <Link href="/hr/pay-rates">Pay rates</Link>.</p>
         </div>
       )}
 
@@ -92,7 +92,7 @@ export default async function WageGrid({ searchParams }) {
             <label>Starts on<input type="date" name="effective" required defaultValue={next.toISOString().slice(0, 10)} /></label>
             <label>Increase (%)<input name="pct" type="number" step="0.01" min="-19" max="49" required defaultValue="3" /></label>
           </div>
-          <button>Make the new grid</button>
+          <button>Send new grid for approval</button>
         </form>
       )}
       <p className="small muted">Every change is kept in the security audit log.</p>
