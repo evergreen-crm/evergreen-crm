@@ -1,8 +1,9 @@
 # Copy the live portal's database (structure + test data) into the TEST portal's database.
 # Run it by hand: GitHub → Actions → "Copy live database to test" → Run workflow.
 # Needs two repository secrets, added by an owner in Settings → Secrets and variables → Actions:
-#   LIVE_DB_URL  the live project's connection string   (Supabase → project → Connect → Session pooler)
-#   TEST_DB_URL  the test project's connection string   (evergreen-crm-test → Connect → Session pooler)
+#   LIVE_DB_PASSWORD  the live project's database password  (Supabase → Project Settings → Database → Reset password)
+#   TEST_DB_PASSWORD  the test project's database password  (evergreen-crm-test → same place)
+# (LIVE_DB_URL / TEST_DB_URL full connection strings also work.)
 # The test database is wiped and replaced each time. Scheduled jobs (cron) are not copied, and the copy turns off
 # outgoing email and text messages in the test database, so the test portal never contacts real people.
 name: Copy live database to test
@@ -20,14 +21,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      LIVE: ${{ secrets.LIVE_DB_URL }}
-      TEST: ${{ secrets.TEST_DB_URL }}
+      LIVE_URL: ${{ secrets.LIVE_DB_URL }}
+      TEST_URL: ${{ secrets.TEST_DB_URL }}
+      LIVE_PW: ${{ secrets.LIVE_DB_PASSWORD }}
+      TEST_PW: ${{ secrets.TEST_DB_PASSWORD }}
     steps:
-      - name: Check the secrets are set
+      - name: Build the connection strings
         run: |
-          test -n "$LIVE" || { echo "Add the LIVE_DB_URL secret first."; exit 1; }
-          test -n "$TEST" || { echo "Add the TEST_DB_URL secret first."; exit 1; }
-          case "$TEST" in *pstvuqzbehljlixqhwhw*) echo "TEST_DB_URL points at the LIVE project. Stopping."; exit 1;; esac
+          enc() { python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"; }
+          HOST=aws-0-ca-central-1.pooler.supabase.com:5432/postgres
+          if [ -n "$LIVE_URL" ]; then LIVE="$LIVE_URL"; elif [ -n "$LIVE_PW" ]; then LIVE="postgresql://postgres.pstvuqzbehljlixqhwhw:$(enc "$LIVE_PW")@$HOST"; fi
+          if [ -n "$TEST_URL" ]; then TEST="$TEST_URL"; elif [ -n "$TEST_PW" ]; then TEST="postgresql://postgres.swgvvjlxdtralgpvsnpu:$(enc "$TEST_PW")@$HOST"; fi
+          test -n "$LIVE" || { echo "Add the LIVE_DB_PASSWORD secret first."; exit 1; }
+          test -n "$TEST" || { echo "Add the TEST_DB_PASSWORD secret first."; exit 1; }
+          case "$TEST" in *pstvuqzbehljlixqhwhw*) echo "The test connection points at the LIVE project. Stopping."; exit 1;; esac
+          echo "::add-mask::$LIVE"; echo "::add-mask::$TEST"
+          echo "LIVE=$LIVE" >> "$GITHUB_ENV"; echo "TEST=$TEST" >> "$GITHUB_ENV"
 
       - uses: supabase/setup-cli@v1
         with:
