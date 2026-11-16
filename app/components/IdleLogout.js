@@ -2,11 +2,12 @@
 // Inactivity timer: signs the person out after IDLE_MINUTES with no use (mouse, keys, touch, scrolling).
 // One minute before, a warning with "Stay signed in" appears. Works across tabs: using any tab counts.
 // Computers (often shared at the house): 15 minutes. Phones and tablets (the staff member's own, with its own
-// screen lock): 12 hours, so staff can clock in and clock out of a shift without a new sign-in code each time.
+// screen lock): 30 minutes, so a lost or shared phone does not stay signed in. Staff sign in again with a code
+// when they come back to it (for example to clock out).
 import { useEffect, useRef, useState } from 'react';
 
 export const IDLE_MINUTES = 15;
-export const PHONE_IDLE_MINUTES = 12 * 60;
+export const PHONE_IDLE_MINUTES = 30;   // Melvin, Nov 15 2026: phones and tablets 30 minutes (was 12 hours)
 const isPhone = () => {
   try { return window.matchMedia('(pointer: coarse)').matches && Math.min(window.screen.width, window.screen.height) <= 900; }
   catch { return false; }
