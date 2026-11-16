@@ -34,7 +34,7 @@ export default function LoginPage() {
     const target = method === 'email' ? { email: contact.trim() } : { phone: cleanPhone(contact) };
     const { error } = await supabase.auth.signInWithOtp({
       ...target,
-      options: { shouldCreateUser: false }, // invite-only
+      options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}/auth/callback` }, // invite-only
     });
     setBusy(false);
     if (error) {
@@ -43,7 +43,9 @@ export default function LoginPage() {
       return;
     }
     setStep('enter-code');
-    setMessage(`We sent a 6-digit code to ${method === 'email' ? 'your email' : 'your phone'}.`);
+    setMessage(process.env.NEXT_PUBLIC_APP_ENV === 'test' && method === 'email'
+      ? 'Test portal: we sent a sign-in link to your email. Open it on this computer to sign in (or enter the code if the email has one).'
+      : `We sent a 6-digit code to ${method === 'email' ? 'your email' : 'your phone'}.`);
   }
 
   async function verifyCode(e) {
