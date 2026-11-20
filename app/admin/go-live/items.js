@@ -11,7 +11,7 @@ export const GOLIVE_GROUPS = [
   ['Accounts and paid plans', [
     ['paid_supabase', 'Supabase on a paid plan (daily backups) before real resident records go in'],
     ['paid_vercel', 'Vercel on a paid plan'],
-    ['backup_account', 'Microsoft backup@ account made, for the nightly OneDrive backup'],
+    ['backup_account', 'Microsoft backup@ account made, for the nightly OneDrive backup (until then: Admin → Records download, monthly)'],
     ['twilio', 'Twilio account for emergency and sick-call text messages (optional)'],
     ['anthropic_key', 'Anthropic API key for full answers in Ask Evergreen (optional)'],
     ['leaked_pw', 'Supabase “leaked password protection” switched on (Authentication settings)'],
