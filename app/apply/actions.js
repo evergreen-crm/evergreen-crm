@@ -14,7 +14,7 @@ const emailOk = (e) => typeof e === 'string' && /^[^@\s]{1,100}@[^@\s]{1,100}\.[
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const siteUrl = async () => {
   const h = await headers();
-  return process.env.NEXT_PUBLIC_SITE_URL || `https://${h.get('x-forwarded-host') ?? h.get('host')}`;
+  return process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || `https://${h.get('x-forwarded-host') ?? h.get('host')}`;
 };
 const ready = () => !!adminKey();
 
