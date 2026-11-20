@@ -196,9 +196,18 @@ export async function inviteUser(formData) {
     }
   }
 
+  // 7. Hired from a pre-screening file (Nov 20): link the file, copy the certificates they ticked "I have it"
+  //    (with their photos) into the staff file to verify, and start onboarding: checklist, training plan with
+  //    due dates, and with it the 6-day orientation. Their job application, if any, is marked hired.
+  const fromPs = text(formData, 'from_ps');
+  if (fromPs && /^[0-9a-f-]{36}$/i.test(fromPs) && role !== 'family') {
+    const { hireFromPrescreen } = await import('@/lib/hireFromPrescreen');
+    offerNote += await hireFromPrescreen(admin, { psId: fromPs, userId, hiredBy: me.id, hireDate: text(formData, 'hire_date') });
+  }
+
   // 6. Hired from an online job application (plan B5): link it, and copy their certificates into the staff file
   //    (not verified yet: HR verifies them against the originals), so expiry reminders start right away.
-  const fromApp = text(formData, 'from_app');
+  const fromApp = fromPs ? null : text(formData, 'from_app');
   if (fromApp && /^[0-9a-f-]{36}$/i.test(fromApp) && role !== 'family') {
     const { data: app } = await admin.from('job_applications').select('id, answers, profile_id, status').eq('id', fromApp).maybeSingle();
     if (app && !app.profile_id) {

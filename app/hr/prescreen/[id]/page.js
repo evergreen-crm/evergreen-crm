@@ -16,7 +16,7 @@ import {
 } from '@/lib/prescreen';
 import {
   renewLink, cancelLink, openInPerson, saveProfile, saveChecklist, saveInterview, saveReference, signOffPost, saveFileStatus, deletePrescreen,
-  emailLinkAgain, decidePrescreen, setInterview,
+  emailLinkAgain, decidePrescreen, setInterview, requestHire,
 } from '../actions';
 import { CHECKLIST, checklistFor, STATUS } from '@/lib/prescreenChecklist';
 import { INTERVIEW_DAYS, INTERVIEW_TIMES } from '@/lib/prescreen';
@@ -62,6 +62,7 @@ export default async function PrescreenFile({ params, searchParams }) {
         {p.interview_at && <> · 📅 interview {new Date(p.interview_at).toLocaleString('en-CA', { timeZone: 'Etc/GMT+7', dateStyle: 'medium', timeStyle: 'short' })}</>}</p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
       {sp.error && <p className="message">{plainError(sp.error)}</p>}
+      {submitted && p.screen_decision === 'Passed' && clr !== 'red' && <HireCard p={p} supabase={supabase} role={prescreenRole} clr={clr} />}
 
       <ol className="ps-steps">
         {STEPS.map(([k, l], i) => (
@@ -336,6 +337,42 @@ function ReferencesTab({ p, requests = [] }) {
   );
 }
 
+// Hire: after the pre-screen passes and the interview is scored. The Administrator gives access (filled in from
+// this file); HR asks the Administrator. Once hired: links to the staff file, onboarding and orientation.
+async function HireCard({ p, supabase, role, clr }) {
+  if (p.profile_id) {
+    const [{ data: ori }, { data: person }] = await Promise.all([
+      supabase.rpc('orientation_status', { p: p.profile_id }),
+      supabase.from('profiles').select('full_name').eq('id', p.profile_id).maybeSingle(),
+    ]);
+    const oriText = !ori ? '' : ori.complete ? `✅ Orientation complete (certificate ${ori.certificate_no})` : ori.active ? `🧭 Orientation: ${ori.done ?? 0} of ${ori.total ?? 0} steps done (day ${ori.day ?? 1})` : '🧭 Orientation not started yet';
+    return (
+      <section className="card no-print" style={{ borderLeft: '4px solid #0b5a34' }}>
+        <strong>💼 Hired{p.hired_at ? ` ${fmtDate(p.hired_at.slice(0, 10))}` : ''}</strong>{person?.full_name ? ` · ${person.full_name}` : ''}
+        <p className="small" style={{ margin: '6px 0' }}>{oriText}</p>
+        <p className="small" style={{ margin: 0 }}><Link href={`/hr/${p.profile_id}`}>Staff file</Link> · <Link href={`/hr/${p.profile_id}/onboarding`}>Onboarding &amp; training plan</Link> · <Link href="/orientation/team">Orientation team view</Link></p>
+        {clr !== 'green' && <p className="small" style={{ margin: '6px 0 0' }}>⚠️ Still {CLEARANCE[clr].label}: no shift with people in care until every screening item is cleared.</p>}
+      </section>
+    );
+  }
+  const scored = interviewCount(p) >= INTERVIEW.length;
+  return (
+    <section className="card no-print" style={{ borderLeft: '4px solid #0f3059' }}>
+      <strong>💼 Hire</strong>
+      {!scored ? <p className="small" style={{ margin: '6px 0 0' }}>Hiring opens once all {INTERVIEW.length} interview questions are scored on the Interview tab.</p> : (
+        <>
+          <p className="small" style={{ margin: '6px 0' }}>Hiring gives them a staff account filled in from this file. Their offer letter, onboarding checklist, training plan and 6-day orientation start automatically, and their certificates (with photos) go into their staff file to verify.{clr !== 'green' && ' They are still YELLOW: no shift with people in care until every screening item is cleared.'}</p>
+          {role === 'admin'
+            ? <Link className="button" href={`/admin?from_ps=${p.id}#add`}>💼 Hire: give them access</Link>
+            : p.hire_requested_at
+              ? <p className="small" style={{ margin: 0 }}>⏳ Asked the Administrator to give access on {fmtDateTime(p.hire_requested_at)}.</p>
+              : <form action={requestHire}><Hidden id={p.id} /><button>💼 Hire: ask the Administrator to give access</button></form>}
+        </>
+      )}
+    </section>
+  );
+}
+
 function ClearanceTab({ p, clr, canHr }) {
   const out = outstanding(p);
   const ren = renewals(p);
@@ -351,13 +388,13 @@ function ClearanceTab({ p, clr, canHr }) {
         {out.length ? <ul>{out.map((x) => <li key={x}>{x}</li>)}</ul> : <p className="muted">Nothing outstanding.</p>}</section>
 
       <section className="card"><h2>After clearance</h2>
-        <p className="muted small">Orientation, competency and independent work can only be signed off once the person is GREEN – CLEARED.</p>
+        <p className="muted small">Once hired, Orientation ticks itself when their orientation certificate is issued, and Competency when their 30-day probation review meets expectations. Independent work is signed off here, only once the person is GREEN – CLEARED.</p>
         <ul className="checklist">
           {POST.map((k) => {
             const s = p.post?.[k]; const label = STEPS.find(([x]) => x === k)[1];
             return (
               <li key={k} className={s ? 'done' : ''}>
-                <span className="req-text"><span className="tick">{s ? '✓' : ''}</span><span><strong>{label}</strong>{s && <span className="muted small"> · {s.by_name} · {fmtDateTime(s.at)}</span>}</span></span>
+                <span className="req-text"><span className="tick">{s ? '✓' : ''}</span><span><strong>{label}</strong>{s && <span className="muted small"> · {s.auto ? `${s.auto} · ` : ''}{s.by_name} · {fmtDateTime(s.at)}</span>}</span></span>
                 {canHr && (
                   <form action={signOffPost}><Hidden id={p.id} /><input type="hidden" name="key" value={k} />
                     {s ? <><input type="hidden" name="undo" value="1" /><button className="link small">Undo</button></>

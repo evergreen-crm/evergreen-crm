@@ -9,7 +9,7 @@ import StorageUsage from './StorageUsage';
 
 export default async function AdminPage({ searchParams }) {
   const { supabase, user } = await requireUser(['admin']);
-  const { ok, error, from_app: fromApp } = await searchParams;
+  const { ok, error, from_app: fromApp, from_ps: fromPs } = await searchParams;
 
   const [{ data: peopleL, error: peopleErr }, { data: homes }, { data: residents }, divLevels] = await Promise.all([
     supabase.from('profiles').select('id, full_name, email, phone, role, level, staff_group, home_id, active, homes(name)').order('full_name'),
@@ -22,8 +22,15 @@ export default async function AdminPage({ searchParams }) {
   // Hired from an online job application (plan B5): fill the form in from the application.
   const { data: hiredApps } = await supabase.from('job_applications').select('id, first_name, last_name, email, phone, answers, posting:posting_id(title, position, employment_type, hours_per_week)')
     .eq('status', 'Hired').is('profile_id', null).order('decided_at', { ascending: false }).limit(20);
-  const pre = (hiredApps ?? []).find((a) => a.id === fromApp) ?? null;
-  const preAddr = pre ? [pre.answers?.contact?.address, pre.answers?.contact?.city, pre.answers?.contact?.postal].filter(Boolean).join(', ') : '';
+  // Hired from a pre-screening file (HR pressed Hire, or the Administrator opened it from the file).
+  const { data: hiredPs } = await supabase.from('prescreens').select('id, first_name, last_name, email, phone, position, program, application_no, application, hire_requested_at')
+    .is('profile_id', null).eq('screen_decision', 'Passed').or(`hire_requested_at.not.is.null${/^[0-9a-f-]{36}$/i.test(fromPs ?? '') ? `,id.eq.${fromPs}` : ''}`)
+    .order('hire_requested_at', { ascending: false, nullsFirst: false }).limit(20);
+  const ps = (hiredPs ?? []).find((x) => x.id === fromPs) ?? null;
+  const appPre = (hiredApps ?? []).find((a) => a.id === fromApp) ?? null;
+  const pre = ps ? { id: ps.id, first_name: ps.first_name, last_name: ps.last_name, email: ps.email, phone: ps.phone ?? ps.application?.applicant?.phone,
+    posting: { title: `pre-screen ${ps.application_no ?? ''}`.trim(), position: ps.position } } : appPre;
+  const preAddr = ps ? (ps.application?.applicant?.address ?? '') : pre ? [pre.answers?.contact?.address, pre.answers?.contact?.city, pre.answers?.contact?.postal].filter(Boolean).join(', ') : '';
   const extraBy = {};
   for (const m of extraHomes ?? []) (extraBy[m.profile_id] ??= []).push(m.home_id);
   // Before supabase/access-levels.sql is run there is no `level` column.
@@ -52,10 +59,14 @@ export default async function AdminPage({ searchParams }) {
       {(hiredApps ?? []).length > 0 && (
         <p className="message small">💼 Hired from an online application, waiting for an account: {hiredApps.map((a, i) => <span key={a.id}>{i ? ', ' : ''}<Link href={`/admin?from_app=${a.id}#add`}>{a.first_name} {a.last_name}</Link></span>)}. Click a name to fill in the form below.</p>
       )}
+      {(hiredPs ?? []).filter((x) => x.hire_requested_at).length > 0 && (
+        <p className="message small">💼 Hired from pre-screening, waiting for an account: {hiredPs.filter((x) => x.hire_requested_at).map((a, i) => <span key={a.id}>{i ? ', ' : ''}<Link href={`/admin?from_ps=${a.id}#add`}>{a.first_name} {a.last_name} ({a.application_no})</Link></span>)}. Click a name to fill in the form below.</p>
+      )}
       <form action={inviteUser} className="card" id="add" key={pre?.id ?? 'blank'}>
         <h2>Give a person access</h2>
         <p className="muted small">Adding many people? Use <Link href="/admin/import">Staff import</Link> with the Excel template.</p>
-        {pre && <><input type="hidden" name="from_app" value={pre.id} /><p className="message ok small">Filled in from {pre.first_name} {pre.last_name}’s application for {pre.posting?.title}. Check the access level, house and joining date.</p></>}
+        {ps && <><input type="hidden" name="from_ps" value={ps.id} /><p className="message ok small">Filled in from {ps.first_name} {ps.last_name}’s screening file ({ps.application_no}, {ps.program === 'Both' ? 'MCFD and CLBC' : ps.program}). Check the access level, house and joining date. Their onboarding checklist, training plan and orientation start automatically, and their certificates go into their staff file.</p></>}
+        {!ps && pre && <><input type="hidden" name="from_app" value={pre.id} /><p className="message ok small">Filled in from {pre.first_name} {pre.last_name}’s application for {pre.posting?.title}. Check the access level, house and joining date.</p></>}
         <p className="muted small">
           They sign in at the login page with a code sent to the email or cell you enter here.
         </p>

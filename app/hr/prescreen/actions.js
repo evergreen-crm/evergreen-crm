@@ -107,6 +107,16 @@ export async function setInterview(fd) {
   back(id, 'interview', note, true);
 }
 
+// HR hires: the Administrator is asked to give access (the form fills in from this file).
+export async function requestHire(fd) {
+  const { supabase } = await requirePrescreen(['admin', 'hr']);
+  const id = text(fd, 'id');
+  const { error } = await supabase.rpc('prescreen_request_hire', { pid: id });
+  if (error) back(id, 'application', error.message);
+  revalidatePath('/hr/prescreen');
+  back(id, 'application', 'The Administrator has been asked to give them access. Their offer letter, onboarding and orientation start as soon as they do.', true);
+}
+
 export async function renewLink(fd) {
   const { supabase } = await requirePrescreen(['admin', 'hr']);
   const id = text(fd, 'id');

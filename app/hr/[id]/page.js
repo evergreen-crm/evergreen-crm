@@ -34,6 +34,8 @@ export default async function StaffHrPage({ params, searchParams }) {
   const onbDone = (onbItems ?? []).filter((i) => ['Verified', 'N/A'].includes(i.status)).length;
   const onbWaiting = (onbItems ?? []).filter((i) => i.status === 'Submitted').length;
   const { data: idCard } = await supabase.from('id_cards').select('*').eq('profile_id', id).maybeSingle();
+  // Hiring record: the screening file they were hired from (only people who can open screening files see it).
+  const { data: hiredFrom } = await supabase.from('prescreens').select('id, application_no, hired_at').eq('profile_id', id).maybeSingle();
   let idPhoto = null;
   if (idCard?.photo_path) {
     const { data } = await supabase.storage.from('id-photos').createSignedUrl(idCard.photo_path, 3600);
@@ -58,6 +60,7 @@ export default async function StaffHrPage({ params, searchParams }) {
         {personLabel(person)} · {person.homes?.name ?? 'No home'} · {[person.email, person.phone].filter(Boolean).join(' · ')}
         {!person.active && <span className="badge bad"> Access turned off</span>}
       </p>
+      {canEdit && hiredFrom && <p className="small">📋 Hiring record: <Link href={`/hr/prescreen/${hiredFrom.id}?tab=clearance`}>screening file {hiredFrom.application_no}</Link> (application, interview, references, clearance){hiredFrom.hired_at ? ` · hired ${hiredFrom.hired_at.slice(0, 10)}` : ''}</p>}
       {clearanceKnown && [1, 2, 3].includes(person.level ?? 1) && person.role !== 'admin' && (
         notCleared
           ? <p className="message error">⛔ <strong>Not cleared to work:</strong> {notCleared} They can’t be given shifts until it’s fixed.</p>
