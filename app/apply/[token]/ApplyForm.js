@@ -42,7 +42,7 @@ export default function ApplyForm({ token, posting, initial, files: initialFiles
     setBusy(true); setMsg(null);
     const fd = new FormData(); fd.append('token', token); fd.append('kind', kind); fd.append('file', file);
     try {
-      const res = await fetch('/api/apply-upload', { method: 'POST', body: fd });
+      const res = await fetch('/apply/upload', { method: 'POST', body: fd });
       const r = await res.json();
       if (r.error) setMsg({ bad: true, text: r.error }); else setFiles((f) => ({ ...f, [kind]: r.name }));
     } catch { setMsg({ bad: true, text: 'Could not upload. Check your internet and try again.' }); }

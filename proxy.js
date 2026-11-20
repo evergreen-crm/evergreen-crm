@@ -42,7 +42,7 @@ export async function proxy(request) {
   // /api/cron/ is called by Vercel's scheduler and checks its own secret.
   // /jobs (Careers) and /apply (an applicant's private link, opened with an email code) are public (plan B5).
   if (!user && !path.startsWith('/login') && !path.startsWith('/auth/callback') && !path.startsWith('/verify/') && !path.startsWith('/f/') && !path.startsWith('/api/cron/')
-      && path !== '/jobs' && !path.startsWith('/jobs/') && !path.startsWith('/apply/') && path !== '/api/apply-upload') {
+      && path !== '/jobs' && !path.startsWith('/jobs/') && !path.startsWith('/apply/')) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
