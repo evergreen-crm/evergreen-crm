@@ -206,7 +206,7 @@ export default function PrescreenFill({ token, start }) {
               {status[i] === 'Complete' ? '✅' : status[i] === 'In progress' ? '🟡' : '⚪'} {i + 1}. {l}<br /><span className="muted" style={{ fontSize: '0.75em' }}>{step === i + 1 ? 'You are here' : status[i]}</span></button></li>
           ))}
         </ol>
-        <p className="muted small" style={{ margin: '6px 0 0' }}>{saved ? `Draft saved ${new Date(saved).toLocaleString('en-CA', { timeZone: 'Etc/GMT+7', dateStyle: 'medium', timeStyle: 'short' })}.` : 'Your answers are saved as a draft when you press Save or Next.'} Uploaded files are saved right away.</p>
+        <p className="muted small" style={{ margin: '6px 0 0' }}>{saved ? `Draft saved ${new Date(saved).toLocaleString('en-CA', { timeZone: 'Etc/GMT+7', dateStyle: 'medium', timeStyle: 'short' }).replace(/\.$/, '')}.` : 'Your answers are saved as a draft when you press Save or Next.'} Uploaded files are saved right away.</p>
       </nav>
       <section className="card" style={show(1)}>
         <h2>1. Your details</h2>

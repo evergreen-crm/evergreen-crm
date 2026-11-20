@@ -90,7 +90,7 @@ export async function setInterview(fd) {
   if (error || !p) back(id, 'interview', error?.message ?? 'Mark the pre-screen as passing first.');
   const whenText = at.toLocaleString('en-CA', { timeZone: 'Etc/GMT+7', weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   const admin = adminKey() ? createAdminClient() : null;
-  let note = `Interview set for ${whenText}.`;
+  let note = `Interview set for ${whenText.replace(/\.$/, '')}.`;
   if (admin) {
     for (const w of withIds) {
       await admin.rpc('notify', { pid: w, t: `Interview: ${p.first_name} ${p.last_name ?? ''} (${p.application_no})`, b: `${whenText} · ${format}${where ? ` · ${where}` : ''}`, l: `/hr/prescreen/${id}?tab=interview`, k: `prescreen-int:${id}:${w}:${at.getTime()}` });
