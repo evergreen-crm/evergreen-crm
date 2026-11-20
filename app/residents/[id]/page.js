@@ -40,7 +40,9 @@ const TABS = [
   { key: 'documents', label: 'Documents' },
   { key: 'messages', label: 'Messages', family: true },
   { key: 'all', label: 'Full file (print)' },
+  { key: 'access', label: 'Who opened', leaders: true },
 ];
+const TAB_NAMES = Object.fromEntries(TABS.map((t) => [t.key, t.label]));
 
 function Fact({ label, value }) {
   if (!value) return null;
@@ -71,6 +73,11 @@ export default async function ResidentPage({ params, searchParams }) {
 
   // Not allowed to see them = looks the same as not existing.
   if (!resident) notFound();
+
+  // Who opened this file (supabase/resident-file-views.sql): recorded for every view, read by the PM and above.
+  const canSeeLog = isAdmin || (levelOf(profile) >= 3 && !profile.staff_group);
+  if (tab !== 'access') await supabase.rpc('log_resident_view', { rid: id, t: TAB_NAMES[tab] ? tab : 'overview' });
+  const { data: fileLog } = canSeeLog && tab === 'access' ? await supabase.rpc('resident_file_log', { rid: id, lim: 500 }) : { data: null };
 
   const { count: unreadMsgs } = await supabase.from('messages').select('id', { count: 'exact', head: true })
     .eq('resident_id', id).is('read_at', null)
@@ -131,7 +138,7 @@ export default async function ResidentPage({ params, searchParams }) {
       )}
 
       <nav className="tabs-bar no-print">
-        {TABS.filter((t) => isStaff || t.family).map((t) => (
+        {TABS.filter((t) => (isStaff || t.family) && (!t.leaders || canSeeLog)).map((t) => (
           <Link key={t.key} href={`/residents/${id}?tab=${t.key}`} className={tab === t.key ? 'on' : ''}>
             {t.label}{t.key === 'messages' && unreadMsgs > 0 && <span className="badge bad"> {unreadMsgs}</span>}
           </Link>
@@ -280,6 +287,22 @@ export default async function ResidentPage({ params, searchParams }) {
       )}
 
       {isStaff && tab === 'documents' && <Documents supabase={supabase} resident={resident} canEdit={canEdit} />}
+
+      {canSeeLog && tab === 'access' && (
+        <section>
+          <h2>Who opened this file</h2>
+          <p className="muted small">Every time someone opens this file it is recorded: who, when and which part (once per 10 minutes for the same part). Seen by the Program Manager for the house, directors, the CEO and the Administrator. It can't be changed or deleted.</p>
+          {(fileLog ?? []).length === 0 ? <p className="card muted">No views recorded yet.</p> : (
+            <table>
+              <thead><tr><th>When</th><th>Who</th><th>Access</th><th>Part of the file</th></tr></thead>
+              <tbody>{fileLog.map((v, i) => (
+                <tr key={i}><td className="small">{new Date(v.viewed_at).toLocaleString('en-CA', { timeZone: TZ, dateStyle: 'medium', timeStyle: 'short' })}</td>
+                  <td>{v.full_name}</td><td className="small">{v.access}</td><td className="small">{TAB_NAMES[v.tab] ?? v.tab}{v.tab === 'all' ? ' 🖨' : ''}</td></tr>))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
 
       {tab === 'messages' && <Messages supabase={supabase} resident={resident} user={user} isFamily={!isStaff} />}
 
