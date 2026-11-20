@@ -149,6 +149,7 @@ export default async function HomePage({ params, searchParams }) {
         {home.program === 'CLBC' && <Link className="button secondary" href={`/homes/${id}/daily`}>🗓 Daily grid</Link>}
         <Link className="button secondary" href={`/reports/daily?home=${id}`}>🖨 Print report</Link>
         <Link className="button secondary" href={`/homes/${id}/inventory`}>📦 Inventory register</Link>
+        {(profile.role === 'admin' || (levelOf(profile) >= 2 && !profile.staff_group)) && <Link className="button secondary" href={`/homes/${id}/inspection`}>📁 Licensing inspection pack</Link>}
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-start' }}>
       <div style={{ flex: '1 1 480px', minWidth: 0 }}>
