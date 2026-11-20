@@ -7,6 +7,7 @@ import { requireUser } from '@/lib/auth';
 import ScopeForms from '@/app/forms/ScopeForms';
 import { CERT_TYPES, certStatus } from '@/lib/hr';
 import { trainingsFor } from '@/lib/onboarding';
+import { REQUIRED_TRAINING } from '@/lib/requirements';
 import ProgramBadge from '@/app/components/ProgramBadge';
 import { fmtDate, todayISO } from '@/lib/options';
 import { cardStatus } from '@/lib/idcard';
