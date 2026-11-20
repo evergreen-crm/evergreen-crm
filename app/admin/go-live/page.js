@@ -100,7 +100,7 @@ export default async function GoLive({ searchParams }) {
         <h2 style={{ marginTop: 0 }}>Automatic checks</h2>
         <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
           <Check ok={realHomes.length > 0} label={`Real houses entered (${realHomes.length})`} href="/homes">No real house yet.</Check>
-          {!hasStaff && <li style={{ marginBottom: 8 }}>⚠️ <strong>No real staff added yet</strong> · <Link href="/admin">Add staff</Link><div className="small" style={{ marginLeft: 24 }}>The staff checks below (job details, program, emergency contacts, certificates) pass only once real staff are in the portal.</div></li>}
+          {!hasStaff && <li style={{ marginBottom: 8 }}>⚠️ <strong>No real staff added yet</strong> · <Link href="/admin">Add one</Link> or <Link href="/admin/import">import many from Excel</Link><div className="small" style={{ marginLeft: 24 }}>The staff checks below (job details, program, emergency contacts, certificates) pass only once real staff are in the portal.</div></li>}
           <Check ok={homeGaps.length === 0} label="Every house has its address, licence, phones, program, beds and map location" href="/homes">
             {homeGaps.map(({ h, miss }) => <div key={h.id}><Link href={`/homes/${h.id}`}>{h.name}</Link>: missing {miss.join(', ')}</div>)}
           </Check>

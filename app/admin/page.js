@@ -46,7 +46,7 @@ export default async function AdminPage({ searchParams }) {
       {error && <p className="message">{error}</p>}
 
       <StorageUsage supabase={supabase} />
-      <p className="small"><Link href="/admin/import-policies">📘 Policy manual import / compress</Link> · <Link href="/admin/audit">🛡️ Security audit log</Link> · <Link href="/admin/duties">📋 Duty register &amp; levels</Link> · <Link href="/admin/access-review">🔐 Monthly access review</Link> · <Link href="/admin/go-live">🚀 Opening-day readiness</Link></p>
+      <p className="small"><Link href="/admin/import-policies">📘 Policy manual import / compress</Link> · <Link href="/admin/audit">🛡️ Security audit log</Link> · <Link href="/admin/duties">📋 Duty register &amp; levels</Link> · <Link href="/admin/access-review">🔐 Monthly access review</Link> · <Link href="/admin/go-live">🚀 Opening-day readiness</Link> · <Link href="/admin/import">📥 Staff import (Excel)</Link></p>
 
       {/* ---------- Give a person access ---------- */}
       {(hiredApps ?? []).length > 0 && (
@@ -54,6 +54,7 @@ export default async function AdminPage({ searchParams }) {
       )}
       <form action={inviteUser} className="card" id="add" key={pre?.id ?? 'blank'}>
         <h2>Give a person access</h2>
+        <p className="muted small">Adding many people? Use <Link href="/admin/import">Staff import</Link> with the Excel template.</p>
         {pre && <><input type="hidden" name="from_app" value={pre.id} /><p className="message ok small">Filled in from {pre.first_name} {pre.last_name}’s application for {pre.posting?.title}. Check the access level, house and joining date.</p></>}
         <p className="muted small">
           They sign in at the login page with a code sent to the email or cell you enter here.
