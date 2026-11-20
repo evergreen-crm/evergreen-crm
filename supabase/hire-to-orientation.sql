@@ -129,3 +129,29 @@ end $function$;
 revoke execute on function public.prescreen_request_hire(uuid) from public, anon;
 grant execute on function public.prescreen_request_hire(uuid) to authenticated, service_role;
 revoke execute on function public.offer_accepted_orientation(), public.prescreen_post_from_orientation(), public.prescreen_post_from_probation() from public, anon, authenticated;
+
+-- Accepting the offer ticks the onboarding "offer" item (accept_offer sets evg.offer_sign for that one update).
+-- The checklist guard blocked it for staff, so the offer could not be accepted once onboarding had started.
+create or replace function public.guard_onboarding_item()
+returns trigger language plpgsql set search_path to 'public', 'extensions', 'pg_temp' as $function$
+declare boss boolean := app_role() in ('admin','manager');
+  offer_sign boolean := coalesce(current_setting('evg.offer_sign', true), '') = '1' and new.item_key = 'offer' and old.item_key = 'offer';
+begin
+  if new.signed_name is distinct from old.signed_name then
+    new.signed_at := case when new.signed_name is null then null else now() end;
+  elsif new.signed_at is distinct from old.signed_at then
+    new.signed_at := old.signed_at;
+  end if;
+  if not boss and not offer_sign then
+    if old.status in ('Verified','N/A') then raise exception 'This item has already been verified.'; end if;
+    if new.status not in ('To do','Submitted') then raise exception 'Only a manager can verify items.'; end if;
+    if new.section is distinct from old.section or new.item_key is distinct from old.item_key
+       or new.title is distinct from old.title or new.due_date is distinct from old.due_date
+       or new.profile_id is distinct from old.profile_id or new.onboarding_id is distinct from old.onboarding_id
+       or new.reviewed_by is distinct from old.reviewed_by or new.reviewed_at is distinct from old.reviewed_at
+       or new.review_note is distinct from old.review_note or new.training_id is distinct from old.training_id then
+      raise exception 'You can only fill in and sign your own items.';
+    end if;
+  end if;
+  return new;
+end $function$;
