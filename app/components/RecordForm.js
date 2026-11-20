@@ -34,7 +34,7 @@ export default function RecordForm({ kind, homeId, residentId, path, goals, titl
         </p>
         <p className="small muted" style={{ margin: '4px 0 0' }}>Fields marked * must be filled in. Other fields are optional. Date and time are at the bottom.</p>
       </header>}
-      <form action={saveEntry}>
+      <form action={saveEntry} data-offline="entry">
         <input type="hidden" name="kind" value={kind} />
         <input type="hidden" name="home_id" value={homeId} />
         <input type="hidden" name="resident_id" value={residentId} />

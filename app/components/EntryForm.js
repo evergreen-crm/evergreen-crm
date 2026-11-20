@@ -50,7 +50,7 @@ export default function EntryForm({ kind, homeId, residentId, path, goals, share
   return (
     <details className="card no-print" open={open}>
       <summary><strong>+ {title ?? `New ${type.label.toLowerCase()} entry`}</strong></summary>
-      <form action={saveEntry}>
+      <form action={saveEntry} data-offline="entry">
         <input type="hidden" name="kind" value={kind} />
         <input type="hidden" name="home_id" value={homeId} />
         {residentId && <input type="hidden" name="resident_id" value={residentId} />}

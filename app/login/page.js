@@ -126,6 +126,7 @@ export default function LoginPage() {
       )}
 
       {message && <p className="message">{message}</p>}
+      <p className="muted small" style={{ marginTop: 24 }}>Looking for a job? See <a href="/jobs">Careers at Evergreen Community Care</a>.</p>
     </main>
   );
 }

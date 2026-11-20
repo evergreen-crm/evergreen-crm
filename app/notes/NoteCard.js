@@ -39,7 +39,7 @@ export default function NoteCard({ resident, draft, shift, day, homeId, nextId, 
   const name = resident.preferred_name || resident.first_name;
 
   return (
-    <form action={action} className={`note-card${compact ? ' compact' : ''}`}>
+    <form action={action} data-offline="note" className={`note-card${compact ? ' compact' : ''}`}>
       <input type="hidden" name="resident_id" value={resident.id} />
       <input type="hidden" name="home_id" value={homeId ?? ''} />
       {draft?.id && <input type="hidden" name="note_id" value={draft.id} />}

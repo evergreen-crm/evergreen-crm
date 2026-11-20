@@ -196,6 +196,26 @@ export async function inviteUser(formData) {
     }
   }
 
+  // 6. Hired from an online job application (plan B5): link it, and copy their certificates into the staff file
+  //    (not verified yet: HR verifies them against the originals), so expiry reminders start right away.
+  const fromApp = text(formData, 'from_app');
+  if (fromApp && /^[0-9a-f-]{36}$/i.test(fromApp) && role !== 'family') {
+    const { data: app } = await admin.from('job_applications').select('id, answers, profile_id, status').eq('id', fromApp).maybeSingle();
+    if (app && !app.profile_id) {
+      await admin.from('job_applications').update({ profile_id: userId, status: 'Hired' }).eq('id', app.id);
+      const certs = (app.answers?.certs ?? []).filter((c) => c?.name && (c.issued || c.expires));
+      if (certs.length) {
+        await admin.from('trainings').insert(certs.map((c) => ({
+          profile_id: userId, title: (c.name === 'Other' ? c.other || 'Certificate' : c.name).slice(0, 200),
+          completed_on: c.issued || new Date().toISOString().slice(0, 10), expires_on: c.expires || null,
+          certificate_no: c.number ? String(c.number).slice(0, 60) : null,
+          notes: 'From the online job application — check the original and verify.',
+        })));
+        offerNote += ` ${certs.length} certificate${certs.length === 1 ? '' : 's'} from the application copied into the staff file (to verify).`;
+      }
+    }
+  }
+
   revalidatePath('/admin');
   revalidatePath('/hr');
   redirect('/admin?ok=' + encodeURIComponent(`${fullName} can now sign in with a code.${offerNote}`));

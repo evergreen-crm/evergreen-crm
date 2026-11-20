@@ -9,7 +9,7 @@ import StorageUsage from './StorageUsage';
 
 export default async function AdminPage({ searchParams }) {
   const { supabase, user } = await requireUser(['admin']);
-  const { ok, error } = await searchParams;
+  const { ok, error, from_app: fromApp } = await searchParams;
 
   const [{ data: peopleL, error: peopleErr }, { data: homes }, { data: residents }, divLevels] = await Promise.all([
     supabase.from('profiles').select('id, full_name, email, phone, role, level, staff_group, home_id, active, homes(name)').order('full_name'),
@@ -19,6 +19,11 @@ export default async function AdminPage({ searchParams }) {
   ]);
   const { data: positions } = await supabase.rpc('pay_positions');   // positions for the job and offer letter
   const { data: extraHomes } = await supabase.from('manager_homes').select('profile_id, home_id');
+  // Hired from an online job application (plan B5): fill the form in from the application.
+  const { data: hiredApps } = await supabase.from('job_applications').select('id, first_name, last_name, email, phone, answers, posting:posting_id(title, position, employment_type, hours_per_week)')
+    .eq('status', 'Hired').is('profile_id', null).order('decided_at', { ascending: false }).limit(20);
+  const pre = (hiredApps ?? []).find((a) => a.id === fromApp) ?? null;
+  const preAddr = pre ? [pre.answers?.contact?.address, pre.answers?.contact?.city, pre.answers?.contact?.postal].filter(Boolean).join(', ') : '';
   const extraBy = {};
   for (const m of extraHomes ?? []) (extraBy[m.profile_id] ??= []).push(m.home_id);
   // Before supabase/access-levels.sql is run there is no `level` column.
@@ -41,18 +46,22 @@ export default async function AdminPage({ searchParams }) {
       {error && <p className="message">{error}</p>}
 
       <StorageUsage supabase={supabase} />
-      <p className="small"><Link href="/admin/import-policies">📘 Policy manual import / compress</Link> · <Link href="/admin/audit">🛡️ Security audit log</Link> · <Link href="/admin/duties">📋 Duty register &amp; levels</Link></p>
+      <p className="small"><Link href="/admin/import-policies">📘 Policy manual import / compress</Link> · <Link href="/admin/audit">🛡️ Security audit log</Link> · <Link href="/admin/duties">📋 Duty register &amp; levels</Link> · <Link href="/admin/access-review">🔐 Monthly access review</Link></p>
 
       {/* ---------- Give a person access ---------- */}
-      <form action={inviteUser} className="card">
+      {(hiredApps ?? []).length > 0 && (
+        <p className="message small">💼 Hired from an online application, waiting for an account: {hiredApps.map((a, i) => <span key={a.id}>{i ? ', ' : ''}<Link href={`/admin?from_app=${a.id}#add`}>{a.first_name} {a.last_name}</Link></span>)}. Click a name to fill in the form below.</p>
+      )}
+      <form action={inviteUser} className="card" id="add" key={pre?.id ?? 'blank'}>
         <h2>Give a person access</h2>
+        {pre && <><input type="hidden" name="from_app" value={pre.id} /><p className="message ok small">Filled in from {pre.first_name} {pre.last_name}’s application for {pre.posting?.title}. Check the access level, house and joining date.</p></>}
         <p className="muted small">
           They sign in at the login page with a code sent to the email or cell you enter here.
         </p>
-        <label>Full name<input name="full_name" required /></label>
+        <label>Full name<input name="full_name" required defaultValue={pre ? `${pre.first_name} ${pre.last_name ?? ''}`.trim() : undefined} /></label>
         <div className="row">
-          <label>Email<input name="email" type="email" /></label>
-          <label>Cell phone<input name="phone" type="tel" placeholder="604 555 1234" /></label>
+          <label>Email<input name="email" type="email" defaultValue={pre?.email ?? undefined} /></label>
+          <label>Cell phone<input name="phone" type="tel" placeholder="604 555 1234" defaultValue={pre?.phone ?? undefined} /></label>
         </div>
         <div className="row">
           <label>
@@ -74,20 +83,20 @@ export default async function AdminPage({ searchParams }) {
           <legend className="small"><strong>Job (staff)</strong>: fill these in and the offer letter is written and sent automatically</legend>
           <div className="row">
             <label>Position
-              <select name="position" defaultValue="">
+              <select name="position" defaultValue={pre?.posting?.position ?? ''}>
                 <option value="">—</option>
                 {(positions ?? []).map((x) => <option key={x}>{x}</option>)}
               </select>
             </label>
             <label>Full-time or part-time
-              <select name="employment_type" defaultValue=""><option value="">—</option><option>Full-time</option><option>Part-time</option></select>
+              <select name="employment_type" defaultValue={['Full-time', 'Part-time'].includes(pre?.posting?.employment_type) ? pre.posting.employment_type : ''}><option value="">—</option><option>Full-time</option><option>Part-time</option></select>
             </label>
           </div>
           <div className="row">
             <label>Joining date (first day)<input name="hire_date" type="date" /></label>
-            <label>Hours each week (blank = 36 full-time, 20 part-time)<input name="hours_per_week" type="number" min="1" max="60" step="0.5" /></label>
+            <label>Hours each week (blank = 36 full-time, 20 part-time)<input name="hours_per_week" type="number" min="1" max="60" step="0.5" defaultValue={pre?.posting?.hours_per_week ?? undefined} /></label>
           </div>
-          <label>Home address (goes on the offer letter)<input name="home_address" maxLength={200} placeholder="Street, city, BC, postal code" /></label>
+          <label>Home address (goes on the offer letter)<input name="home_address" maxLength={200} placeholder="Street, city, BC, postal code" defaultValue={preAddr || undefined} /></label>
           <p className="muted small">The letter shows the house name and address and the name of the Program Coordinator they report to, from the portal. The wage comes from <Link href="/hr/pay-rates">Pay rates</Link>. If the position has no rate yet, the letter waits and is sent the moment the rate is set. The letter needs an email address to be emailed; without one, the person sees it in the portal.</p>
         </fieldset>
         <div className="row">

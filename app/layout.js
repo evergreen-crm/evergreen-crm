@@ -8,6 +8,7 @@ import EmergencyButton from '@/app/components/EmergencyButton';
 import PwaRegister from '@/app/components/PwaRegister';
 import DatePickerOpener from '@/app/components/DatePickerOpener';
 import IdleLogout from '@/app/components/IdleLogout';
+import OfflineQueue from '@/app/components/OfflineQueue';
 import PhoneHelpers from '@/app/components/PhoneHelpers';
 import { Suspense } from 'react';
 import { after } from 'next/server';
@@ -118,7 +119,7 @@ export default async function RootLayout({ children }) {
           </header>
         )}
         <div className="print-only print-head"><img src="/logo.png" alt="Evergreen Community Care" className="print-logo" /></div>
-        <div className={`page${profile && profile.role !== 'family' ? ' has-tabs' : ''}`}>{children}</div>
+        <div className={`page${profile && profile.role !== 'family' ? ' has-tabs' : ''}`}>{profile && profile.role !== 'family' && <OfflineQueue userId={profile.id} />}{children}</div>
         {profile && profile.role !== 'family' && <MobileTabs unread={unread} todo={todo} />}
         {profile && profile.role !== 'family' && <AskSide onCall={sosHome?.on_call_phone ?? null} />}
         {profile && profile.role !== 'family' && <EmergencyButton onCall={sosHome?.on_call_phone ?? null} housePhone={sosHome?.phone ?? null} homeName={sosHome?.name ?? null} homeId={sosHome?.id ?? null} />}

@@ -95,7 +95,7 @@ export default async function ResidentPage({ params, searchParams }) {
     : { data: [] };
   const { data: notes } = await supabase
     .from('shift_notes')
-    .select('id, note_date, shift, mood, meals, activities, note, share_with_family, goal_ids, signed_at, author_id, profiles(full_name)')
+    .select('id, note_date, shift, mood, meals, activities, note, share_with_family, goal_ids, signed_at, author_id, written_offline_at, profiles(full_name)')
     .eq('resident_id', id)
     .order('created_at', { ascending: false })
     .limit(100);
@@ -218,6 +218,7 @@ export default async function ResidentPage({ params, searchParams }) {
                 ? <span className="badge">Signed {new Date(n.signed_at).toLocaleString('en-CA', { timeZone: TZ })}</span>
                 : <span className="badge warn">Draft</span>}
               {isStaff && n.share_with_family && <span className="badge">Shared with family</span>}
+              {isStaff && n.written_offline_at && <span className="badge" title="Written while the house internet was down; uploaded later">📴 Written offline</span>}
             </div>
             {(n.mood || n.meals || n.activities) && (
               <div className="muted small">

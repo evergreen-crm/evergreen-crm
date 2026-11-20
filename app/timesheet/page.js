@@ -1,5 +1,6 @@
 // Timesheets: clock in / out, two-week pay periods, manager approval.
 import { canPayroll } from '@/lib/levels';
+import { canExportPayroll } from '@/lib/payrollData';
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { payPeriod, addDaysISO, todayISO, fmtDate, fmtDateTime, TZ } from '@/lib/options';
@@ -44,7 +45,7 @@ export default async function TimesheetPage({ searchParams }) {
           <Link href={qs({ p: addDaysISO(period.start, 14) })}>Next →</Link>
         </span>
       </div>
-      <p className="muted">Pay period {fmtDate(period.start)} to {fmtDate(period.end)} · <Link href="/id">📍 Clock in and check in with location from your ID card</Link>{isMgr && <> · <Link href="/checkins">Check-in log</Link></>}</p>
+      <p className="muted">Pay period {fmtDate(period.start)} to {fmtDate(period.end)} · <Link href="/id">📍 Clock in and check in with location from your ID card</Link>{isMgr && <> · <Link href="/checkins">Check-in log</Link></>}{canExportPayroll(profile) && <> · <Link href={`/timesheet/export?p=${period.start}`}>⬇ Payroll export</Link></>}</p>
 
       <div className="card no-print">
         {openEntry

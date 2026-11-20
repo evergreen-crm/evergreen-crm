@@ -40,7 +40,9 @@ export async function proxy(request) {
   const path = request.nextUrl.pathname;
   // /verify is public: anyone can scan a staff ID card's QR code.
   // /api/cron/ is called by Vercel's scheduler and checks its own secret.
-  if (!user && !path.startsWith('/login') && !path.startsWith('/auth/callback') && !path.startsWith('/verify/') && !path.startsWith('/f/') && !path.startsWith('/api/cron/')) {
+  // /jobs (Careers) and /apply (an applicant's private link, opened with an email code) are public (plan B5).
+  if (!user && !path.startsWith('/login') && !path.startsWith('/auth/callback') && !path.startsWith('/verify/') && !path.startsWith('/f/') && !path.startsWith('/api/cron/')
+      && path !== '/jobs' && !path.startsWith('/jobs/') && !path.startsWith('/apply/') && path !== '/api/apply-upload') {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
