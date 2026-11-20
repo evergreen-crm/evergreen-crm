@@ -4,6 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requirePrescreen } from '@/lib/prescreenAuth';
 import { ALL_ITEMS, ITEM_KEYS, POSITIONS, POST, INTERVIEW, clearance } from '@/lib/prescreen';
+import { createAdminClient, adminKey } from '@/lib/supabase/admin';
+import { emailPrescreenLink } from '@/lib/prescreenLink';
+import { sendEmail } from '@/lib/email';
+import { fmtDate } from '@/lib/options';
 
 const text = (fd, k) => { const v = fd.get(k); return typeof v === 'string' && v.trim() !== '' ? v.trim() : null; };
 const newToken = () => (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, '');
@@ -28,7 +32,79 @@ export async function createPrescreen(fd) {
   }).select('id').single();
   if (error) redirect('/hr/prescreen?error=' + encodeURIComponent(error.message));
   revalidatePath('/hr/prescreen');
-  redirect(`/hr/prescreen/${data.id}?tab=link`);
+  // Email the private link straight away (Melvin, Nov 20: HR only enters the details; the applicant does the rest).
+  let note = 'Pre-screening file made.';
+  if (email && adminKey()) {
+    const r = await emailPrescreenLink(createAdminClient(), data.id);
+    note = r.ok ? `Pre-screening file made and the private link was emailed to ${r.to}.` : `Pre-screening file made. The link could not be emailed (${r.error}); copy it below and send it yourself.`;
+  }
+  redirect(`/hr/prescreen/${data.id}?tab=link&ok=${encodeURIComponent(note)}`);
+}
+
+export async function emailLinkAgain(fd) {
+  await requirePrescreen(['admin', 'hr']);
+  const id = text(fd, 'id');
+  if (!adminKey()) back(id, 'link', 'The server key is not set.');
+  const r = await emailPrescreenLink(createAdminClient(), id);
+  if (r.error) back(id, 'link', 'Could not email the link: ' + r.error);
+  back(id, 'link', `Link emailed to ${r.to}.`, true);
+}
+
+// Review the signed pre-screen first: it passes or it doesn't. Nothing about an interview happens before this.
+export async function decidePrescreen(fd) {
+  const { supabase, profile } = await requirePrescreen();
+  const id = text(fd, 'id');
+  const decision = text(fd, 'decision');
+  if (!['Passed', 'Not passed'].includes(decision)) back(id, 'application', 'Choose passes or doesn’t pass.');
+  const { data: p, error } = await supabase.from('prescreens').update({ screen_decision: decision, screen_note: text(fd, 'note'), screen_decided_by: profile.id, screen_decided_at: new Date().toISOString() })
+    .eq('id', id).eq('link_status', 'Submitted').select('id, first_name, email, application_no, decline_emailed_at, posting:posting_id(title)').single();
+  if (error || !p) back(id, 'application', error?.message ?? 'The pre-screen has to be signed first.');
+  let note = decision === 'Passed' ? 'Marked as passing the pre-screen. Now set the interview from their availability.' : 'Marked as not passing the pre-screen.';
+  if (decision === 'Not passed' && fd.get('send_email') === 'on' && p.email && !p.decline_emailed_at) {
+    const r = await sendEmail({ to: p.email, subject: `Your application to Evergreen Community Care — ${p.application_no}`,
+      text: `Hello ${p.first_name},\n\nThank you for your interest in working with Evergreen Community Care${p.posting?.title ? ` (${p.posting.title})` : ''} and for completing your pre-screen (application ${p.application_no}). After careful review, we will not be moving forward with your application at this time.\n\nYou are welcome to apply for future openings on our Careers page.\n\nWe wish you all the best.\n\nEvergreen Community Care — HR` });
+    if (!r.error) { await createAdminClient().from('prescreens').update({ decline_emailed_at: new Date().toISOString() }).eq('id', id); note += ' The email was sent.'; }
+    else note += ` The email could not be sent (${r.error}).`;
+  }
+  revalidatePath('/hr/prescreen');
+  back(id, decision === 'Passed' ? 'interview' : 'application', note, true);
+}
+
+// Set the interview (only after the pre-screen passes): date and time from the applicant's availability, how, where,
+// and who interviews. The applicant is emailed; the interviewers get an alert and a reminder the day before.
+export async function setInterview(fd) {
+  const { supabase, profile } = await requirePrescreen();
+  const id = text(fd, 'id');
+  const when = text(fd, 'when');   // datetime-local, Pacific (UTC-7)
+  if (!when || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(when)) back(id, 'interview', 'Choose the interview date and time.');
+  const at = new Date(when + ':00-07:00');
+  if (at < new Date()) back(id, 'interview', 'The interview time is in the past.');
+  const format = ['In person', 'Video call', 'Phone'].includes(text(fd, 'format')) ? text(fd, 'format') : 'In person';
+  const where = text(fd, 'where');
+  const withIds = fd.getAll('with').filter((x) => /^[0-9a-f-]{36}$/i.test(String(x)));
+  if (!withIds.length) withIds.push(profile.id);
+  const { data: p, error } = await supabase.from('prescreens').update({
+    interview_at: at.toISOString(), interview_format: format, interview_where: where, interview_with: withIds, interview_note: text(fd, 'note'),
+    interview_set_by: profile.id, interview_reminded_at: null,
+  }).eq('id', id).eq('screen_decision', 'Passed').select('id, first_name, last_name, email, application_no, posting:posting_id(title)').single();
+  if (error || !p) back(id, 'interview', error?.message ?? 'Mark the pre-screen as passing first.');
+  const whenText = at.toLocaleString('en-CA', { timeZone: 'Etc/GMT+7', weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const admin = adminKey() ? createAdminClient() : null;
+  let note = `Interview set for ${whenText}.`;
+  if (admin) {
+    for (const w of withIds) {
+      await admin.rpc('notify', { pid: w, t: `Interview: ${p.first_name} ${p.last_name ?? ''} (${p.application_no})`, b: `${whenText} · ${format}${where ? ` · ${where}` : ''}`, l: `/hr/prescreen/${id}?tab=interview`, k: `prescreen-int:${id}:${w}:${at.getTime()}` });
+    }
+    if (p.email) {
+      const how = format === 'In person' ? `In person${where ? ` at ${where}` : ''}` : format === 'Video call' ? `Video call${where ? `: ${where}` : ' (we will send the link)'}` : `Phone${where ? ` — ${where}` : ' (we will call the number you gave)'}`;
+      const r = await sendEmail({ to: p.email, subject: `Your interview with Evergreen Community Care — ${whenText}`,
+        text: `Hello ${p.first_name},\n\nThank you for completing your pre-screen (application ${p.application_no}). We would like to invite you to an interview${p.posting?.title ? ` for ${p.posting.title}` : ''}.\n\nWhen: ${whenText} (Pacific time)\nHow: ${how}\n${text(fd, 'note') ? `\n${text(fd, 'note')}\n` : ''}\nPlease bring your government photo ID (we only note the type of ID) and the originals of your certificates.\n\nIf this time doesn't work, reply to this email or call us and we'll find another time.\n\nEvergreen Community Care — HR` });
+      if (!r.error) { await admin.from('prescreens').update({ interview_emailed_at: new Date().toISOString() }).eq('id', id); note += ` ${p.first_name} was emailed the details.`; }
+      else note += ` The email to the applicant could not be sent (${r.error}); please call them.`;
+    }
+  }
+  revalidatePath('/hr/prescreen');
+  back(id, 'interview', note, true);
 }
 
 export async function renewLink(fd) {
@@ -39,7 +115,8 @@ export async function renewLink(fd) {
     otp_sent_at: null, otp_attempts: 0, expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
   }).eq('id', id).neq('link_status', 'Submitted');
   if (error) back(id, 'link', error.message);
-  back(id, 'link', 'New link made. The old link no longer works. Send the new one.', true);
+  const r = adminKey() ? await emailPrescreenLink(createAdminClient(), id) : { error: 'no server key' };
+  back(id, 'link', r.ok ? `New link made and emailed to ${r.to}. The old link no longer works.` : 'New link made. The old link no longer works. Send the new one (it could not be emailed automatically).', true);
 }
 
 export async function cancelLink(fd) {

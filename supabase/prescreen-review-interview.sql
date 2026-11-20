@@ -21,6 +21,7 @@ revoke execute on function public.next_application_no() from public, anon, authe
 alter table public.job_applications add column if not exists application_no text unique;
 alter table public.prescreens add column if not exists application_no text unique;
 alter table public.prescreens add column if not exists prefill jsonb;
+alter table public.prescreens add column if not exists posting_id uuid references public.job_postings(id) on delete set null;
 alter table public.prescreens add column if not exists cert_files jsonb not null default '[]'::jsonb;
 alter table public.prescreens add column if not exists screen_decision text check (screen_decision in ('Passed','Not passed'));
 alter table public.prescreens add column if not exists screen_note text check (length(screen_note) <= 2000);
@@ -112,3 +113,8 @@ grant execute on function public.prescreen_interviews_tomorrow() to service_role
 update storage.buckets set allowed_mime_types = array['application/pdf','application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/png']
  where id = 'applications';
+
+-- Drafts (Melvin, Nov 20): the pre-screen is filled in step by step with "Save as draft"; the draft is kept on the
+-- file (not on the device) so the applicant can finish on another phone or computer. Cleared when they sign.
+alter table public.prescreens add column if not exists draft jsonb check (pg_column_size(draft) < 200000);
+alter table public.prescreens add column if not exists draft_saved_at timestamptz;

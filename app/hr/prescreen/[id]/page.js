@@ -16,7 +16,10 @@ import {
 } from '@/lib/prescreen';
 import {
   renewLink, cancelLink, openInPerson, saveProfile, saveChecklist, saveInterview, saveReference, signOffPost, saveFileStatus, deletePrescreen,
+  emailLinkAgain, decidePrescreen, setInterview,
 } from '../actions';
+import { CHECKLIST, checklistFor, STATUS } from '@/lib/prescreenChecklist';
+import { INTERVIEW_DAYS, INTERVIEW_TIMES } from '@/lib/prescreen';
 
 export const metadata = { title: 'Screening file · Evergreen' };
 
@@ -32,8 +35,11 @@ export default async function PrescreenFile({ params, searchParams }) {
   const { id } = await params;
   const sp = await searchParams;
   const { supabase, profile, prescreenRole } = await requirePrescreen();
-  const { data: p } = await supabase.from('prescreens').select('*').eq('id', id).maybeSingle();
+  const { data: p } = await supabase.from('prescreens').select('*, posting:posting_id(title, job_id), decider:screen_decided_by(full_name)').eq('id', id).maybeSingle();
   if (!p) notFound();
+  // Signed links (10 minutes) to the resume, cover letter and certificate photos.
+  const signUrl = async (path) => (path ? (await supabase.storage.from('applications').createSignedUrl(path, 600)).data?.signedUrl ?? null : null);
+  const docUrls = { resume: await signUrl(p.resume_path), cover: await signUrl(p.cover_path), certs: await Promise.all((p.cert_files ?? []).map(async (f) => ({ ...f, url: await signUrl(f.path) }))) };
 
   const submitted = p.link_status === 'Submitted';
   const canHr = prescreenRole === 'admin' || prescreenRole === 'hr';
@@ -51,7 +57,9 @@ export default async function PrescreenFile({ params, searchParams }) {
         <h1>{p.first_name} {p.last_name} <ProgramBadge program={p.program} /></h1>
         {clr ? <span className={`ps-clr ps-${clr}`}>{CLEARANCE[clr].label}</span> : <span className="badge warn">Waiting for applicant</span>}
       </div>
-      <p className="muted">{p.position ?? 'Position not chosen'} · {p.worker_type ?? 'Employee'}{submitted && ` · signed ${fmtDateTime(p.signed_at)}`}{p.file_status !== 'Open' && ` · ${p.file_status}`}</p>
+      <p className="muted"><strong>{p.application_no}</strong> · {p.position ?? 'Position not chosen'} · {p.worker_type ?? 'Employee'}{p.posting && <> · <Link href={`/jobs/${p.posting.job_id}`}>{p.posting.title} ({p.posting.job_id})</Link></>}{submitted && ` · signed ${fmtDateTime(p.signed_at)}`}{p.file_status !== 'Open' && ` · ${p.file_status}`}
+        {p.screen_decision && <> · <span className={`badge${p.screen_decision === 'Passed' ? '' : ' bad'}`}>Pre-screen {p.screen_decision.toLowerCase()}</span></>}
+        {p.interview_at && <> · 📅 interview {new Date(p.interview_at).toLocaleString('en-CA', { timeZone: 'Etc/GMT+7', dateStyle: 'medium', timeStyle: 'short' })}</>}</p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
       {sp.error && <p className="message">{plainError(sp.error)}</p>}
 
@@ -69,8 +77,8 @@ export default async function PrescreenFile({ params, searchParams }) {
 
       {tab === 'link' && <LinkTab p={p} canHr={canHr} sender={profile.full_name} />}
       {tab === 'checklist' && <ChecklistTab p={p} role={prescreenRole} canHr={canHr} />}
-      {tab === 'application' && <ApplicationTab p={p} />}
-      {tab === 'interview' && <InterviewTab p={p} />}
+      {tab === 'application' && <ApplicationTab p={p} docUrls={docUrls} />}
+      {tab === 'interview' && <><SetInterview p={p} supabase={supabase} /><InterviewTab p={p} /></>}
       {tab === 'references' && <ReferencesTab p={p} requests={refReq} />}
       {tab === 'clearance' && <ClearanceTab p={p} clr={clr ?? 'yellow'} canHr={canHr} />}
     </main>
@@ -93,9 +101,12 @@ async function LinkTab({ p, canHr, sender }) {
         {p.verified_at && <span className="muted small"> · email code confirmed {fmtDateTime(p.verified_at)}</span>}
         <span className="muted small"> · works until {fmtDate(p.expires_at?.slice(0, 10))}</span>
         {p.require_code && p.email && ' · 🔒 email code'}</p>
+      {p.link_emailed_at && <p className="message ok small">📧 The portal emailed the link to {p.link_emailed_to} on {fmtDateTime(p.link_emailed_at)}.</p>}
+      {p.draft_saved_at && <p className="small">💾 The applicant saved a draft {fmtDateTime(p.draft_saved_at)}.</p>}
       {p.link_status !== 'Cancelled' && !expired && (
         <div className="row" style={{ alignItems: 'center' }}>
-          {p.email && <a className="button" href={mailto(p, url, sender)}>📧 Email the link to {p.email}</a>}
+          {p.email && canHr && <form action={emailLinkAgain}><Hidden id={p.id} /><button>📧 {p.link_emailed_at ? 'Email the link again' : `Email the link to ${p.email}`}</button></form>}
+          {p.email && <a className="button secondary" href={mailto(p, url, sender)}>Open in my email</a>}
           <CopyLink url={url} />
         </div>
       )}
@@ -186,7 +197,7 @@ function ChecklistTab({ p, role, canHr }) {
 }
 const submitted = (p) => p.link_status === 'Submitted';
 
-function ApplicationTab({ p }) {
+function ApplicationTab({ p, docUrls }) {
   const a = p.application;
   if (!a) return <section className="card"><p className="muted">The applicant hasn’t signed the prescreen yet. Send the link from the <Link href={`/hr/prescreen/${p.id}?tab=link`}>Applicant link</Link> tab.</p></section>;
   const ap = a.applicant ?? {}, sc = a.screen ?? {}, ex = a.experience ?? {};
@@ -194,6 +205,28 @@ function ApplicationTab({ p }) {
   const KV = ({ rows }) => <dl className="ps-kv">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v || <span className="muted">—</span>}</dd></div>)}</dl>;
   return (
     <>
+      <Decision p={p} />
+      <section className="card"><h2>Documents</h2>
+        <p>{docUrls.resume ? <a href={docUrls.resume} target="_blank" rel="noopener">📄 Resume: {p.resume_name}</a> : <span className="bad-text">No resume uploaded</span>}
+          {docUrls.cover && <> · <a href={docUrls.cover} target="_blank" rel="noopener">📄 Cover letter</a></>}</p>
+      </section>
+      <section className="card"><h2>Requirements checklist</h2>
+        <table className="small"><thead><tr><th>Requirement</th><th>Answer</th><th>Documents</th></tr></thead>
+          <tbody>{checklistFor({ program: ap.program || p.program, drives: sc.drive === 'yes' || p.drives, meds: p.gives_meds !== false, outside: sc.outside === 'yes' }).flatMap((g) => g.items).filter((i) => i.kind !== 'later' && i.kind !== 'resume').map((i) => {
+            const v = a.check?.[i.k] ?? {}; const docs = docUrls.certs.filter((f) => f.key === i.k);
+            return (<tr key={i.k}><td>{i.l}</td>
+              <td>{v.status ? (i.kind === 'doc' ? STATUS[v.status] : v.status === 'yes' ? 'Yes' : <span className="bad-text">No</span>) : <span className="muted">—</span>}{v.exp ? ` · expires ${fmtDate(v.exp)}` : ''}</td>
+              <td>{docs.length ? docs.map((d) => <div key={d.path}>{d.url ? <a href={d.url} target="_blank" rel="noopener">📷 {d.name}</a> : d.name}</div>) : <span className="muted">—</span>}</td></tr>);
+          })}</tbody></table>
+        <p className="muted small">Certificates are checked against the originals at the interview and verified with the issuer before clearance.</p>
+      </section>
+      <section className="card"><h2>Interview availability</h2>
+        {(a.interview_avail?.slots ?? []).length ? (
+          <table className="small"><thead><tr><th></th>{INTERVIEW_TIMES.map(([k, l]) => <th key={k}>{l}</th>)}</tr></thead>
+            <tbody>{INTERVIEW_DAYS.map((d) => <tr key={d}><td>{d}</td>{INTERVIEW_TIMES.map(([k]) => <td key={k} style={{ textAlign: 'center' }}>{a.interview_avail.slots.includes(`${d} ${k}`) ? '✅' : ''}</td>)}</tr>)}</tbody></table>
+        ) : <p className="muted small">No times ticked.</p>}
+        {a.interview_avail?.note && <p className="small">Note: {a.interview_avail.note}</p>}
+      </section>
       <section className="card"><h2>Identification & contact</h2>
         <KV rows={[['Name', `${ap.first} ${ap.last}`], ['Date of birth', ap.dob && fmtDate(ap.dob)], ['Address', ap.address], ['Phone', ap.phone], ['Email', ap.email],
           ['Position', ap.position], ['Applying as', ap.type], ['Will work with', prog], ['Earliest start', ap.start && fmtDate(ap.start)], ['Shifts', (ap.avail ?? []).join(', ')]]} />
@@ -219,7 +252,7 @@ function ApplicationTab({ p }) {
         ))}
       </section>
       <section className="card"><h2>Declaration & signature</h2>
-        <KV rows={[['Information is true', a.consent?.truthful ? 'Yes' : 'No'], ['Consents to verification', a.consent?.verify ? 'Yes' : 'No'],
+        <KV rows={[['Information is true', a.consent?.truthful ? 'Yes' : 'No'], ['Documents are genuine and unaltered', a.consent?.documents ? 'Yes' : 'No (signed before this was asked)'], ['Consents to verification', a.consent?.verify ? 'Yes' : 'No'],
           ['Accepts screening requirements', a.consent?.screening ? 'Yes' : 'No'], ['Signed by', p.signed_name], ['Signed', fmtDateTime(p.signed_at)], ['Device', p.signer_ip]]} />
         {p.signature && <div className="sig-show"><img src={p.signature} alt={`Signature of ${p.signed_name}`} /></div>}
         <p className="muted small">The signed application is locked and can’t be edited.</p>
@@ -366,5 +399,64 @@ function ClearanceTab({ p, clr, canHr }) {
         </form>
       )}
     </>
+  );
+}
+
+
+// Review first: the pre-screen passes or it doesn't. No interview is booked before it passes.
+function Decision({ p }) {
+  if (p.link_status !== 'Submitted') return null;
+  if (p.screen_decision) return (
+    <section className="card" style={{ borderLeft: `4px solid ${p.screen_decision === 'Passed' ? '#0b5a34' : '#b42318'}` }}>
+      <h2 style={{ marginTop: 0 }}>Pre-screen {p.screen_decision.toLowerCase()}</h2>
+      <p className="small">Decided {fmtDateTime(p.screen_decided_at)} by {p.decider?.full_name ?? '—'}{p.screen_note ? ` · ${p.screen_note}` : ''}{p.decline_emailed_at ? ' · polite email sent' : ''}</p>
+      {p.screen_decision === 'Passed' && <p><Link className="button" href={`/hr/prescreen/${p.id}?tab=interview`}>📅 {p.interview_at ? 'See or change the interview' : 'Set the interview'}</Link></p>}
+    </section>
+  );
+  return (
+    <section className="card" style={{ borderLeft: '4px solid #c77700' }}>
+      <h2 style={{ marginTop: 0 }}>Review this pre-screen</h2>
+      <p className="small">Read the answers, documents and checklist below, then decide. An interview can only be set after it passes.</p>
+      <form action={decidePrescreen}>
+        <Hidden id={p.id} />
+        <label>Note (optional, only your team sees it)<input name="note" maxLength={2000} /></label>
+        <div className="row" style={{ alignItems: 'center' }}>
+          <button name="decision" value="Passed">✅ Passes the pre-screen</button>
+          <label className="check small"><input type="checkbox" name="send_email" defaultChecked /> send the polite email if it doesn’t pass</label>
+          <button name="decision" value="Not passed" className="danger">Doesn’t pass</button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+// Set the interview from the applicant's availability (after the pre-screen passes).
+async function SetInterview({ p, supabase }) {
+  if (p.screen_decision !== 'Passed') return (
+    <section className="card"><p className="muted small">{p.link_status === 'Submitted' ? 'Decide whether the pre-screen passes (Application tab) before setting an interview.' : 'The applicant hasn’t signed the pre-screen yet.'}</p></section>
+  );
+  const { data: people } = await supabase.from('profiles').select('id, full_name, role, level, staff_group, active').eq('active', true).neq('role', 'family').order('full_name');
+  const team = (people ?? []).filter((x) => x.role === 'admin' || x.staff_group === 'hr' || (!x.staff_group && (x.level ?? 0) >= 2));
+  const slots = p.application?.interview_avail?.slots ?? [];
+  const local = p.interview_at ? new Date(new Date(p.interview_at).getTime() - 7 * 3600e3).toISOString().slice(0, 16) : '';
+  return (
+    <section className="card" style={{ borderLeft: '4px solid #0b5a34' }}>
+      <h2 style={{ marginTop: 0 }}>📅 {p.interview_at ? 'Interview' : 'Set the interview'}</h2>
+      {p.interview_at && <p className="message ok small">Set for {new Date(p.interview_at).toLocaleString('en-CA', { timeZone: 'Etc/GMT+7', dateStyle: 'full', timeStyle: 'short' })} · {p.interview_format}{p.interview_where ? ` · ${p.interview_where}` : ''}{p.interview_emailed_at ? ` · applicant emailed ${fmtDateTime(p.interview_emailed_at)}` : ''}. Changing it below emails the new time.</p>}
+      <p className="small">Applicant’s availability: {slots.length ? slots.map((x) => { const [d, t] = x.split(' '); return `${d} ${INTERVIEW_TIMES.find(([k]) => k === t)?.[1] ?? t}`; }).join(', ') : 'none ticked'}{p.application?.interview_avail?.note ? ` · “${p.application.interview_avail.note}”` : ''}</p>
+      <form action={setInterview}>
+        <Hidden id={p.id} />
+        <div className="row">
+          <label>Date and time *<input type="datetime-local" name="when" required defaultValue={local} /></label>
+          <label>How<select name="format" defaultValue={p.interview_format ?? 'In person'}><option>In person</option><option>Video call</option><option>Phone</option></select></label>
+        </div>
+        <label>Where / video link / phone number<input name="where" maxLength={500} defaultValue={p.interview_where ?? ''} placeholder="e.g. Evergreen office, 123 Main St, Surrey · or a Teams link" /></label>
+        <fieldset style={{ border: 0, padding: 0 }}><legend className="small"><strong>Who interviews</strong> (they get an alert and a reminder the day before)</legend>
+          {team.map((x) => <label key={x.id} className="check small"><input type="checkbox" name="with" value={x.id} defaultChecked={(p.interview_with ?? []).includes(x.id)} /> {x.full_name}</label>)}
+        </fieldset>
+        <label>Message for the applicant (optional)<input name="note" maxLength={1000} defaultValue={p.interview_note ?? ''} placeholder="e.g. Ask for Sam at the front desk" /></label>
+        <button>{p.interview_at ? 'Change the interview and email the applicant' : 'Set the interview and email the applicant'}</button>
+      </form>
+    </section>
   );
 }

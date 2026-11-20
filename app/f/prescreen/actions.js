@@ -7,6 +7,8 @@ import { createAdminClient, adminKey } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email';
 import { validateApplication, SELF } from '@/lib/prescreen';
 import { createReferenceRequests, cleanRefs } from '@/lib/references';
+import { CHECKLIST, checklistFor, checklistErrors } from '@/lib/prescreenChecklist';
+import { INTERVIEW_DAYS, INTERVIEW_TIMES } from '@/lib/prescreen';
 
 const sha = (s) => createHash('sha256').update(s).digest('hex');
 const codeHash = (token, code) => sha(`prescreen:${token}:${code}:${adminKey() ?? ''}`);
@@ -68,14 +70,40 @@ function cleanApplication(a = {}) {
       roles: [0, 1].map((i) => { const r = ex.roles?.[i] ?? {}; return { employer: str(r.employer, 120), title: str(r.title, 120), from: str(r.from, 7), to: str(r.to, 7), duties: str(r.duties, 1500) }; }) },
     self: Object.fromEntries(SELF.map((s) => [s.k, { has: str(a.self?.[s.k]?.has, 10), exp: str(a.self?.[s.k]?.exp, 10) }])),
     refs: [0, 1, 2].map((i) => { const r = a.refs?.[i] ?? {}; return { name: str(r.name, 120), title: str(r.title, 120), org: str(r.org, 160), rel: str(r.rel, 60), phone: str(r.phone, 40), email: str(r.email, 120), years: str(r.years, 40) }; }),
-    consent: { truthful: a.consent?.truthful === true, verify: a.consent?.verify === true, screening: a.consent?.screening === true },
+    consent: { truthful: a.consent?.truthful === true, verify: a.consent?.verify === true, screening: a.consent?.screening === true, documents: a.consent?.documents === true },
+    check: Object.fromEntries(CHECKLIST.flatMap((g) => g.items).map((i) => [i.k, a.check?.[i.k]]).filter(([, v]) => v && typeof v === 'object')
+      .map(([k, v]) => [k, { status: ['yes', 'no', 'progress'].includes(v.status) ? v.status : '', exp: /^\d{4}-\d{2}-\d{2}$/.test(v.exp ?? '') ? v.exp : '' }])),
+    interview_avail: {
+      slots: (Array.isArray(a.interview_avail?.slots) ? a.interview_avail.slots : []).filter((x) => INTERVIEW_DAYS.some((d) => INTERVIEW_TIMES.some(([t]) => x === `${d} ${t}`))).slice(0, 21),
+      note: str(a.interview_avail?.note, 300),
+    },
   };
+}
+
+// Save the pre-screen as a draft (step by step, any device). Same checks as uploads: the private link, and the
+// email-code session when the link needs one; only until it is signed.
+export async function savePrescreenDraft(token, answers) {
+  if (!validToken(token) || !adminKey()) return { error: 'This link is not valid.' };
+  const admin = createAdminClient();
+  const { data: p } = await admin.from('prescreens').select('id, link_status, expires_at, require_code, session_hash').eq('token', token).maybeSingle();
+  if (!p || !['Sent', 'Opened'].includes(p.link_status) || (p.expires_at && new Date(p.expires_at) < new Date())) return { error: 'This link can no longer be saved.' };
+  if (p.require_code && (await sessionHashFor(token)) !== p.session_hash) return { error: 'Your session has ended. Open the link from your email again.' };
+  const clean = cleanApplication(answers);
+  if (JSON.stringify(clean).length > 150000) return { error: 'The answers are too long to save. Please shorten some.' };
+  const savedAt = new Date().toISOString();
+  const { error } = await admin.from('prescreens').update({ draft: clean, draft_saved_at: savedAt }).eq('id', p.id).in('link_status', ['Sent', 'Opened']);
+  return error ? { error: 'Could not save the draft: ' + error.message } : { ok: true, savedAt };
 }
 
 export async function submitPrescreen(token, answers, signedName, signature) {
   if (!validToken(token)) return { error: 'This link is not valid.' };
   const clean = cleanApplication(answers);
   const errs = validateApplication(clean, signedName, signature);
+  // The checklist and resume (files are checked on the server, not taken from the browser).
+  if (adminKey()) {
+    const { data: f } = await createAdminClient().from('prescreens').select('resume_path, drives, gives_meds, program').eq('token', token).maybeSingle();
+    if (f) errs.push(...checklistErrors(clean.check, checklistFor({ program: clean.applicant.program || f.program, drives: clean.screen.drive === 'yes' || f.drives, meds: f.gives_meds !== false, outside: clean.screen.outside === 'yes' }), { resume: f.resume_path }));
+  }
   if (errs.length) return { error: errs.join(' ') };
   const h = await headers();
   const ip = (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || h.get('x-real-ip') || '';
@@ -97,6 +125,9 @@ export async function submitPrescreen(token, answers, signedName, signature) {
       const { data: p } = await admin.from('prescreens').select('id, first_name, last_name, position').eq('token', token).maybeSingle();
       if (p) await createReferenceRequests(admin, { prescreenId: p.id, aboutName: `${clean.applicant?.first || p.first_name} ${clean.applicant?.last || p.last_name || ''}`.trim(),
         position: clean.applicant?.position || p.position, refs: cleanRefs(clean.refs) });
+      // 🔔 Tell HR and the PCs / PMs who review pre-screens (Melvin, Nov 20).
+      if (p) await admin.rpc('notify_prescreen_reviewers', { pid: p.id });
+      if (p) await admin.from('prescreens').update({ draft: null }).eq('id', p.id);
     }
   } catch {}
   return { ok: true };

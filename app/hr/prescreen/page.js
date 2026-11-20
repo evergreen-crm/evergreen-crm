@@ -14,7 +14,7 @@ export default async function PrescreenList({ searchParams }) {
   const sp = await searchParams;
   const { supabase, prescreenRole } = await requirePrescreen();
   const { data } = await supabase.from('prescreens')
-    .select('id, first_name, last_name, position, worker_type, program, drives, gives_meds, lived_outside, link_status, signed_at, items, interview, ref_checks, post, file_status, created_at')
+    .select('id, first_name, last_name, position, worker_type, program, drives, gives_meds, lived_outside, link_status, signed_at, items, interview, ref_checks, post, file_status, created_at, application_no, screen_decision, interview_at')
     .order('created_at', { ascending: false });
   const rows = (data ?? []).map((p) => {
     const waiting = p.link_status !== 'Submitted';
@@ -83,7 +83,7 @@ export default async function PrescreenList({ searchParams }) {
               const avg = interviewAvg(p);
               return (
                 <tr key={p.id} className={p.file_status === 'Not moving forward' ? 'inactive' : ''}>
-                  <td><Link href={`/hr/prescreen/${p.id}`}><strong>{p.first_name} {p.last_name}</strong></Link>
+                  <td><Link href={`/hr/prescreen/${p.id}`}><strong>{p.first_name} {p.last_name}</strong></Link>{p.application_no && <div className="muted small">{p.application_no}{p.link_status === 'Submitted' && !p.screen_decision ? ' · ⏳ to review' : p.screen_decision ? ` · pre-screen ${p.screen_decision.toLowerCase()}` : ''}{p.interview_at ? ' · 📅 interview set' : ''}</div>}
                     <div className="muted small">{p.position ?? '—'}{p.worker_type && ` · ${p.worker_type}`}</div></td>
                   <td><ProgramBadge program={p.program} /></td>
                   <td>{waiting ? <span className="badge warn">{p.link_status === 'Cancelled' ? 'Link cancelled' : p.link_status === 'Opened' ? 'Applicant opened link' : 'Link sent'}</span> : step[1]}

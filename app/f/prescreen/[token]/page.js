@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { fmtDateTime } from '@/lib/options';
 import { sessionHashFor } from '@/app/f/prescreen/actions';
+import { createAdminClient, adminKey } from '@/lib/supabase/admin';
 import PrescreenCodeGate from './PrescreenCodeGate';
 import PrescreenFill from './PrescreenFill';
 
@@ -42,14 +43,20 @@ export default async function PrescreenPage({ params }) {
     );
   }
 
+  // Extra details for this link (the token is the key): application number, job, copied answers, files already uploaded.
+  const { data: x } = adminKey() ? await createAdminClient().from('prescreens')
+    .select('application_no, prefill, draft, draft_saved_at, program, drives, gives_meds, lived_outside, resume_name, cover_name, cert_files, posting:posting_id(title, job_id)').eq('token', token).maybeSingle() : { data: null };
+  const files = { resume: x?.resume_name ?? null, cover: x?.cover_name ?? null, docs: (x?.cert_files ?? []).map((f) => ({ key: f.key, name: f.name, path: f.path })) };
   return (
     <Shell>
       <div className="if-title card">
-        <p className="muted small">Evergreen Community Care · Pre-employment screening</p>
+        <p className="muted small">Evergreen Community Care · Pre-employment screening{x?.application_no ? ` · Application ${x.application_no}` : ''}</p>
         <h1>Tell us about yourself</h1>
-        <p className="small">This takes about 15 minutes. Fields marked * are required. You’ll type your experience, list three work references (one must be a manager or supervisor) and sign at the end.</p>
+        {x?.posting && <p className="small">Job: <a href={`/jobs/${x.posting.job_id}`} target="_blank" rel="noopener">{x.posting.title} ({x.posting.job_id})</a></p>}
+        <p className="small">This takes about 15–20 minutes on a phone or computer. Fields marked * are required. You’ll tick the requirements checklist and upload your resume and certificates, list three supervisor references, tell us when you can come to an interview, and sign at the end.</p>
       </div>
-      <PrescreenFill token={token} start={{ first: r.first_name ?? '', last: r.last_name ?? '', email: r.email ?? '', phone: r.phone ?? '', position: r.job_position ?? '', program: r.program ?? '' }} />
+      <PrescreenFill token={token} start={{ first: r.first_name ?? '', last: r.last_name ?? '', email: r.email ?? '', phone: r.phone ?? '', position: r.job_position ?? '',
+        program: x?.program ?? r.program ?? '', drives: !!x?.drives, meds: x?.gives_meds !== false, prefill: x?.prefill ?? null, draft: x?.draft ?? null, draftSavedAt: x?.draft_saved_at ?? null, files, applicationNo: x?.application_no ?? null }} />
     </Shell>
   );
 }

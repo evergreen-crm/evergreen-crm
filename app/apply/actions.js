@@ -133,22 +133,23 @@ export async function submitApplication(token, answers, signedName) {
   const h = await headers();
   const flags = flagsFor(a, app.posting);
   const final = { ...a, education_highest: highestEducation(a.education) };
-  const { error } = await o.admin.from('job_applications').update({
+  const { data: sentRow, error } = await o.admin.from('job_applications').update({
     answers: final, flags, status: 'New', signed_name: name, submitted_at: new Date().toISOString(),
     signer_ip: (h.get('x-forwarded-for') ?? '').split(',')[0].trim().slice(0, 64) || null,
-  }).eq('id', app.id).eq('status', 'Draft');
+  }).eq('id', app.id).eq('status', 'Draft').select('application_no').maybeSingle();
+  const appNo = sentRow?.application_no ?? '';
   if (error) return { error: 'Could not send: ' + error.message };
   await o.admin.rpc('notify_hr_jobs', {
-    t: `New job application: ${a.contact.first} ${a.contact.last}`,
+    t: `New job application: ${a.contact.first} ${a.contact.last}${appNo ? ` (${appNo})` : ''}`,
     b: `${app.posting?.title ?? ''} (${app.posting?.job_id ?? ''})${flags.length ? ` · ${flags.length} prequalify answer${flags.length === 1 ? '' : 's'} to check` : ''}`,
     l: `/hr/jobs/application/${app.id}`, k: `jobapp:${app.id}`,
   });
   await sendEmail({
     to: app.email,
-    subject: `We received your application — ${app.posting?.job_id ?? ''}`,
-    text: `Hello ${a.contact.first},\n\nThank you for applying for ${app.posting?.title} (Job ID ${app.posting?.job_id}) at Evergreen Community Care. We received your application.\n\nYou can check its status at any time with your private link:\n${await siteUrl()}/apply/${app.token}\n\nEvergreen Community Care — HR`,
+    subject: `We received your application — ${appNo || app.posting?.job_id || ''}`,
+    text: `Hello ${a.contact.first},\n\nThank you for applying for ${app.posting?.title} (Job ID ${app.posting?.job_id}) at Evergreen Community Care. We received your application. Your application number is ${appNo}.\n\nYou can check its status at any time with your private link:\n${await siteUrl()}/apply/${app.token}\n\nEvergreen Community Care — HR`,
     html: `<div style="font-family:Arial,sans-serif;color:#1d2420;max-width:520px"><p>Hello ${esc(a.contact.first)},</p>
-      <p>Thank you for applying for <strong>${esc(app.posting?.title)}</strong> (Job ID ${esc(app.posting?.job_id)}) at Evergreen Community Care. We received your application.</p>
+      <p>Thank you for applying for <strong>${esc(app.posting?.title)}</strong> (Job ID ${esc(app.posting?.job_id)}) at Evergreen Community Care. We received your application. Your application number is <strong>${esc(appNo)}</strong>.</p>
       <p>You can check its status at any time with your private link:<br><a href="${await siteUrl()}/apply/${app.token}">${await siteUrl()}/apply/${app.token}</a></p>
       <p style="color:#6a736d">Evergreen Community Care — HR</p></div>`,
   });

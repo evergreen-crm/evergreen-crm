@@ -31,7 +31,7 @@ export default async function HrApplication({ params, searchParams }) {
     <main>
       <p><Link href={`/hr/jobs/${a.posting?.id}`}>← {a.posting?.title} ({a.posting?.job_id})</Link></p>
       <h1>{a.first_name} {a.last_name}</h1>
-      <p className="muted">Sent {fmtDateTime(a.submitted_at)} · signed “{a.signed_name}” · <span className="badge">{a.status}</span>{a.decided_at ? ` · decided ${fmtDate(a.decided_at.slice(0, 10))}${a.decider?.full_name ? ` by ${a.decider.full_name}` : ''}` : ''}</p>
+      <p className="muted"><strong>{a.application_no ?? ''}</strong>{a.application_no ? ' · ' : ''}Sent {fmtDateTime(a.submitted_at)} · signed “{a.signed_name}” · <span className="badge">{a.status}</span>{a.decided_at ? ` · decided ${fmtDate(a.decided_at.slice(0, 10))}${a.decider?.full_name ? ` by ${a.decider.full_name}` : ''}` : ''}</p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
       {sp.error && <p className="message">{sp.error}</p>}
       {a.flags?.length > 0 && <div className="message"><strong>Prequalify answers to check:</strong><ul>{a.flags.map((f) => <li key={f}>“No” to: {f}</li>)}</ul></div>}

@@ -5,6 +5,7 @@ import { createAdminClient, adminKey } from '@/lib/supabase/admin';
 import { fmtDate, todayISO } from '@/lib/options';
 import { wageText } from '@/lib/jobs';
 import { startApplication } from '@/app/apply/actions';
+import { checklistFor } from '@/lib/prescreenChecklist';
 
 export const dynamic = 'force-dynamic';
 const PROGRAM = { MCFD: 'Children and youth (MCFD)', CLBC: 'Adults (CLBC)', Both: 'Children, youth and adults (MCFD and CLBC)' };
@@ -32,6 +33,13 @@ export default async function Posting({ params, searchParams }) {
       {p.summary && <section>{para(p.summary)}</section>}
       {p.duties && <section><h2>What you’ll do</h2>{para(p.duties)}</section>}
       {p.requirements && <section><h2>What you need</h2>{para(p.requirements)}</section>}
+      <section><h2>Requirements checklist</h2>
+        <p className="small muted">What you need for this job. You tick these in your pre-screen and upload photos of your certificates. It’s fine if some are in progress.</p>
+        {checklistFor({ program: p.program, drives: p.drives }).filter((g) => g.group !== 'How we work').map((g) => (
+          <div key={g.group}><h3 style={{ marginBottom: 4 }}>{g.group}</h3>
+            <ul>{g.items.map((i) => <li key={i.k}>{i.l}{i.optional ? ' (an asset)' : ''}</li>)}</ul></div>
+        ))}
+      </section>
       <section><h2>How we work</h2>
         <ul>
           <li>Continuous paid duty with no separate breaks: you stay with the people in care for the whole shift, and eat with them.</li>

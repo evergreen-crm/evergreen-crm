@@ -19,7 +19,7 @@ export default async function HrPosting({ params, searchParams }) {
   const edit = canEditJobs(profile);
   const [{ data: p }, { data: apps }, { data: pos }] = await Promise.all([
     supabase.from('job_postings').select('*, by:published_by(full_name)').eq('id', id).maybeSingle(),
-    supabase.from('job_applications').select('id, status, first_name, last_name, email, submitted_at, flags, answers').eq('posting_id', id).order('submitted_at', { ascending: true }),
+    supabase.from('job_applications').select('id, status, first_name, last_name, email, submitted_at, flags, answers, application_no').eq('posting_id', id).order('submitted_at', { ascending: true }),
     supabase.rpc('pay_positions'),
   ]);
   if (!p) notFound();
@@ -55,7 +55,7 @@ export default async function HrPosting({ params, searchParams }) {
           <thead><tr><th>Applicant</th><th>Sent</th><th>Status</th><th>Experience</th><th>To check</th></tr></thead>
           <tbody>{list.map((a) => (
             <tr key={a.id}>
-              <td><Link href={`/hr/jobs/application/${a.id}`}>{a.first_name} {a.last_name}</Link><div className="muted small">{a.email}</div></td>
+              <td><Link href={`/hr/jobs/application/${a.id}`}>{a.first_name} {a.last_name}</Link><div className="muted small">{a.application_no ? `${a.application_no} · ` : ''}{a.email}</div></td>
               <td className="small">{a.submitted_at ? fmtDate(a.submitted_at.slice(0, 10)) : '—'}</td>
               <td><span className="badge">{a.status}</span></td>
               <td className="small">{['youth', 'adults', 'complex'].map((k) => a.answers?.experience?.[k] ? `${a.answers.experience[k]} y ${k}` : null).filter(Boolean).join(' · ') || '—'}<div className="muted">{a.answers?.education_highest ?? ''}</div></td>

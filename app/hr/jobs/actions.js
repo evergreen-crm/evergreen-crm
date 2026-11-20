@@ -6,6 +6,8 @@ import { requireUser } from '@/lib/auth';
 import { canEditJobs } from '@/lib/jobsAccess';
 import { STATUSES, EMPLOYMENT_TYPES, SHIFT_TEAMS } from '@/lib/jobs';
 import { sendEmail } from '@/lib/email';
+import { createAdminClient, adminKey } from '@/lib/supabase/admin';
+import { emailPrescreenLink } from '@/lib/prescreenLink';
 
 const t = (fd, k, max = 4000) => { const v = fd.get(k); return typeof v === 'string' && v.trim() !== '' ? v.trim().slice(0, max) : null; };
 const num = (fd, k) => { const v = t(fd, k); const n = v === null ? null : Number(v.replace(/[$,\s]/g, '')); return Number.isFinite(n) && n > 0 ? n : null; };
@@ -70,21 +72,48 @@ export async function updateApplication(fd) {
 export async function startPrescreen(fd) {
   const { supabase } = await editor();
   const id = t(fd, 'id');
-  const { data: a } = await supabase.from('job_applications').select('*, posting:posting_id(title, position, program, drives)').eq('id', id).maybeSingle();
+  const { data: a } = await supabase.from('job_applications').select('*, posting:posting_id(id, title, position, program, drives)').eq('id', id).maybeSingle();
   if (!a) redirect('/hr/jobs');
   if (a.prescreen_id) redirect(`/hr/prescreen/${a.prescreen_id}?tab=link`);
-  const lived = a.answers?.prequal?.outside_bc === 'yes';
+  const x = a.answers ?? {};
+  // Copy what they already gave on the Careers application, so they only check it and sign (nothing typed twice).
+  const prefill = {
+    address: [x.contact?.address, x.contact?.city, x.contact?.postal].filter(Boolean).join(', ') || null,
+    outside: x.prequal?.outside_bc ?? '',
+    summary: (x.work ?? []).filter((w) => w?.duties).map((w) => `${w.title ?? ''} at ${w.employer ?? ''}: ${w.duties}`).join('\n\n').slice(0, 5000) || '',
+    roles: (x.work ?? []).slice(0, 2).map((w) => ({ employer: w.employer ?? '', title: w.title ?? '', from: w.start ?? '', to: w.current ? '' : w.end ?? '', duties: w.duties ?? '' })),
+    refs: (x.refs ?? []).slice(0, 3).map((r) => ({ name: r.name ?? '', title: r.title ?? '', org: r.agency ?? '', rel: 'Manager / supervisor', phone: r.phone ?? '', email: r.email ?? '', years: r.how_long ?? '' })),
+    check: {
+      age19: x.prequal?.age19 ? { status: x.prequal.age19 } : undefined,
+      work_canada: x.prequal?.work_canada ? { status: x.prequal.work_canada } : undefined,
+      noBreaks: x.prequal?.no_breaks ? { status: x.prequal.no_breaks } : undefined,
+      teams: x.prequal?.shift ? { status: x.prequal.shift } : undefined,
+    },
+  };
   const { data: ps, error } = await supabase.from('prescreens').insert({
     first_name: a.first_name, last_name: a.last_name, email: a.email, phone: a.phone,
-    position: a.posting?.position ?? null,
-    program: a.posting?.program ?? 'Both', drives: !!a.posting?.drives, lived_outside: lived,
+    position: a.posting?.position ?? null, program: a.posting?.program ?? 'Both', drives: !!a.posting?.drives, lived_outside: x.prequal?.outside_bc === 'yes',
     token: (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, ''), require_code: true,
-    file_notes: `From online application ${a.posting?.title ?? ''} (submitted ${a.submitted_at?.slice(0, 10) ?? ''}). References given: ${(a.answers?.refs ?? []).filter((r) => r?.name).map((r) => `${r.name} (${r.agency ?? ''}, ${r.email ?? ''})`).join('; ')}`.slice(0, 2000),
+    application_no: a.application_no ?? null, posting_id: a.posting?.id ?? null, prefill,
+    file_notes: `From online application ${a.application_no ?? ''} ${a.posting?.title ?? ''} (submitted ${a.submitted_at?.slice(0, 10) ?? ''}).`.slice(0, 2000),
   }).select('id').single();
   if (error) redirect(`/hr/jobs/application/${id}?error=${encodeURIComponent('Could not open pre-screening: ' + error.message)}`);
   await supabase.from('job_applications').update({ prescreen_id: ps.id, status: 'Pre-screening' }).eq('id', id);
+  let note = 'Pre-screening file opened with the applicant’s details.';
+  if (adminKey()) {
+    const admin = createAdminClient();
+    // Copy the resume onto the pre-screening file so reviewers (including PCs and PMs) can open it.
+    if (a.resume_path) {
+      const ext = a.resume_path.split('.').pop();
+      const dest = `prescreen/${ps.id}/resume-${Date.now()}.${ext}`;
+      const { error: ce } = await admin.storage.from('applications').copy(a.resume_path, dest);
+      if (!ce) await admin.from('prescreens').update({ resume_path: dest, resume_name: a.resume_name }).eq('id', ps.id);
+    }
+    const r = await emailPrescreenLink(admin, ps.id);
+    note += r.ok ? ` The private link was emailed to ${r.to}.` : ` The link could not be emailed (${r.error}); send it from the Applicant link tab.`;
+  }
   revalidatePath('/hr/prescreen'); revalidatePath(`/hr/jobs/application/${id}`);
-  redirect(`/hr/prescreen/${ps.id}?tab=link&ok=${encodeURIComponent('Pre-screening file opened with the applicant’s details. Send them the pre-screening link.')}`);
+  redirect(`/hr/prescreen/${ps.id}?tab=link&ok=${encodeURIComponent(note)}`);
 }
 
 // Not selected: a polite email from HR (no personal name), after HR confirms.
