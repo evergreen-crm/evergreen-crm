@@ -75,7 +75,12 @@ export default async function GoLive({ searchParams }) {
 
   const itemBy = new Map((items ?? []).map((i) => [i.key, i]));
   const ticked = GOLIVE_KEYS.filter((k) => itemBy.get(k)?.done).length;
-  const autoChecks = [noEmail, noJob, noProgram, noEmergency, expired, noFirstAid, homeGaps, noRate].filter((x) => x.length === 0).length + (realHomes.length ? 1 : 0) + (testsOn.length ? 0 : 1);
+  // With no real staff yet, the staff checks can't pass (nothing to check).
+  const hasStaff = staff.length > 0;
+  const staffOk = (list) => hasStaff && list.length === 0;
+  const isTestPortal = process.env.NEXT_PUBLIC_APP_ENV === 'test';
+  const autoChecks = [noEmail, homeGaps, noRate].filter((x) => x.length === 0).length
+    + [noJob, noProgram, noEmergency, expired, noFirstAid].filter(staffOk).length + (realHomes.length ? 1 : 0) + (testsOn.length ? 0 : 1);
 
   return (
     <main>
@@ -95,15 +100,16 @@ export default async function GoLive({ searchParams }) {
         <h2 style={{ marginTop: 0 }}>Automatic checks</h2>
         <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
           <Check ok={realHomes.length > 0} label={`Real houses entered (${realHomes.length})`} href="/homes">No real house yet.</Check>
+          {!hasStaff && <li style={{ marginBottom: 8 }}>⚠️ <strong>No real staff added yet</strong> · <Link href="/admin">Add staff</Link><div className="small" style={{ marginLeft: 24 }}>The staff checks below (job details, program, emergency contacts, certificates) pass only once real staff are in the portal.</div></li>}
           <Check ok={homeGaps.length === 0} label="Every house has its address, licence, phones, program, beds and map location" href="/homes">
             {homeGaps.map(({ h, miss }) => <div key={h.id}><Link href={`/homes/${h.id}`}>{h.name}</Link>: missing {miss.join(', ')}</div>)}
           </Check>
           <Check ok={noEmail.length === 0} label="Everyone has an email (sign-in codes and alerts)" href="/admin">{names(noEmail.map((p) => link(p)))}</Check>
-          <Check ok={noJob.length === 0} label="Every staff member has a position and hire date (staff number, offer letter, probation)">{names(noJob.map((p) => link(p, '#details')))}</Check>
-          <Check ok={noProgram.length === 0} label="Every staff member’s program (MCFD / CLBC / both) is confirmed">{names(noProgram.map((p) => link(p, '#details')))}</Check>
-          <Check ok={noEmergency.length === 0} label="Everyone has an emergency contact and phone">{names(noEmergency.map((p) => link(p, '#details')))}</Check>
-          <Check ok={noFirstAid.length === 0} label="Every house staff member has a current First Aid certificate on file">{names(noFirstAid.map((p) => link(p, '#certificates')))}</Check>
-          <Check ok={expired.length === 0} label="No expired certificates">{names(expired.map((p) => link(p, '#certificates')))}</Check>
+          <Check ok={staffOk(noJob)} label="Every staff member has a position and hire date (staff number, offer letter, probation)">{names(noJob.map((p) => link(p, '#details')))}</Check>
+          <Check ok={staffOk(noProgram)} label="Every staff member’s program (MCFD / CLBC / both) is confirmed">{names(noProgram.map((p) => link(p, '#details')))}</Check>
+          <Check ok={staffOk(noEmergency)} label="Everyone has an emergency contact and phone">{names(noEmergency.map((p) => link(p, '#details')))}</Check>
+          <Check ok={staffOk(noFirstAid)} label="Every house staff member has a current First Aid certificate on file">{names(noFirstAid.map((p) => link(p, '#certificates')))}</Check>
+          <Check ok={staffOk(expired)} label="No expired certificates">{names(expired.map((p) => link(p, '#certificates')))}</Check>
           <Check ok={noRate.length === 0} label="Every position has a pay rate or grid level" href="/hr/pay-rates">{noRate.map((r) => r.position).join(', ')}</Check>
           <Check ok={testsOn.length === 0} label="Test accounts switched off">{testsOn.length} still on (see the button at the bottom).</Check>
         </ul>
@@ -113,7 +119,7 @@ export default async function GoLive({ searchParams }) {
       <section className="card">
         <h2 style={{ marginTop: 0 }}>Portal setup</h2>
         <ul style={{ listStyle: 'none', paddingLeft: 0 }}>{setup.map(([l, ok]) => <li key={l}>{ok ? '✅' : '⚠️'} {l}</li>)}</ul>
-        <p className="muted small">These are settings in Vercel. Only whether each one is set is shown, never its value.</p>
+        <p className="muted small">These are settings in Vercel. Only whether each one is set is shown, never its value.{isTestPortal ? ' On the test portal, email and the daily job are switched off on purpose; check this list on the live portal.' : ''}</p>
       </section>
 
       {GOLIVE_GROUPS.map(([group, list]) => (
@@ -139,8 +145,8 @@ export default async function GoLive({ searchParams }) {
       <section className="card" id="tests" style={{ borderLeft: '4px solid #b42318' }}>
         <h2 style={{ marginTop: 0 }}>Opening day: switch off the test accounts</h2>
         <p className="small">Test accounts ({tests.length}): {tests.map((p) => `${p.full_name}${p.active ? '' : ' (off)'}`).join(', ') || 'none'}.</p>
-        <p className="small">This turns off their portal access and blocks their sign-in. Their test records stay (for the audit trail). Your own account is never switched off. The test portal is not affected.</p>
-        {isAdmin && testsOn.length > 0 ? (
+        <p className="small">This turns off their portal access and blocks their sign-in. Their test records stay (for the audit trail). Your own account is never switched off. Use it on the live portal; the test portal keeps its test accounts.</p>
+        {isTestPortal ? <p className="small">This is the <strong>test portal</strong>: the test accounts stay on here. Use this button on the live portal on opening day.</p> : isAdmin && testsOn.length > 0 ? (
           <form action={switchOffTests} className="row" style={{ alignItems: 'end' }}>
             <label>Type SWITCH OFF to confirm<input name="confirm" autoComplete="off" /></label>
             <button className="danger">Switch off {testsOn.length} test account{testsOn.length === 1 ? '' : 's'}</button>

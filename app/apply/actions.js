@@ -35,6 +35,8 @@ async function issueCode(admin, app) {
       <p>Your private application link — keep this email so you can come back and finish later:<br><a href="${link}">${link}</a></p>
       <p style="color:#6a736d">If you didn’t ask for this, you can ignore this email.<br>Evergreen Community Care</p></div>`,
   });
+  // Test portal only (no real emails): show the code on screen so the whole application can be tried.
+  if (sent.error && process.env.NEXT_PUBLIC_APP_ENV === 'test') return { ok: true, testCode: code };
   return sent.error ? { error: sent.error } : { ok: true };
 }
 
@@ -61,7 +63,7 @@ export async function startApplication(fd) {
     app = data;
   }
   const r = await issueCode(admin, { ...app, posting });
-  redirect(`/apply/${app.token}?${r.error ? `error=${encodeURIComponent(r.error)}` : 'sent=1'}`);
+  redirect(`/apply/${app.token}?${r.error ? `error=${encodeURIComponent(r.error)}` : `sent=1${r.testCode ? `&testcode=${r.testCode}` : ''}`}`);
 }
 
 export async function requestCode(token) {

@@ -6,7 +6,7 @@ import { addDaysISO, todayISO, fmtDate, fmtDateTime } from '@/lib/options';
 import { COLUMNS } from '@/lib/payroll';
 import { loadPayroll, canExportPayroll } from '@/lib/payrollData';
 
-export const metadata = { title: 'Payroll export' };
+export const metadata = { title: 'Payroll export · Evergreen' };
 
 export default async function PayrollExport({ searchParams }) {
   const sp = await searchParams;

@@ -32,7 +32,7 @@ export default async function Apply({ params, searchParams }) {
       <h1>Application: {app.posting?.title}</h1>
       <p className="muted">Job ID {app.posting?.job_id} · <Link href={`/jobs/${app.posting?.job_id}`}>See the job posting</Link></p>
       {sp.error && <p className="message">{sp.error}</p>}
-      {!verified ? <CodeGate token={token} emailHint={hint(app.email)} justSent={sp.sent === '1'} /> : app.status === 'Draft' ? (
+      {!verified ? <CodeGate token={token} emailHint={hint(app.email)} justSent={sp.sent === '1'} testCode={process.env.NEXT_PUBLIC_APP_ENV === 'test' && /^\d{6}$/.test(sp.testcode ?? '') ? sp.testcode : null} /> : app.status === 'Draft' ? (
         <ApplyForm token={token} posting={app.posting}
           initial={{ ...emptyAnswers({ first: app.first_name, email: app.email }), ...(app.answers ?? {}) }}
           files={{ resume: app.resume_name, cover: app.cover_name }} />

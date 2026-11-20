@@ -6,7 +6,6 @@ import { requireUser } from '@/lib/auth';
 import { canEditJobs } from '@/lib/jobsAccess';
 import { STATUSES, EMPLOYMENT_TYPES, SHIFT_TEAMS } from '@/lib/jobs';
 import { sendEmail } from '@/lib/email';
-import { POSITIONS } from '@/lib/prescreen';
 
 const t = (fd, k, max = 4000) => { const v = fd.get(k); return typeof v === 'string' && v.trim() !== '' ? v.trim().slice(0, max) : null; };
 const num = (fd, k) => { const v = t(fd, k); const n = v === null ? null : Number(v.replace(/[$,\s]/g, '')); return Number.isFinite(n) && n > 0 ? n : null; };
@@ -77,7 +76,7 @@ export async function startPrescreen(fd) {
   const lived = a.answers?.prequal?.outside_bc === 'yes';
   const { data: ps, error } = await supabase.from('prescreens').insert({
     first_name: a.first_name, last_name: a.last_name, email: a.email, phone: a.phone,
-    position: POSITIONS.includes(a.posting?.position) ? a.posting.position : null,
+    position: a.posting?.position ?? null,
     program: a.posting?.program ?? 'Both', drives: !!a.posting?.drives, lived_outside: lived,
     token: (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, ''), require_code: true,
     file_notes: `From online application ${a.posting?.title ?? ''} (submitted ${a.submitted_at?.slice(0, 10) ?? ''}). References given: ${(a.answers?.refs ?? []).filter((r) => r?.name).map((r) => `${r.name} (${r.agency ?? ''}, ${r.email ?? ''})`).join('; ')}`.slice(0, 2000),

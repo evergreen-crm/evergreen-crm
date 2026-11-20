@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { requestCode, verifyCode } from '@/app/apply/actions';
 
-export default function CodeGate({ token, emailHint, justSent }) {
+export default function CodeGate({ token, emailHint, justSent, testCode: firstTestCode }) {
+  const [testCode, setTestCode] = useState(firstTestCode);
   const [sent, setSent] = useState(!!justSent);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -16,6 +17,7 @@ export default function CodeGate({ token, emailHint, justSent }) {
     const r = await requestCode(token);
     setBusy(false);
     if (r?.error) { setMsg({ bad: true, text: r.error }); return; }
+    if (r?.testCode) setTestCode(r.testCode);
     setSent(true); setMsg({ bad: false, text: `We emailed a 6-digit code to ${emailHint}. Check your inbox (and junk folder).` });
   }
   async function check(e) {
@@ -44,6 +46,7 @@ export default function CodeGate({ token, emailHint, justSent }) {
         </form>
       )}
       {msg && <p className={`message ${msg.bad ? '' : 'ok'}`}>{msg.text}</p>}
+      {testCode && <p className="message"><strong>TEST PORTAL:</strong> no real emails are sent here, so your code is shown instead: <strong>{testCode}</strong></p>}
     </div>
   );
 }
