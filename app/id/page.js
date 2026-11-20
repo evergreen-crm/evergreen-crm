@@ -38,7 +38,7 @@ export default async function IdPage({ searchParams }) {
   }).find((x) => nowMs >= x.st - 30 * 60000 && nowMs < x.en);
 
   const [{ data: person }, { data: details }, { data: card }, { data: onb }, { data: perf }] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, active, home_id, homes(name)').eq('id', pid).maybeSingle(),
+    supabase.from('profiles').select('id, full_name, active, home_id, homes:homes!profiles_home_id_fkey(name)').eq('id', pid).maybeSingle(),
     supabase.from('staff_details').select('position, employee_no, program, employment_status, emergency_contact, emergency_phone').eq('profile_id', pid).maybeSingle(),
     supabase.from('id_cards').select('*').eq('profile_id', pid).maybeSingle(),
     supabase.from('onboardings').select('personal').eq('profile_id', pid).maybeSingle(),

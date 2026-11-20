@@ -26,7 +26,7 @@ export default async function SignRequestPage({ params, searchParams }) {
     .eq('request_id', id);
   // Staff names come from a separate query: there is no foreign key from signers to profiles to embed.
   const staffIds = [...new Set((signers ?? []).map((s) => s.profile_id).filter(Boolean))];
-  const { data: staff } = staffIds.length ? await supabase.from('profiles').select('id, full_name, homes(name)').in('id', staffIds) : { data: [] };
+  const { data: staff } = staffIds.length ? await supabase.from('profiles').select('id, full_name, homes:homes!profiles_home_id_fkey(name)').in('id', staffIds) : { data: [] };
   const staffById = Object.fromEntries((staff ?? []).map((p) => [p.id, p]));
   for (const s of signers ?? []) s.profiles = s.profile_id ? staffById[s.profile_id] ?? null : null;
   const list = (signers ?? []).sort((a, b) => (a.profile_id ? 0 : 1) - (b.profile_id ? 0 : 1) || signerName(a).localeCompare(signerName(b)));

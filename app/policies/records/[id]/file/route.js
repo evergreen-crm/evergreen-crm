@@ -17,7 +17,7 @@ export async function GET(req, { params }) {
   if (!canPullPolicyFiles(profile)) return no('Only HR, a director or the Administrator can download a policy file.');
   if (!adminKey()) return no('Signed copies are not set up yet.', 500);
   const admin = createAdminClient();
-  const { data: rec } = await admin.from('policy_records').select('id, profile_id, items, file_path, status, ready_at, witnessed_name, witnessed_role, witnessed_at, person:profile_id(full_name, homes(name))').eq('id', id).maybeSingle();
+  const { data: rec } = await admin.from('policy_records').select('id, profile_id, items, file_path, status, ready_at, witnessed_name, witnessed_role, witnessed_at, person:profile_id(full_name, homes:homes!profiles_home_id_fkey(name))').eq('id', id).maybeSingle();
   if (!rec) return no('That record was not found.', 404);
   const format = new URL(req.url).searchParams.get('format');
   const fileName = `${String(rec.person?.full_name ?? 'staff').replace(/[^A-Za-z0-9]+/g, '-')}-policy`;

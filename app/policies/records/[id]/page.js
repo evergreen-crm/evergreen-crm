@@ -17,7 +17,7 @@ const STAGE = { 1: 'Program Coordinator and Program Manager', 2: 'Program Manage
 export default async function PolicyRecord({ params }) {
   const { id } = await params;
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
-  const { data: r } = await supabase.from('policy_records').select('*, person:profile_id(full_name, homes(name))').eq('id', id).maybeSingle();
+  const { data: r } = await supabase.from('policy_records').select('*, person:profile_id(full_name, homes:homes!profiles_home_id_fkey(name))').eq('id', id).maybeSingle();
   if (!r) notFound();
   const mine = r.profile_id === user.id;
   const [{ data: canWitness }, { data: events }] = await Promise.all([

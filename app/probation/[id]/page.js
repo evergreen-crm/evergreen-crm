@@ -24,7 +24,7 @@ export default async function Review({ params, searchParams }) {
   if (!r) notFound();
   const [{ data: prob }, { data: person }, { data: history }, { data: reviewer }] = await Promise.all([
     supabase.from('staff_probation').select('*').eq('staff_id', r.staff_id).maybeSingle(),
-    supabase.from('profiles').select('full_name, home_id, homes(name)').eq('id', r.staff_id).maybeSingle(),
+    supabase.from('profiles').select('full_name, home_id, homes:homes!profiles_home_id_fkey(name)').eq('id', r.staff_id).maybeSingle(),
     supabase.from('probation_reviews').select('*').eq('staff_id', r.staff_id).order('review_day'),
     r.reviewer_id ? supabase.from('profiles').select('full_name').eq('id', r.reviewer_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);

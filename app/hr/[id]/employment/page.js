@@ -21,7 +21,7 @@ export default async function JobAndOffer({ params, searchParams }) {
   const lead = canHR(profile) || (levelOf(profile) >= 2 && !groupOf(profile));
   if (!lead) redirect('/?error=' + encodeURIComponent('Job and offer letters are set up by Program Coordinators, managers and HR.'));
   const [{ data: person }, { data: details }, { data: positions }, { data: offers }] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, active, homes(name)').eq('id', id).maybeSingle(),
+    supabase.from('profiles').select('id, full_name, active, homes:homes!profiles_home_id_fkey(name)').eq('id', id).maybeSingle(),
     supabase.from('staff_details').select('position, employment_type, hours_per_week, hire_date, home_address').eq('profile_id', id).maybeSingle(),
     supabase.rpc('pay_positions'),
     supabase.from('offer_letters').select('id, status, position, employment_type, hours, wage, auto, created_at, issued_at, accepted_at').eq('profile_id', id).order('created_at', { ascending: false }),

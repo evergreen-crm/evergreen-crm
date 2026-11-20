@@ -7,12 +7,23 @@ import { getDivisionLevels } from '@/lib/portal';
 import Link from 'next/link';
 import StorageUsage from './StorageUsage';
 
+// Pre-screen positions -> the pay-rate position used on the offer letter (only if that position exists).
+const PS_TO_PAY = {
+  'Youth Care Worker': 'Youth Worker', 'Residential Support Worker (Adults)': 'Support Worker I', 'Community Support Worker': 'Support Worker I',
+  'Relief / Casual Support Worker': 'Support Worker I', 'Overnight Awake Support': 'Support Worker I', 'House Lead / Coordinator': 'Senior / Lead Support Worker',
+};
+function payPosition(pos, list) {
+  const l = list ?? [];
+  if (l.includes(pos)) return pos;
+  return l.includes(PS_TO_PAY[pos]) ? PS_TO_PAY[pos] : '';
+}
+
 export default async function AdminPage({ searchParams }) {
   const { supabase, user } = await requireUser(['admin']);
   const { ok, error, from_app: fromApp, from_ps: fromPs } = await searchParams;
 
   const [{ data: peopleL, error: peopleErr }, { data: homes }, { data: residents }, divLevels] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, email, phone, role, level, staff_group, home_id, active, homes(name)').order('full_name'),
+    supabase.from('profiles').select('id, full_name, email, phone, role, level, staff_group, home_id, active, homes:homes!profiles_home_id_fkey(name)').order('full_name'),
     supabase.from('homes').select('id, name').order('name'),
     supabase.from('residents').select('id, first_name, last_name, homes(name)').order('last_name'),
     getDivisionLevels(supabase),
@@ -29,16 +40,16 @@ export default async function AdminPage({ searchParams }) {
   const ps = (hiredPs ?? []).find((x) => x.id === fromPs) ?? null;
   const appPre = (hiredApps ?? []).find((a) => a.id === fromApp) ?? null;
   const pre = ps ? { id: ps.id, first_name: ps.first_name, last_name: ps.last_name, email: ps.email, phone: ps.phone ?? ps.application?.applicant?.phone,
-    posting: { title: `pre-screen ${ps.application_no ?? ''}`.trim(), position: ps.position } } : appPre;
+    posting: { title: `pre-screen ${ps.application_no ?? ''}`.trim(), position: payPosition(ps.position, positions) } } : appPre;
   const preAddr = ps ? (ps.application?.applicant?.address ?? '') : pre ? [pre.answers?.contact?.address, pre.answers?.contact?.city, pre.answers?.contact?.postal].filter(Boolean).join(', ') : '';
   const extraBy = {};
   for (const m of extraHomes ?? []) (extraBy[m.profile_id] ??= []).push(m.home_id);
   // Before supabase/access-levels.sql is run there is no `level` column.
   // Before supabase/staff-groups.sql is run there is no `staff_group` column.
-  const peopleNoGroup = peopleErr ? await supabase.from('profiles').select('id, full_name, email, phone, role, level, home_id, active, homes(name)').order('full_name') : null;
+  const peopleNoGroup = peopleErr ? await supabase.from('profiles').select('id, full_name, email, phone, role, level, home_id, active, homes:homes!profiles_home_id_fkey(name)').order('full_name') : null;
   const levelsReady = !peopleErr || !peopleNoGroup?.error;
   const people = !peopleErr ? peopleL : levelsReady ? peopleNoGroup.data
-    : (await supabase.from('profiles').select('id, full_name, email, phone, role, home_id, active, homes(name)').order('full_name')).data;
+    : (await supabase.from('profiles').select('id, full_name, email, phone, role, home_id, active, homes:homes!profiles_home_id_fkey(name)').order('full_name')).data;
   const LevelOptions = () => (<>
     {LEVELS.map((l) => <option key={l.level} value={l.level}>{l.level} · {l.name}</option>)}
     <optgroup label="Departments (all homes, no resident records)">

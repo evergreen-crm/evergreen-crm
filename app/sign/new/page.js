@@ -16,7 +16,7 @@ export default async function NewSignRequest({ searchParams }) {
   if (!canSend(profile)) redirect('/sign?error=' + encodeURIComponent('Only Program Coordinators, Program Managers and Directors can send documents for signature.'));
   const any = canSendAnyHouse(profile);
   if (!any && !profile.home_id) redirect('/sign?error=' + encodeURIComponent('You need a house on your profile to send documents. Ask the office.'));
-  let q = supabase.from('profiles').select('id, full_name, role, level, staff_group, home_id, homes(name)').eq('active', true).neq('role', 'family').order('full_name');
+  let q = supabase.from('profiles').select('id, full_name, role, level, staff_group, home_id, homes:homes!profiles_home_id_fkey(name)').eq('active', true).neq('role', 'family').order('full_name');
   if (!any) q = q.eq('home_id', profile.home_id);
   const [{ data: people }, { data: homes }] = await Promise.all([q, any ? supabase.from('homes').select('id, name').order('name') : Promise.resolve({ data: [] })]);
   const list = (people ?? []).filter((p) => p.id !== profile.id).map((p) => ({ id: p.id, name: p.full_name, house: p.homes?.name ?? 'No house', role: personLabel(p) }));

@@ -29,7 +29,7 @@ export default async function PolicyRecords({ searchParams }) {
       .map((p) => ({ p, st: status[p.id] })).sort((a, b) => (b.st.late.length - a.st.late.length) || String(a.p.full_name).localeCompare(String(b.p.full_name)));
   }
   const { data: rows, error } = await supabase.from('policy_records')
-    .select('id, profile_id, status, stage, stage_started_at, ready_at, witnessed_name, witnessed_at, items, person:profile_id(full_name, homes(name))')
+    .select('id, profile_id, status, stage, stage_started_at, ready_at, witnessed_name, witnessed_at, items, person:profile_id(full_name, homes:homes!profiles_home_id_fkey(name))')
     .in('status', ['awaiting_witness', 'witnessed']).order('ready_at', { ascending: false }).limit(300);
   const waiting = (rows ?? []).filter((r) => r.status === 'awaiting_witness');
   const done = (rows ?? []).filter((r) => r.status === 'witnessed');

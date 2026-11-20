@@ -24,7 +24,7 @@ export default async function StaffHrPage({ params, searchParams }) {
   const canEdit = canHR(profile);
 
   const [{ data: person }, { data: details }, { data: certs }, { data: trainings }] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, email, phone, role, level, active, homes(name)').eq('id', id).maybeSingle(),
+    supabase.from('profiles').select('id, full_name, email, phone, role, level, active, homes:homes!profiles_home_id_fkey(name)').eq('id', id).maybeSingle(),
     supabase.from('staff_details').select('*').eq('profile_id', id).maybeSingle(),
     supabase.from('certifications').select('*').eq('profile_id', id).order('expires_on', { ascending: true, nullsFirst: false }),
     supabase.from('trainings').select('*').eq('profile_id', id).order('completed_on', { ascending: false }),

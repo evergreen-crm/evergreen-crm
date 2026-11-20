@@ -16,7 +16,7 @@ export default async function HrPage({ searchParams }) {
   if (profile.role === 'family') redirect('/');
 
   const [{ data: people }, { data: details }, { data: certs }, { data: psRole }, { data: cards }] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, role, active, homes(name)')
+    supabase.from('profiles').select('id, full_name, role, active, homes:homes!profiles_home_id_fkey(name)')
       .in('role', ['admin', 'manager', 'staff']).order('full_name'),
     supabase.from('staff_details').select('profile_id, position, employment_type, employee_no, employment_status, last_day, program, hire_date'),
     supabase.from('certifications').select('profile_id, expires_on'),
