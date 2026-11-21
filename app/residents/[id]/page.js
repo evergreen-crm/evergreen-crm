@@ -24,6 +24,7 @@ import Documents from './Documents';
 import Messages from './Messages';
 import EntryList from '@/app/components/EntryList';
 import Abbr from '@/app/components/Abbr';
+import WorkerTab from './WorkerTab';
 
 const TABS = [
   { key: 'overview', label: 'Overview', family: true },
@@ -39,6 +40,7 @@ const TABS = [
   { key: 'consents', label: 'Consents' },
   { key: 'documents', label: 'Documents' },
   { key: 'messages', label: 'Messages', family: true },
+  { key: 'worker', label: 'Social worker', workers: true },
   { key: 'all', label: 'Full file (print)' },
   { key: 'access', label: 'Who opened', leaders: true },
 ];
@@ -76,6 +78,7 @@ export default async function ResidentPage({ params, searchParams }) {
 
   // Who opened this file (supabase/resident-file-views.sql): recorded for every view, read by the PM and above.
   const canSeeLog = isAdmin || (levelOf(profile) >= 3 && !profile.staff_group);
+  const canWorkers = isAdmin || (levelOf(profile) >= 2 && !profile.staff_group && isStaff); // Social worker tab (Nov 21)
   if (tab !== 'access') await supabase.rpc('log_resident_view', { rid: id, t: TAB_NAMES[tab] ? tab : 'overview' });
   const { data: fileLog } = canSeeLog && tab === 'access' ? await supabase.rpc('resident_file_log', { rid: id, lim: 500 }) : { data: null };
 
@@ -138,7 +141,7 @@ export default async function ResidentPage({ params, searchParams }) {
       )}
 
       <nav className="tabs-bar no-print">
-        {TABS.filter((t) => (isStaff || t.family) && (!t.leaders || canSeeLog)).map((t) => (
+        {TABS.filter((t) => (isStaff || t.family) && (!t.leaders || canSeeLog) && (!t.workers || canWorkers)).map((t) => (
           <Link key={t.key} href={`/residents/${id}?tab=${t.key}`} className={tab === t.key ? 'on' : ''}>
             {t.label}{t.key === 'messages' && unreadMsgs > 0 && <span className="badge bad"> {unreadMsgs}</span>}
           </Link>
@@ -305,6 +308,7 @@ export default async function ResidentPage({ params, searchParams }) {
       )}
 
       {tab === 'messages' && <Messages supabase={supabase} resident={resident} user={user} isFamily={!isStaff} />}
+      {tab === 'worker' && canWorkers && <WorkerTab supabase={supabase} resident={resident} user={user} msg={{ ok: sp.ok }} />}
 
       {isStaff && (tab === 'requirements' || tab === 'all') && (
         <>
