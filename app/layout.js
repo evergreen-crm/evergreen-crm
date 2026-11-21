@@ -26,7 +26,7 @@ export const metadata = {
   description: 'Supporting Growth. Building Futures.',
   applicationName: 'Evergreen Community Care',
   appleWebApp: { capable: true, title: 'Evergreen Community Care', statusBarStyle: 'default' },
-  icons: { apple: '/icons/apple-touch-icon.png' },
+  icons: { icon: '/icons/icon-192.png', apple: '/icons/apple-touch-icon.png' },
   formatDetection: { telephone: false },
 };
 export const viewport = { themeColor: '#0b5a34', width: 'device-width', initialScale: 1, viewportFit: 'cover' };

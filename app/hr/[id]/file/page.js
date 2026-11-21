@@ -47,7 +47,7 @@ export default async function StaffFile({ params, searchParams }) {
   if (!canHR(profile)) redirect('/');
 
   const { data: person } = await supabase.from('profiles')
-    .select('id, full_name, email, phone, role, level, staff_group, active, home_id, created_at, homes(name)').eq('id', id).maybeSingle();
+    .select('id, full_name, email, phone, role, level, staff_group, active, home_id, created_at, homes:homes!profiles_home_id_fkey(name)').eq('id', id).maybeSingle();
   if (!person) notFound();
 
   const chosen = sp.go ? new Set(PARTS.map((p) => p.key).filter((k) => sp[k])) : new Set(PARTS.map((p) => p.key));
