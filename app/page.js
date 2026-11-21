@@ -28,7 +28,7 @@ export default async function HomePage() {
               <li key={y.resident_id}>
                 <Link href={`/worker/${y.resident_id}`}>
                   <strong>{y.preferred_name || y.name}</strong>{y.preferred_name ? <span className="muted"> ({y.name})</span> : null}
-                  <span className="muted"> · {y.home_name} · you are their {y.worker_role.toLowerCase()} ({y.org}) · access until {fmtDate(y.expires_on)}</span>
+                  <span className="muted"> · {y.home_name} · you are their {y.worker_role.replace(/^Social/, 'social').replace(/^Guardianship/, 'guardianship').replace(/^Resource/, 'resource')} ({y.org}) · access until {fmtDate(y.expires_on)}</span>
                   {y.unread > 0 && <span className="badge"> {y.unread} new message{y.unread > 1 ? 's' : ''}</span>}
                 </Link>
               </li>

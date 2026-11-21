@@ -234,3 +234,12 @@ grant execute on function public.worker_my_youth(), public.worker_file(uuid, tex
 revoke execute on function public.worker_access_remind(), public.worker_message_notify() from public, anon, authenticated;
 grant execute on function public.worker_access_remind() to service_role;
 revoke execute on function public.youth_leaders(uuid) from public, anon;
+
+-- Names on both sides of the social worker view: the youth's house leaders can read the social worker's profile,
+-- and a social worker can read the profile of staff who wrote to them (name shown on the message).
+drop policy if exists "profiles worker for leaders" on public.profiles;
+create policy "profiles worker for leaders" on public.profiles for select to authenticated
+  using (exists (select 1 from worker_access w where w.profile_id = profiles.id and can_manage_workers(w.resident_id)));
+drop policy if exists "profiles staff for worker" on public.profiles;
+create policy "profiles staff for worker" on public.profiles for select to authenticated
+  using (app_role() = 'family' and exists (select 1 from worker_messages m where m.sender_id = profiles.id and m.worker_id = auth.uid() and is_worker_of(m.resident_id)));

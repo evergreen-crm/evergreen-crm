@@ -39,7 +39,7 @@ export default async function WorkerYouth({ params, searchParams }) {
       <p className="small"><Link href="/">← Your youth</Link></p>
       <h1 style={{ marginBottom: 4 }}>{name}{y.preferred_name ? <span className="muted small"> ({y.name})</span> : null}</h1>
       <p className="muted" style={{ marginTop: 0 }}>{f.house?.name} · {y.care_type ?? ''}{y.date_of_birth ? ` · age ${age(y.date_of_birth)}` : ''}{y.admission_date ? ` · at Evergreen since ${fmtDate(y.admission_date)}` : ''}{y.file_number ? ` · file ${y.file_number}` : ''}</p>
-      <p className="small" style={{ margin: '0 0 8px' }}><span className="badge">Read-only</span> You are their {f.access?.worker_role?.toLowerCase()} ({f.access?.org}). Access until {fmtDate(f.access?.expires_on)}. Every view is recorded.</p>
+      <p className="small" style={{ margin: '0 0 8px' }}><span className="badge">Read-only</span> You are their {f.access?.worker_role?.replace(/^Social/, 'social').replace(/^Guardianship/, 'guardianship').replace(/^Resource/, 'resource')} ({f.access?.org}). Access until {fmtDate(f.access?.expires_on)}. Every view is recorded.</p>
       {sp.ok && <p className="message ok">{sp.ok}</p>}
       <nav className="tabs-bar no-print">{TABS.map(([k, l]) => <Link key={k} href={`/worker/${id}?tab=${k}`} className={k === tab ? 'on' : ''}>{l}</Link>)}</nav>
 
