@@ -10,7 +10,7 @@ import { startChecklist, logBedCheck, signChecklist } from './actions';
 import NotReady from '@/app/components/NotReady';
 import { plainError } from '@/lib/plain';
 
-const time = (ts) => new Date(ts).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
+const time = (ts) => new Date(ts).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: TZ }).replace(/\s?([ap])\.m\./g, ' $1m');
 const STATUS_BADGE = { Signed: '', 'In progress': 'warn', Finishing: 'warn', Late: 'bad' };
 
 export default async function Checklist({ searchParams }) {

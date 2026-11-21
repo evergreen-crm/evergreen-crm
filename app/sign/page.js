@@ -7,7 +7,7 @@ import { canSend, seesAllHouses, REQUEST_BADGE, SIGNER_BADGE, signerName } from 
 import NotReady from '@/app/components/NotReady';
 
 export const dynamic = 'force-dynamic';
-const when = (ts) => (ts ? new Date(ts).toLocaleString('en-CA', { timeZone: TZ, year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
+const when = (ts) => (ts ? new Date(ts).toLocaleString('en-CA', { timeZone: TZ, year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).replace(/\s?([ap])\.m\./g, ' $1m') : '—');
 
 export default async function SignList({ searchParams }) {
   const sp = (await searchParams) ?? {};

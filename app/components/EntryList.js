@@ -3,7 +3,7 @@ import { ENTRY_TYPES } from '@/lib/entries';
 import { fmtDate, fmtTime, TZ } from '@/lib/options';
 import { deleteEntry, updateEntry } from '@/app/entries/actions';
 
-const stamp = (ts) => (ts ? new Date(ts).toLocaleString('en-CA', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: TZ }) : '');
+const stamp = (ts) => (ts ? new Date(ts).toLocaleString('en-CA', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: TZ }).replace(/\s?([ap])\.m\./g, ' $1m') : '');
 
 function Correct({ e, t, path }) {
   return (

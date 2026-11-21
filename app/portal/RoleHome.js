@@ -97,7 +97,7 @@ export default async function RoleHome({ supabase, profile, userId }) {
           <div className="rh-head">
             <div>
               <h2 style={{ margin: 0 }}>My shift{shift.home ? ` · ${shift.home.name}` : ''}</h2>
-              <p className="muted small" style={{ margin: 0 }}>{fmtDate(today)}{shift.open ? ` · on shift since ${new Date(shift.open.clock_in).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: 'Etc/GMT+7' })}` : ''}</p>
+              <p className="muted small" style={{ margin: 0 }}>{fmtDate(today)}{shift.open ? ` · on shift since ${new Date(shift.open.clock_in).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: 'Etc/GMT+7' }).replace(/\s?([ap])\.m\./g, ' $1m')}` : ''}</p>
             </div>
             <Link href="/id#checkin" className={`button ${shift.open ? 'secondary' : ''} rh-clock`}>{shift.open ? '⏰ Clock Out (or check in)' : '⏰ Clock In'}</Link>
           </div>

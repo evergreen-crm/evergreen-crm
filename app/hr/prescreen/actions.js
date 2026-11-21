@@ -88,7 +88,7 @@ export async function setInterview(fd) {
     interview_set_by: profile.id, interview_reminded_at: null,
   }).eq('id', id).eq('screen_decision', 'Passed').select('id, first_name, last_name, email, application_no, posting:posting_id(title)').single();
   if (error || !p) back(id, 'interview', error?.message ?? 'Mark the pre-screen as passing first.');
-  const whenText = at.toLocaleString('en-CA', { timeZone: 'Etc/GMT+7', weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const whenText = at.toLocaleString('en-CA', { timeZone: 'Etc/GMT+7', weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' }).replace(/\s?([ap])\.m\./g, ' $1m');
   const admin = adminKey() ? createAdminClient() : null;
   let note = `Interview set for ${whenText.replace(/\.$/, '')}.`;
   if (admin) {

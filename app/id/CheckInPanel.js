@@ -9,7 +9,7 @@ import { recordShiftEvent, clockInSafe, clockOutSafe, askShiftPermission, setLat
 import { getLocation, fmtDist } from '@/lib/getLocation';
 import { TZ } from '@/lib/options';
 
-const time = (ts) => (ts ? new Date(ts).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: TZ }) : '');
+const time = (ts) => (ts ? new Date(ts).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: TZ }).replace(/\s?([ap])\.m\./g, ' $1m') : '');
 
 function AskPermission({ kind, homeId, reasons, loc, onSent }) {
   const [note, setNote] = useState('');

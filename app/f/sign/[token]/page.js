@@ -8,7 +8,7 @@ import SignPanel from '@/app/sign/SignPanel';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Sign a document · Evergreen Community Care', robots: { index: false, follow: false } };
-const when = (ts) => (ts ? new Date(ts).toLocaleString('en-CA', { timeZone: TZ, year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
+const when = (ts) => (ts ? new Date(ts).toLocaleString('en-CA', { timeZone: TZ, year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).replace(/\s?([ap])\.m\./g, ' $1m') : '—');
 
 function Shell({ children }) {
   return (

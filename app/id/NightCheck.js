@@ -6,7 +6,7 @@ import { nightCheckIn } from '@/app/id/night-actions';
 import { getLocation } from '@/lib/getLocation';
 import { TZ } from '@/lib/options';
 
-const time = (ts) => new Date(ts).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
+const time = (ts) => new Date(ts).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: TZ }).replace(/\s?([ap])\.m\./g, ' $1m');
 
 export default function NightCheck({ checks = [] }) {
   const router = useRouter();

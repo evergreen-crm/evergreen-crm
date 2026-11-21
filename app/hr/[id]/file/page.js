@@ -13,7 +13,7 @@ import NotReady from '@/app/components/NotReady';
 import ReportPrintButton from '@/app/reports/daily/ReportPrintButton';
 
 // Date and time with the year (reports can cover more than one year).
-const fmtDateTime = (ts) => (ts ? new Date(ts).toLocaleString('en-CA', { timeZone: TZ, year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
+const fmtDateTime = (ts) => (ts ? new Date(ts).toLocaleString('en-CA', { timeZone: TZ, year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).replace(/\s?([ap])\.m\./g, ' $1m') : '—');
 
 export const dynamic = 'force-dynamic';
 

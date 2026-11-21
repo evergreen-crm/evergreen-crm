@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Security audit log · Evergreen' };
 
 // With the year: an audit log is read long after the fact. B.C. time (UTC-7, like the rest of the CRM).
-const fmtDateTime = (ts) => (ts ? new Date(new Date(ts).getTime() - 7 * 3600e3).toLocaleString('en-CA', { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
+const fmtDateTime = (ts) => (ts ? new Date(new Date(ts).getTime() - 7 * 3600e3).toLocaleString('en-CA', { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).replace(/\s?([ap])\.m\./g, ' $1m') : '—');
 const PER_PAGE = 50;
 const ACTIONS = { INSERT: 'Added', UPDATE: 'Changed', DELETE: 'Removed' };
 const nice = (t) => String(t ?? '').replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());

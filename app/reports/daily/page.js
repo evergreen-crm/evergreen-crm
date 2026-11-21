@@ -18,7 +18,7 @@ import { CLBC_RECORDS } from '@/lib/records';
 const ALL_RECORDS = [...MCFD_RECORDS, ...CLBC_RECORDS].filter((r) => !r.tab);
 
 // Date and time with the year (reports can cover more than one year).
-const fmtDateTime = (ts) => (ts ? new Date(ts).toLocaleString('en-CA', { timeZone: TZ, year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
+const fmtDateTime = (ts) => (ts ? new Date(ts).toLocaleString('en-CA', { timeZone: TZ, year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).replace(/\s?([ap])\.m\./g, ' $1m') : '—');
 
 export const dynamic = 'force-dynamic';
 

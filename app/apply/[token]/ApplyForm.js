@@ -213,7 +213,7 @@ export default function ApplyForm({ token, posting, initial, files: initialFiles
         </div>
       </>)}
 
-      {saved && <p className="small muted">Last saved {new Date(saved).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}.</p>}
+      {saved && <p className="small muted">Last saved {new Date(saved).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' }).replace(/\s?([ap])\.m\./g, ' $1m')}.</p>}
       {msg && <p className={`message ${msg.bad ? '' : 'ok'}`}>{msg.text}</p>}
       <p className="no-print"><button type="button" className="secondary" onClick={save} disabled={busy}>💾 Save and finish later</button></p>
     </form>

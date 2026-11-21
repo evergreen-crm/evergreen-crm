@@ -9,7 +9,7 @@ import NoteCard from './NoteCard';
 import { saveNote, signAllMine } from './actions';
 import { plainError } from '@/lib/plain';
 
-const time = (ts) => new Date(ts).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
+const time = (ts) => new Date(ts).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: TZ }).replace(/\s?([ap])\.m\./g, ' $1m');
 
 export default async function Notes({ searchParams }) {
   const sp = await searchParams;

@@ -103,7 +103,7 @@ export default async function Approvals({ searchParams }) {
             <tbody>{outs.data.map((t) => (
               <tr key={t.id}>
                 <td>{t.profiles?.full_name}</td><td>{t.homes?.name}</td>
-                <td>{new Date(t.clock_out).toLocaleString('en-CA', { timeZone: TZ, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</td>
+                <td>{new Date(t.clock_out).toLocaleString('en-CA', { timeZone: TZ, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).replace(/\s?([ap])\.m\./g, ' $1m')}</td>
                 <td>{t.checkout_ok ? <span className="badge">✓ All done</span> : <span className="badge warn">⚠ With OK: {(t.checkout?.missing ?? []).join(', ')}</span>}</td>
                 <td className="small">{t.checkout?.handover_to || (t.checkout?.handover_on_call ? `On-call: ${t.checkout.handover_on_call}` : '—')}</td>
                 <td>{t.checkout?.hurt === 'yes' ? <span className="badge bad">Yes — {t.checkout.hurt_details}</span> : 'No'}</td>
