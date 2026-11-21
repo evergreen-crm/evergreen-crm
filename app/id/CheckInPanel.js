@@ -36,7 +36,7 @@ function AskPermission({ kind, homeId, reasons, loc, onSent }) {
   );
 }
 
-function BeforeYouLeave({ status, houseName, staffOnShift }) {
+function BeforeYouLeave({ status, houseName, staffOnShift, onDone }) {
   const router = useRouter();
   const [a, setA] = useState({ headcount: false, handover_to: '', handover_on_call: '', hurt: '', hurt_details: '', safe_home: false });
   const [noRelief, setNoRelief] = useState(!(status.relief ?? []).length);
@@ -62,7 +62,12 @@ function BeforeYouLeave({ status, houseName, staffOnShift }) {
     const r = await clockOutSafe({ loc, answers, breakMinutes: brk, note });
     setBusy(false);
     if (r?.error) { setRes({ bad: true, text: r.error }); return; }
-    if (r?.ok) { setRes({ bad: !r.clean, text: r.clean ? '✓ Clocked out. Thank you — get home safe.' : '✓ Clocked out with your manager’s OK.' }); router.refresh(); return; }
+    if (r?.ok) {
+      // Shown by the parent, so it stays after the page refreshes to "not clocked in" (Nov 21 youth worker test).
+      const at = new Date().toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Vancouver' }).replace(/\s?([ap])\.m\./g, ' $1m');
+      onDone?.({ bad: !r.clean, text: r.clean ? `✓ Clocked out at ${at}. Thank you — get home safe.` : `✓ Clocked out at ${at} with your manager’s OK.` });
+      router.refresh(); return;
+    }
     if (r?.need) {
       const reasons = (r.missing ?? []).map((x) => (x === 'not at the house' ? `Not at ${houseName ?? 'the house'} (${fmtDist(r.distance_m)} away)` : x === 'no location' ? why ?? 'No location from the phone' : x));
       setAsking({ reasons, loc });
@@ -192,7 +197,7 @@ export default function CheckInPanel({ onShift, homes, defaultHome, houseName, s
       ) : (
         <>
           <button type="button" className="big go" disabled={!!busy} onClick={checkIn}>{busy === 'check' ? 'Getting location…' : '📍 Check in now'}</button>
-          {status?.on_shift && <BeforeYouLeave status={status} houseName={houseName} staffOnShift={staffOnShift} />}
+          {status?.on_shift && <BeforeYouLeave status={status} houseName={houseName} staffOnShift={staffOnShift} onDone={setMsg} />}
           {!status?.on_shift && <p className="muted small">The “Before you leave” check isn’t switched on yet. Please tell the office (setup file: safe-shifts.sql).</p>}
         </>
       )}

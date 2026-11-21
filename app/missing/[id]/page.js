@@ -5,7 +5,7 @@ import { requireUser } from '@/lib/auth';
 import { levelOf } from '@/lib/levels';
 import { age, fmtDate, fmtDateTime } from '@/lib/options';
 import { plainError } from '@/lib/plain';
-import { SEARCH_STEPS, TELL_STEPS, RETURN_STEPS, STEP_LABEL, fmtMins } from '@/lib/missing';
+import { SEARCH_STEPS, TELL_STEPS as TELL_ALL, RETURN_STEPS as RETURN_ALL, STEP_LABEL, fmtMins, stepsFor } from '@/lib/missing';
 import PrintButton from '@/app/PrintButton';
 import Elapsed from '../Elapsed';
 import { missingStep, missingFound, missingClose } from '../actions';
@@ -38,6 +38,9 @@ export default async function MissingLog({ params, searchParams }) {
   if (!e) notFound();
   const { data: log } = await supabase.from('missing_log').select('id, at, step, note, profiles:by(full_name)').eq('episode_id', id).order('at');
   const r = e.residents ?? {};
+  const adult = /CLBC/i.test(r.funder ?? '') || (!/MCFD/i.test(r.funder ?? '') && !['Child', 'Youth'].includes(r.care_type));
+  const TELL_STEPS = stepsFor(TELL_ALL, adult);
+  const RETURN_STEPS = stepsFor(RETURN_ALL, adult);
   const name = `${r.preferred_name || r.first_name} ${r.last_name ?? ''}`;
   const firstDone = (key) => (log ?? []).find((l) => l.step === key);
   const live = e.status === 'Missing';

@@ -1,6 +1,7 @@
 // Shift schedule. Opens on the 🗓 30-day calendar every time; Week is for adding / removing shifts by hand.
 import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
+import TapTwice from '@/app/components/TapTwice';
 import { SHIFT_LABELS, shiftHours, addDaysISO, weekStart, todayISO, fmtDate, fmtTime } from '@/lib/options';
 import { addShift, deleteShift, copyLastWeek } from '@/app/schedule/actions';
 import { pickUp } from '@/app/schedule/teams-actions';
@@ -123,7 +124,7 @@ export default async function SchedulePage({ searchParams }) {
                   {canEdit && (
                     <form action={deleteShift} className="no-print">
                       <input type="hidden" name="id" value={s.id} />
-                      <button className="link small">Remove</button>
+                      <TapTwice className="link small" confirmText="Tap again to remove">Remove</TapTwice>
                     </form>
                   )}
                 </div>

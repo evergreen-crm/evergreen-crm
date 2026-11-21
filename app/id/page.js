@@ -101,34 +101,7 @@ export default async function IdPage({ searchParams }) {
         <span>{isMgr && !isSelf && <Link href={`/hr/${pid}#id-card`} className="small">← HR record</Link>} <PrintButton label="Print card" /></span>
       </div>
 
-      <div className="card no-print">
-        {(!card || card.photo_status === 'None') && <p><strong>Step 1:</strong> add a clear head-and-shoulders photo (plain background, no sunglasses or hat).</p>}
-        {card?.photo_status === 'Pending' && <p><span className="badge warn">Photo waiting for approval</span> Your manager will approve it and issue your card.</p>}
-        {card?.photo_status === 'Returned' && <p className="message">Your manager asked for a new photo{card.photo_note && `: ${card.photo_note}`}</p>}
-        {card?.photo_status === 'Approved' && !card.issued_on && <p><span className="badge">Photo approved</span> Your manager will issue your card soon.</p>}
-        {card?.new_photo_status === 'Pending' && <p><span className="badge warn">New photo waiting for approval</span> Your current card keeps working until it’s approved.</p>}
-        {card?.new_photo_status === 'Returned' && <p className="message">Your new photo wasn’t approved{card.new_photo_note && `: ${card.new_photo_note}`}. Your current card still works.</p>}
-        {notCleared && <p className="message error">⛔ <strong>Not cleared to work with youth or adults:</strong> {notCleared} Upload the renewed certificate in <Link href={`/hr/${pid}`}>HR</Link> and tell your Program Coordinator. Until then you can’t be scheduled.</p>}
-        {status === 'Expired' && <p className="message">This card has expired. Ask your manager to renew it.</p>}
-        {status === 'Not active' && <p className="message">This card is not active.</p>}
-        {isSelf && status !== 'Not active' && (
-          <IdPhotoUpload profileId={pid}
-            label={card?.photo_path ? 'Change photo (selfie)' : 'Take a selfie'}
-            note={card?.photo_status === 'Approved' ? 'A new photo needs your manager’s approval. Your current card keeps working until then.' : null} />
-        )}
-        {isSelf && newPhotoUrl && (
-          <div className="id-admin"><div className="id-admin-photo"><img src={newPhotoUrl} alt="" /></div><p className="small muted">Your new photo (waiting for approval)</p></div>
-        )}
-      </div>
-
-      <div className="idcards">
-        <IdCardFront name={person.full_name} position={details?.position} employeeNo={details?.employee_no}
-          program={details?.program} house={person.homes?.name} photoUrl={photoUrl} qr={qr} status={status} expires={card?.expires_on} perf={perf} />
-        <IdCardBack emergency={emergency} verifyUrl={verifyUrl ?? '—'} issued={card?.issued_on} />
-      </div>
-      {perf && <p className="muted small no-print">The coloured ring and badge show {isSelf ? 'your' : 'the'} latest performance badge (<Link href="/badges">details</Link>). They appear on screen only — not on the printed card or the public verify page.</p>}
-      {isSelf && !emergency.name && <p className="muted small no-print">Add your emergency contact in <Link href="/onboarding">My onboarding → Personal information</Link>.</p>}
-
+      {/* Clock in / out first (Nov 21 youth worker test): it's what staff open this page for on every shift. */}
       {isSelf && (
         <section className="card no-print" id="checkin">
           <h2>⏰ Clock In – Clock Out</h2>
@@ -161,6 +134,34 @@ export default async function IdPage({ searchParams }) {
           <p className="small"><Link href="/timesheet">Full timesheet →</Link></p>
         </section>
       )}
+      <div className="card no-print">
+        {(!card || card.photo_status === 'None') && <p><strong>Step 1:</strong> add a clear head-and-shoulders photo (plain background, no sunglasses or hat).</p>}
+        {card?.photo_status === 'Pending' && <p><span className="badge warn">Photo waiting for approval</span> Your manager will approve it and issue your card.</p>}
+        {card?.photo_status === 'Returned' && <p className="message">Your manager asked for a new photo{card.photo_note && `: ${card.photo_note}`}</p>}
+        {card?.photo_status === 'Approved' && !card.issued_on && <p><span className="badge">Photo approved</span> Your manager will issue your card soon.</p>}
+        {card?.new_photo_status === 'Pending' && <p><span className="badge warn">New photo waiting for approval</span> Your current card keeps working until it’s approved.</p>}
+        {card?.new_photo_status === 'Returned' && <p className="message">Your new photo wasn’t approved{card.new_photo_note && `: ${card.new_photo_note}`}. Your current card still works.</p>}
+        {notCleared && <p className="message error">⛔ <strong>Not cleared to work with youth or adults:</strong> {notCleared} Upload the renewed certificate in <Link href={`/hr/${pid}`}>HR</Link> and tell your Program Coordinator. Until then you can’t be scheduled.</p>}
+        {status === 'Expired' && <p className="message">This card has expired. Ask your manager to renew it.</p>}
+        {status === 'Not active' && <p className="message">This card is not active.</p>}
+        {isSelf && status !== 'Not active' && (
+          <IdPhotoUpload profileId={pid}
+            label={card?.photo_path ? 'Change photo (selfie)' : 'Take a selfie'}
+            note={card?.photo_status === 'Approved' ? 'A new photo needs your manager’s approval. Your current card keeps working until then.' : null} />
+        )}
+        {isSelf && newPhotoUrl && (
+          <div className="id-admin"><div className="id-admin-photo"><img src={newPhotoUrl} alt="" /></div><p className="small muted">Your new photo (waiting for approval)</p></div>
+        )}
+      </div>
+
+      <div className="idcards">
+        <IdCardFront name={person.full_name} position={details?.position} employeeNo={details?.employee_no}
+          program={details?.program} house={person.homes?.name} photoUrl={photoUrl} qr={qr} status={status} expires={card?.expires_on} perf={perf} />
+        <IdCardBack emergency={emergency} verifyUrl={verifyUrl ?? '—'} issued={card?.issued_on} />
+      </div>
+      {perf && <p className="muted small no-print">The coloured ring and badge show {isSelf ? 'your' : 'the'} latest performance badge (<Link href="/badges">details</Link>). They appear on screen only — not on the printed card or the public verify page.</p>}
+      {isSelf && !emergency.name && <p className="muted small no-print">Add your emergency contact in <Link href="/onboarding">My onboarding → Personal information</Link>.</p>}
+
       {isSelf && <NightCheck checks={nightChecks ?? []} />}
       {isSelf && <MyTimeForms today={today} shifts={(upcomingShifts ?? []).map((x) => ({ id: x.id, shift_date: x.shift_date, start_time: x.start_time, homes: x.homes }))} />}
       {isSelf && <p className="muted small no-print">Tip: on your phone, use “Add to Home Screen” so your ID card opens like an app.</p>}
