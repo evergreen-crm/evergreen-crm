@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Digital ID card: photo, location notice, clock in / check in / clock out with location,
 // and the manager steps (approve photo, issue / renew, replace the QR code).
 import { revalidatePath } from 'next/cache';
@@ -36,7 +37,7 @@ export async function submitIdPhoto(path) {
 export async function ackLocationNotice() {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);
   const { error } = await supabase.rpc('ack_location_notice');
-  if (error) throw new Error(error.message);
+  if (error) await fail(error.message);
   refresh();
 }
 
@@ -139,7 +140,7 @@ export async function replaceIdQr(formData) {
   const { supabase } = await requireHR();
   const pid = text(formData, 'profile_id');
   const { error } = await supabase.from('id_cards').update({ token: crypto.randomUUID() }).eq('profile_id', pid);
-  if (error) throw new Error('Could not replace: ' + error.message);
+  if (error) await fail('Could not replace: ' + error.message);
   refresh(pid);
 }
 

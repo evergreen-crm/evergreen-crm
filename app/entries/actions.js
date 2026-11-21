@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Saving any log entry (contact, health, behaviour, money, goal progress,
 // communication book, fire drill, safety check).
 import { revalidatePath } from 'next/cache';
@@ -18,19 +19,19 @@ export async function saveEntry(formData) {
   const { supabase, user } = await requireUser(['admin', 'manager', 'staff']);
   const kind = text(formData, 'kind');
   const type = ENTRY_TYPES[kind];
-  if (!type) throw new Error('Unknown entry type.');
+  if (!type) await fail('Unknown entry type.');
 
   const data = {};
   for (const f of type.fields) {
     const v = text(formData, f.name);
-    if (f.required && v === null) throw new Error(`Please fill in "${f.label}".`);
+    if (f.required && v === null) await fail(`Please fill in "${f.label}".`);
     if (v !== null) data[f.name] = f.type === 'number' ? Number(v) : v;
   }
 
   let amount = null;
   if (kind === 'money') {
     amount = Math.abs(Number(data.amount)) * (data.type?.startsWith('Money out') ? -1 : 1);
-    if (!Number.isFinite(amount) || amount === 0) throw new Error('Please enter an amount.');
+    if (!Number.isFinite(amount) || amount === 0) await fail('Please enter an amount.');
   }
 
   const { error } = await supabase.from('entries').insert({
@@ -44,7 +45,7 @@ export async function saveEntry(formData) {
     share_with_family: type.scope === 'resident' && formData.get('share_with_family') === 'on',
     created_by: user.id,
   });
-  if (error) throw new Error('Could not save: ' + error.message);
+  if (error) await fail('Could not save: ' + error.message);
   const path = text(formData, 'path');
   if (path?.startsWith('/')) revalidatePath(path.split('?')[0]);
 }
@@ -55,13 +56,13 @@ export async function updateEntry(formData) {
   const id = text(formData, 'id');
   const kind = text(formData, 'kind');
   const type = ENTRY_TYPES[kind];
-  if (!type || !id) throw new Error('Could not find that entry.');
+  if (!type || !id) await fail('Could not find that entry.');
   const reason = text(formData, 'reason');
-  if (!reason) throw new Error('Write why you are correcting it.');
+  if (!reason) await fail('Write why you are correcting it.');
   const data = {};
   for (const f of type.fields) {
     const v = text(formData, f.name);
-    if (f.required && v === null) throw new Error(`Please fill in "${f.label}".`);
+    if (f.required && v === null) await fail(`Please fill in "${f.label}".`);
     if (v !== null) data[f.name] = f.type === 'number' ? Number(v) : v;
   }
   const { data: changed, error } = await supabase.from('entries').update({
@@ -70,8 +71,8 @@ export async function updateEntry(formData) {
     entry_time: text(formData, 'entry_time'),
     updated_note: reason,
   }).eq('id', id).select('id');
-  if (error) throw new Error('Could not save the correction: ' + error.message);
-  if (!changed?.length) throw new Error('This entry can’t be changed any more. Staff can correct their own entries for 1 day (24 hours) after saving; after that, ask the Program Coordinator or Program Manager.');
+  if (error) await fail('Could not save the correction: ' + error.message);
+  if (!changed?.length) await fail('This entry can’t be changed any more. Staff can correct their own entries for 1 day (24 hours) after saving; after that, ask the Program Coordinator or Program Manager.');
   const path = text(formData, 'path');
   if (path?.startsWith('/')) revalidatePath(path.split('?')[0]);
 }
@@ -79,7 +80,7 @@ export async function updateEntry(formData) {
 export async function deleteEntry(formData) {
   const { supabase } = await requireUser(['admin']);
   const { error } = await supabase.from('entries').delete().eq('id', text(formData, 'id'));
-  if (error) throw new Error('Could not remove: ' + error.message);
+  if (error) await fail('Could not remove: ' + error.message);
   const path = text(formData, 'path');
   if (path?.startsWith('/')) revalidatePath(path.split('?')[0]);
 }

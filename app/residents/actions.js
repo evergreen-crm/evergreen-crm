@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 import { after } from 'next/server';
 import { flushOutbox } from '@/lib/emailOutbox';
 // Requirements checklist and incident reports: saving.
@@ -28,7 +29,7 @@ export async function saveRequirement(formData) {
     updated_by: user.id,
     updated_at: new Date().toISOString(),
   });
-  if (error) throw new Error('Could not save: ' + error.message);
+  if (error) await fail('Could not save: ' + error.message);
   revalidatePath(`/residents/${residentId}`);
 }
 
@@ -63,7 +64,7 @@ export async function addIncident(formData) {
       in_safety_plan: formData.get('in_safety_plan') === 'yes' ? true : formData.get('in_safety_plan') === 'no' ? false : null,
     } : {}),
   });
-  if (error) throw new Error('Could not save incident: ' + error.message);
+  if (error) await fail('Could not save incident: ' + error.message);
   if (cls === 'Critical') after(() => flushOutbox('urgent').catch(() => null)); // "📝 Incident form due by …" (supabase/incident-forms.sql)
   revalidatePath(`/residents/${residentId}`);
 }

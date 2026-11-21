@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Portal: saving records and managing who has access to each division.
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -14,7 +15,7 @@ const text = (formData, key) => {
 export async function saveRecord(formData) {
   const { supabase, user } = await requireUser(['admin', 'manager', 'staff']);
   const { div, area } = findArea(text(formData, 'division'), text(formData, 'area'));
-  if (!area) throw new Error('Unknown area.');
+  if (!area) await fail('Unknown area.');
   const id = text(formData, 'id');
 
   const data = {};
@@ -41,13 +42,13 @@ export async function saveRecord(formData) {
   if (id) {
     const { data: out, error } = await supabase.from('records')
       .update({ ...row, updated_by: user.id, updated_at: new Date().toISOString() }).eq('id', id).select('id');
-    if (error) throw new Error('Could not save: ' + error.message);
-    if (!out?.length) throw new Error('You do not have permission to edit this record.');
+    if (error) await fail('Could not save: ' + error.message);
+    if (!out?.length) await fail('You do not have permission to edit this record.');
   } else {
     const { data: out, error } = await supabase.from('records').insert({
       ...row, division: div.key, area: area.key, visibility: area.staff ? 'staff' : 'managers', created_by: user.id,
     }).select('id').single();
-    if (error) throw new Error('Could not save: ' + error.message);
+    if (error) await fail('Could not save: ' + error.message);
     recordId = out.id;
   }
   revalidatePath(`/portal/${div.key}/${area.key}`);
@@ -60,14 +61,14 @@ export async function setRecordStatus(formData) {
   const id = text(formData, 'id');
   const { error } = await supabase.from('records')
     .update({ status: text(formData, 'status'), updated_by: user.id, updated_at: new Date().toISOString() }).eq('id', id);
-  if (error) throw new Error('Could not update: ' + error.message);
+  if (error) await fail('Could not update: ' + error.message);
   revalidatePath(text(formData, 'path') ?? '/portal');
 }
 
 export async function deleteRecord(formData) {
   const { supabase } = await requireUser(['admin']);
   const { error } = await supabase.from('records').delete().eq('id', text(formData, 'id'));
-  if (error) throw new Error('Could not remove: ' + error.message);
+  if (error) await fail('Could not remove: ' + error.message);
   redirect(text(formData, 'back') ?? '/portal');
 }
 
@@ -77,7 +78,7 @@ export async function grantAccess(formData) {
   const { error } = await supabase.from('portal_access').upsert({
     profile_id: text(formData, 'profile_id'), division, can_edit: formData.get('can_edit') === 'on', granted_by: user.id,
   });
-  if (error) throw new Error('Could not give access: ' + error.message);
+  if (error) await fail('Could not give access: ' + error.message);
   revalidatePath(`/portal/${division}`);
 }
 
@@ -86,6 +87,6 @@ export async function revokeAccess(formData) {
   const division = text(formData, 'division');
   const { error } = await supabase.from('portal_access').delete()
     .eq('profile_id', text(formData, 'profile_id')).eq('division', division);
-  if (error) throw new Error('Could not remove access: ' + error.message);
+  if (error) await fail('Could not remove access: ' + error.message);
   revalidatePath(`/portal/${division}`);
 }

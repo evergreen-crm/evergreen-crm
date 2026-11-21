@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // House inventory register: add an item (locked once saved), and attach a photo to it.
 // Serial, SKU and IMEI are locked once saved; only an Administrator can correct them (with a reason, kept in history).
 import { revalidatePath } from 'next/cache';
@@ -18,14 +19,14 @@ export async function addInventoryItem(formData) {
   const boughtOn = String(formData.get('bought_on') ?? '') || null;
   const note = String(formData.get('added_by_note') ?? '').trim() || null;
   const status = String(formData.get('status') ?? 'in use').trim() || 'in use';
-  if (!homeId || !item) throw new Error('Write what the item is first.');
-  if (imei && !/^[0-9]{15}$/.test(imei)) throw new Error('IMEI must be 15 digits. Check the number and try again.');
-  if (category === 'phone' && !imei) throw new Error('Phones need an IMEI number.');
+  if (!homeId || !item) await fail('Write what the item is first.');
+  if (imei && !/^[0-9]{15}$/.test(imei)) await fail('IMEI must be 15 digits. Check the number and try again.');
+  if (category === 'phone' && !imei) await fail('Phones need an IMEI number.');
   const { error } = await supabase.from('inventory_items').insert({
     home_id: homeId, item, category, sku, serial_no: serial, imei, bought_on: boughtOn,
     added_by_note: note, status, created_by: user.id,
   });
-  if (error) throw new Error('Could not save the item: ' + error.message);
+  if (error) await fail('Could not save the item: ' + error.message);
   revalidatePath(`/homes/${homeId}/inventory`);
 }
 
@@ -37,11 +38,11 @@ export async function addInventoryPhotoRecord(formData) {
   const filePath = String(formData.get('file_path') ?? '');
   const caption = String(formData.get('caption') ?? '').trim() || null;
   const takenOn = String(formData.get('taken_on') ?? '') || null;
-  if (!itemId || !homeId || !filePath.startsWith(`${homeId}/${itemId}/`)) throw new Error('The photo could not be linked to this item.');
+  if (!itemId || !homeId || !filePath.startsWith(`${homeId}/${itemId}/`)) await fail('The photo could not be linked to this item.');
   const { error } = await supabase.from('inventory_photos').insert({
     item_id: itemId, home_id: homeId, file_path: filePath, caption, taken_on: takenOn, added_by: user.id,
   });
-  if (error) throw new Error('Could not save the photo: ' + error.message);
+  if (error) await fail('Could not save the photo: ' + error.message);
   revalidatePath(`/homes/${homeId}/inventory`);
 }
 
@@ -53,9 +54,9 @@ export async function setInventoryStatus(formData) {
   const homeId = String(formData.get('home_id') ?? '');
   const status = String(formData.get('status') ?? '');
   const reason = String(formData.get('reason') ?? '').trim();
-  if (!reason) throw new Error('Write why the status is changing.');
+  if (!reason) await fail('Write why the status is changing.');
   const { error } = await supabase.rpc('inventory_set_status', { p_item: itemId, p_status: status, p_reason: reason });
-  if (error) throw new Error('Could not change the status: ' + error.message);
+  if (error) await fail('Could not change the status: ' + error.message);
   revalidatePath(`/homes/${homeId}/inventory`);
 }
 
@@ -65,7 +66,7 @@ export async function correctInventoryItem(formData) {
   const itemId = String(formData.get('item_id') ?? '');
   const homeId = String(formData.get('home_id') ?? '');
   const reason = String(formData.get('reason') ?? '').trim();
-  if (!reason) throw new Error('Write why the numbers are being corrected.');
+  if (!reason) await fail('Write why the numbers are being corrected.');
   const { error } = await supabase.rpc('inventory_correct', {
     p_item: itemId,
     p_name: String(formData.get('item') ?? ''),
@@ -74,6 +75,6 @@ export async function correctInventoryItem(formData) {
     p_imei: String(formData.get('imei') ?? ''),
     p_reason: reason,
   });
-  if (error) throw new Error('Could not save the correction: ' + error.message);
+  if (error) await fail('Could not save the correction: ' + error.message);
   revalidatePath(`/homes/${homeId}/inventory`);
 }

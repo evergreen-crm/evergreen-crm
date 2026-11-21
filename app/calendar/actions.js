@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Calendar: saving appointments.
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -24,7 +25,7 @@ export async function addAppointment(formData) {
     share_with_family: formData.get('share_with_family') === 'on',
   };
   const { error } = await supabase.from('appointments').insert(row);
-  if (error) throw new Error('Could not add appointment: ' + error.message);
+  if (error) await fail('Could not add appointment: ' + error.message);
   revalidatePath('/calendar');
   const back = text(formData, 'back') ?? `/calendar?home=${row.home_id}&d=${row.appt_date}`;
   redirect(back);
@@ -34,6 +35,6 @@ export async function setAppointmentStatus(formData) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);
   const { error } = await supabase.from('appointments')
     .update({ status: text(formData, 'status') }).eq('id', text(formData, 'id'));
-  if (error) throw new Error(error.message);
+  if (error) await fail(error.message);
   revalidatePath('/calendar');
 }

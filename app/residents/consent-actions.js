@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Resident consents (supabase/resident-consents.sql). A renewal is a new row; the old one stays on record.
 import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/auth';
@@ -10,8 +11,8 @@ export async function addConsent(fd) {
   const residentId = text(fd, 'resident_id');
   const signed = text(fd, 'signed_on');
   const expires = text(fd, 'expires_on');
-  if (!signed || !expires) throw new Error('Write the date it was signed and the date it expires.');
-  if (expires < signed) throw new Error('The expiry date is before the signed date.');
+  if (!signed || !expires) await fail('Write the date it was signed and the date it expires.');
+  if (expires < signed) await fail('The expiry date is before the signed date.');
   const { error } = await supabase.from('resident_consents').insert({
     resident_id: residentId,
     kind: text(fd, 'kind'),
@@ -22,6 +23,6 @@ export async function addConsent(fd) {
     note: text(fd, 'note'),
     created_by: user.id,
   });
-  if (error) throw new Error('Could not save the consent: ' + error.message);
+  if (error) await fail('Could not save the consent: ' + error.message);
   revalidatePath(`/residents/${residentId}`);
 }

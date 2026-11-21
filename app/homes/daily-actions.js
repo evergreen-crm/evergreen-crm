@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Save the daily grid: one row per child, the day book and daily checks entered together for a date.
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -14,7 +15,7 @@ export async function saveDailyGrid(formData) {
   const homeId = String(formData.get('home_id') ?? '');
   const date = String(formData.get('entry_date') ?? '');
   const program = String(formData.get('program') ?? '');
-  if (!DATE.test(date) || !homeId) throw new Error('Choose a date and a house.');
+  if (!DATE.test(date) || !homeId) await fail('Choose a date and a house.');
   const kinds = dailyKindsFor(program);
   const time = nowTime();
 
@@ -38,7 +39,7 @@ export async function saveDailyGrid(formData) {
   }
   if (inserts.length) {
     const { error } = await supabase.from('entries').insert(inserts);
-    if (error) throw new Error('Could not save: ' + error.message);
+    if (error) await fail('Could not save: ' + error.message);
   }
   revalidatePath(`/homes/${homeId}`);
   const q = new URLSearchParams({ tab: 'daily', date, saved: String(inserts.length), skipped: skipped.slice(0, 3).join('; ') });

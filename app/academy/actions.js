@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Evergreen Academy: staff add their training dates; managers verify them (certificate issued).
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireHR } from '@/lib/auth';
@@ -31,13 +32,13 @@ export async function verifyTraining(formData) {
   const { supabase, user } = await requireHR();
   const id = text(formData, 'id');
   const { data: t } = await supabase.from('trainings').select('*').eq('id', id).maybeSingle();
-  if (!t) throw new Error('Training not found.');
+  if (!t) await fail('Training not found.');
   const months = renewMonthsFor(t.title);
   const expires = t.expires_on ?? (months ? addMonthsISO(t.completed_on, months) : null);
   const certNo = t.certificate_no ?? `ECC-${t.completed_on.slice(0, 4)}-${t.id.slice(0, 6).toUpperCase()}`;
   const { error } = await supabase.from('trainings')
     .update({ verified_by: user.id, certificate_no: certNo, expires_on: expires }).eq('id', id);
-  if (error) throw new Error('Could not verify: ' + error.message);
+  if (error) await fail('Could not verify: ' + error.message);
   if (expires) {
     await supabase.from('certifications').insert({
       profile_id: t.profile_id, cert_type: t.title, issued_on: t.completed_on, expires_on: expires,
@@ -50,6 +51,6 @@ export async function verifyTraining(formData) {
 export async function rejectTraining(formData) {
   const { supabase } = await requireHR();
   const { error } = await supabase.from('trainings').delete().eq('id', text(formData, 'id')).is('verified_by', null);
-  if (error) throw new Error('Could not remove: ' + error.message);
+  if (error) await fail('Could not remove: ' + error.message);
   revalidatePath('/academy');
 }

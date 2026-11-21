@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 import { createAdminClient, adminKey } from '@/lib/supabase/admin';
 import { createReferenceRequests, cleanRefs, refErrors } from '@/lib/references';
 import { savePaperworkPdf } from '@/lib/paperworkPdf';
@@ -28,7 +29,7 @@ export async function startOnboarding(formData) {
   const hire = text(formData, 'hire_date') ?? todayISO();
   const program = ['MCFD', 'CLBC', 'Both'].includes(text(formData, 'program')) ? text(formData, 'program') : 'Both';
   const r = await createOnboarding(supabase, { profileId, hire, program, sentBy: user.id });
-  if (r.error) throw new Error(r.error);
+  if (r.error) await fail(r.error);
   refreshFor(profileId);
   redirect(`/hr/${profileId}/onboarding`);
 }
@@ -41,7 +42,7 @@ export async function savePersonal(formData) {
   const personal = Object.fromEntries(keys.map((k) => [k, text(formData, k)]).filter(([, v]) => v));
   const { error } = await supabase.from('onboardings').update({ personal, status: 'In progress' })
     .eq('profile_id', user.id).neq('status', 'Complete');
-  if (error) throw new Error('Could not save: ' + error.message);
+  if (error) await fail('Could not save: ' + error.message);
   if (personal.emergency_name) {
     // Staff can't edit their HR details; this function changes only their own emergency contact (ID card).
     await supabase.rpc('set_my_emergency_contact', {
@@ -141,7 +142,7 @@ export async function attachItemFile(itemId, path) {
 export async function submitOnboarding() {
   const { supabase, user } = await requireUser(['admin', 'manager', 'staff']);
   const { error } = await supabase.from('onboardings').update({ status: 'Submitted' }).eq('profile_id', user.id);
-  if (error) throw new Error('Could not submit: ' + error.message);
+  if (error) await fail('Could not submit: ' + error.message);
   refreshFor(user.id);
 }
 
@@ -151,7 +152,7 @@ export async function reviewItem(formData) {
   const id = text(formData, 'id');
   const decision = text(formData, 'decision');
   const { data: item } = await supabase.from('onboarding_items').select('*').eq('id', id).maybeSingle();
-  if (!item) throw new Error('Item not found.');
+  if (!item) await fail('Item not found.');
   const tpl = templateFor(item.item_key);
   const patch = { reviewed_by: user.id, reviewed_at: new Date().toISOString(), review_note: text(formData, 'note') };
 
@@ -170,7 +171,7 @@ export async function reviewItem(formData) {
           hours: d.hours ? Number(d.hours) : null, provider: d.provider, expires_on: expires,
           notes: d.notes ?? null, verified_by: user.id, created_by: user.id,
         }).select('id').single();
-        if (te) throw new Error('Could not create training record: ' + te.message);
+        if (te) await fail('Could not create training record: ' + te.message);
         const certNo = `ECC-${d.completed_on.slice(0, 4)}-${tr.id.slice(0, 6).toUpperCase()}`;
         await supabase.from('trainings').update({ certificate_no: certNo }).eq('id', tr.id);
         patch.training_id = tr.id;
@@ -192,14 +193,14 @@ export async function reviewItem(formData) {
     patch.data = d;
   } else if (decision === 'return') {
     patch.status = 'Returned';
-    if (!patch.review_note) throw new Error('Please write a note so they know what to fix.');
+    if (!patch.review_note) await fail('Please write a note so they know what to fix.');
   } else if (decision === 'na') {
     patch.status = 'N/A';
   } else if (decision === 'reopen') {
     patch.status = 'To do';
   }
   const { error } = await supabase.from('onboarding_items').update(patch).eq('id', id);
-  if (error) throw new Error('Could not save review: ' + error.message);
+  if (error) await fail('Could not save review: ' + error.message);
   refreshFor(item.profile_id);
 }
 
@@ -208,6 +209,6 @@ export async function completeOnboarding(formData) {
   const profileId = text(formData, 'profile_id');
   const { error } = await supabase.from('onboardings')
     .update({ status: 'Complete', completed_by: user.id, completed_at: new Date().toISOString() }).eq('profile_id', profileId);
-  if (error) throw new Error('Could not complete: ' + error.message);
+  if (error) await fail('Could not complete: ' + error.message);
   refreshFor(profileId);
 }

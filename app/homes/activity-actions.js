@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // House activity plan: saving activities (supabase/activity-plans.sql).
 import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/auth';
@@ -18,12 +19,12 @@ export async function saveActivity(fd) {
     resident_ids: fd.getAll('resident_ids').filter((x) => typeof x === 'string' && /^[0-9a-f-]{36}$/i.test(x)),
     notes: text(fd, 'notes'),
   };
-  if (!row.activity) throw new Error('Write what the activity is.');
+  if (!row.activity) await fail('Write what the activity is.');
   const id = text(fd, 'id');
   const q = id ? supabase.from('activity_plans').update({ ...row, updated_at: new Date().toISOString() }).eq('id', id)
     : supabase.from('activity_plans').insert(row);
   const { error } = await q;
-  if (error) throw new Error('Could not save the activity: ' + error.message);
+  if (error) await fail('Could not save the activity: ' + error.message);
   revalidatePath(`/homes/${home}/activities`);
 }
 
@@ -31,6 +32,6 @@ export async function setActivityActive(fd) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);
   const home = text(fd, 'home_id');
   const { error } = await supabase.from('activity_plans').update({ active: fd.get('active') === '1' }).eq('id', text(fd, 'id'));
-  if (error) throw new Error('Could not change the activity: ' + error.message);
+  if (error) await fail('Could not change the activity: ' + error.message);
   revalidatePath(`/homes/${home}/activities`);
 }

@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Goal steps: add a step, and tick it when done.
 import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/auth';
@@ -10,9 +11,9 @@ export async function addGoalStep(formData) {
   const goalId = String(formData.get('goal_id') ?? '');
   const step = String(formData.get('step') ?? '').trim();
   const path = String(formData.get('path') ?? '/document');
-  if (!goalId || !step) throw new Error('Write the step first.');
+  if (!goalId || !step) await fail('Write the step first.');
   const { error } = await supabase.from('goal_steps').insert({ goal_id: goalId, step });
-  if (error) throw new Error('Could not add the step: ' + error.message);
+  if (error) await fail('Could not add the step: ' + error.message);
   revalidatePath(path.split('?')[0]);
 }
 
@@ -22,7 +23,7 @@ export async function toggleGoalStep(formData) {
   const done = formData.get('done') === 'yes';
   const path = String(formData.get('path') ?? '/document');
   const { error } = await supabase.from('goal_steps').update({ done_on: done ? today() : null }).eq('id', id);
-  if (error) throw new Error('Could not update the step: ' + error.message);
+  if (error) await fail('Could not update the step: ' + error.message);
   revalidatePath(path.split('?')[0]);
 }
 
@@ -44,10 +45,10 @@ export async function saveMarSheet(formData) {
     if ((value !== 'Given' || prn) && !reason) { problems.push(prn ? 'an as-needed dose needs a reason' : 'a dose not given needs a reason'); continue; }
     rows.push({ medication_id: medId, resident_id: residentId, admin_date: date, scheduled_time: prn ? null : time, status: value, reason, given_by: user.id });
   }
-  if (problems.length) throw new Error(`Nothing was saved. Please fix: ${[...new Set(problems)].join('; ')}.`);
+  if (problems.length) await fail(`Nothing was saved. Please fix: ${[...new Set(problems)].join('; ')}.`);
   if (rows.length) {
     const { error } = await supabase.from('med_administrations').insert(rows);
-    if (error) throw new Error(error.code === '23505' ? 'One of these doses was already signed. Refresh and try again.' : 'Could not save: ' + error.message);
+    if (error) await fail(error.code === '23505' ? 'One of these doses was already signed. Refresh and try again.' : 'Could not save: ' + error.message);
   }
   revalidatePath(path.split('?')[0]);
 }

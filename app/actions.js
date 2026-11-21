@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Everything that SAVES data. Each action runs on the server.
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -37,7 +38,7 @@ export async function addShiftNote(formData) {
     share_with_family: formData.get('share_with_family') === 'on',
     signed_at: signNow ? new Date().toISOString() : null,
   });
-  if (error) throw new Error('Could not save note: ' + error.message);
+  if (error) await fail('Could not save note: ' + error.message);
   revalidatePath(`/residents/${residentId}`);
 }
 
@@ -49,7 +50,7 @@ export async function signShiftNote(formData) {
     .from('shift_notes')
     .update({ signed_at: new Date().toISOString() })
     .eq('id', noteId);
-  if (error) throw new Error('Could not sign note: ' + error.message);
+  if (error) await fail('Could not sign note: ' + error.message);
   revalidatePath(`/residents/${residentId}`);
 }
 
@@ -62,7 +63,7 @@ export async function addHome(formData) {
     address: text(formData, 'address'),
     licence_number: text(formData, 'licence_number'),
   });
-  if (error) throw new Error(error.message);
+  if (error) await fail(error.message);
   revalidatePath('/admin');
 }
 
@@ -76,7 +77,7 @@ export async function addResident(formData) {
     admission_date: text(formData, 'admission_date'),
     allergies: text(formData, 'allergies'),
   });
-  if (error) throw new Error(error.message);
+  if (error) await fail(error.message);
   revalidatePath('/admin');
   revalidatePath('/');
 }

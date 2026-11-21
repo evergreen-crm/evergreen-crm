@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Shift schedule: saving.
 import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/auth';
@@ -28,14 +29,14 @@ export async function addShift(formData) {
     created_by: user.id,
   }));
   const { error } = await supabase.from('shifts').insert(rows);
-  if (error) throw new Error('Could not add shift: ' + why(error));
+  if (error) await fail('Could not add shift: ' + why(error));
   revalidatePath('/schedule');
 }
 
 export async function deleteShift(formData) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);
   const { error } = await supabase.from('shifts').delete().eq('id', text(formData, 'id'));
-  if (error) throw new Error('Could not remove shift: ' + why(error));
+  if (error) await fail('Could not remove shift: ' + why(error));
   revalidatePath('/schedule');
 }
 
@@ -52,6 +53,6 @@ export async function copyLastWeek(formData) {
     start_time: s.start_time, end_time: s.end_time, label: s.label, notes: s.notes, created_by: user.id,
   }));
   const { error } = await supabase.from('shifts').insert(rows);
-  if (error) throw new Error('Could not copy: ' + why(error));
+  if (error) await fail('Could not copy: ' + why(error));
   revalidatePath('/schedule');
 }

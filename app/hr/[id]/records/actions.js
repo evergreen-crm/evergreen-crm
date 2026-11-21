@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Saves a staff file record (performance evaluation, supervision, job description acknowledgement).
 // Access is enforced by row-level security on staff_file_records (supabase/staff-file-access.sql):
 // HR, Admin and directors for everyone; Program Managers for staff in their houses below them.
@@ -14,11 +15,11 @@ export async function addStaffRecord(formData) {
   const { supabase } = await requireUser(['admin', 'manager', 'staff']);
   const profileId = text(formData, 'profile_id');
   const kind = text(formData, 'kind');
-  if (!['performance_evaluation', 'supervision', 'job_description_acknowledged'].includes(kind)) throw new Error('Unknown record type.');
+  if (!['performance_evaluation', 'supervision', 'job_description_acknowledged'].includes(kind)) await fail('Unknown record type.');
   const summary = text(formData, 'summary');
-  if (!summary) throw new Error('Write what was reviewed or discussed.');
+  if (!summary) await fail('Write what was reviewed or discussed.');
   const recordOn = text(formData, 'record_on');
-  if (!recordOn) throw new Error('Enter the date.');
+  if (!recordOn) await fail('Enter the date.');
   const rating = text(formData, 'rating');
   const { error } = await supabase.from('staff_file_records').insert({
     profile_id: profileId,
@@ -28,7 +29,7 @@ export async function addStaffRecord(formData) {
     rating: kind === 'performance_evaluation' ? rating : null,
     next_due_on: text(formData, 'next_due_on'),
   });
-  if (error) throw new Error('Could not save: ' + error.message);
+  if (error) await fail('Could not save: ' + error.message);
   revalidatePath(`/hr/${profileId}/records`);
   revalidatePath(`/hr/${profileId}/file`);
 }

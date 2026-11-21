@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Houses and resident profiles: saving.
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -11,15 +12,15 @@ const text = (formData, key) => {
 
 const HOME_FIELDS = ['name', 'address', 'phone', 'licence_number', 'house_type', 'program', 'notes'];
 const PROGRAM_OK = ['MCFD', 'CLBC'];
-const checkProgram = (v) => { if (!PROGRAM_OK.includes(v)) throw new Error('Choose MCFD or CLBC for this house.'); };
+const checkProgram = async (v) => { if (!PROGRAM_OK.includes(v)) await fail('Choose MCFD or CLBC for this house.'); };
 
 export async function createHome(formData) {
   const { supabase } = await requireUser(['admin']);
   const row = Object.fromEntries(HOME_FIELDS.map((k) => [k, text(formData, k)]));
-  checkProgram(row.program);
+  await checkProgram(row.program);
   row.capacity = text(formData, 'capacity');
   const { data, error } = await supabase.from('homes').insert(row).select('id').single();
-  if (error) throw new Error('Could not add house: ' + error.message);
+  if (error) await fail('Could not add house: ' + error.message);
   revalidatePath('/homes');
   redirect(`/homes/${data.id}`);
 }
@@ -28,7 +29,7 @@ export async function updateHome(formData) {
   const { supabase } = await requireUser(['admin', 'manager']);
   const id = text(formData, 'id');
   const row = Object.fromEntries(HOME_FIELDS.map((k) => [k, text(formData, k)]));
-  checkProgram(row.program);
+  await checkProgram(row.program);
   row.capacity = text(formData, 'capacity');
   if (formData.has('lat')) {
     const n = (k, lo, hi) => { const v = Number(text(formData, k)); return text(formData, k) !== null && Number.isFinite(v) && v >= lo && v <= hi ? v : null; };
@@ -42,7 +43,7 @@ export async function updateHome(formData) {
     delete row.on_call_phone;
     ({ error } = await supabase.from('homes').update(row).eq('id', id));
   }
-  if (error) throw new Error('Could not save house: ' + error.message);
+  if (error) await fail('Could not save house: ' + error.message);
   revalidatePath(`/homes/${id}`);
   revalidatePath('/homes');
   redirect(`/homes/${id}`);
@@ -71,7 +72,7 @@ export async function createResident(formData) {
   const { supabase } = await requireUser(['admin', 'manager']);
   const row = residentRow(formData);
   const { data, error } = await supabase.from('residents').insert(row).select('id').single();
-  if (error) throw new Error('Could not add resident: ' + error.message);
+  if (error) await fail('Could not add resident: ' + error.message);
   revalidatePath(`/homes/${row.home_id}`);
   redirect(`/residents/${data.id}`);
 }
@@ -81,7 +82,7 @@ export async function updateResident(formData) {
   const id = text(formData, 'id');
   const row = residentRow(formData);
   const { error } = await supabase.from('residents').update(row).eq('id', id);
-  if (error) throw new Error('Could not save resident: ' + error.message);
+  if (error) await fail('Could not save resident: ' + error.message);
   revalidatePath(`/residents/${id}`);
   revalidatePath(`/homes/${row.home_id}`);
   redirect(`/residents/${id}`);

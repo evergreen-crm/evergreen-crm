@@ -14,6 +14,7 @@ import { Suspense } from 'react';
 import { after } from 'next/server';
 import { maybeFlushUrgent } from '@/lib/emailOutbox';
 import HelpButton from '@/app/components/HelpButton';
+import FlashBanner from '@/app/components/FlashBanner';
 import SuggestButton from '@/app/components/SuggestButton';
 import AskSide from '@/app/components/AskSide';
 import { getMyTodos, todoCount } from '@/lib/todos';
@@ -119,7 +120,7 @@ export default async function RootLayout({ children }) {
           </header>
         )}
         <div className="print-only print-head"><img src="/logo.png" alt="Evergreen Community Care" className="print-logo" /></div>
-        <div className={`page${profile && profile.role !== 'family' ? ' has-tabs' : ''}`}>{profile && profile.role !== 'family' && <OfflineQueue userId={profile.id} />}{children}</div>
+        <div className={`page${profile && profile.role !== 'family' ? ' has-tabs' : ''}`}>{profile && profile.role !== 'family' && <OfflineQueue userId={profile.id} />}<Suspense fallback={null}><FlashBanner /></Suspense>{children}</div>
         {profile && profile.role !== 'family' && <MobileTabs unread={unread} todo={todo} />}
         {profile && profile.role !== 'family' && <AskSide onCall={sosHome?.on_call_phone ?? null} />}
         {profile && profile.role !== 'family' && <EmergencyButton onCall={sosHome?.on_call_phone ?? null} housePhone={sosHome?.phone ?? null} homeName={sosHome?.name ?? null} homeId={sosHome?.id ?? null} />}

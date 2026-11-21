@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // HR portal: everything that saves data.
 import { revalidatePath } from 'next/cache';
 import { requireUser, requireHR } from '@/lib/auth';
@@ -28,7 +29,7 @@ export async function saveStaffDetails(formData) {
     program: ['MCFD', 'CLBC', 'Both'].includes(text(formData, 'program')) ? text(formData, 'program') : 'Both',
     updated_at: new Date().toISOString(),
   });
-  if (error) throw new Error('Could not save details: ' + error.message);
+  if (error) await fail('Could not save details: ' + error.message);
   // The program was chosen on purpose (record-gaps.sql); ignore if that setup hasn't run yet.
   await supabase.from('staff_details').update({ program_confirmed: true }).eq('profile_id', profileId);
   await supabase.rpc('scan_record_gaps', { p_trigger: 'now' });
@@ -53,7 +54,7 @@ export async function addCertification(formData) {
     expires_on: text(formData, 'expires_on'),
     notes: text(formData, 'notes'),
   });
-  if (error) throw new Error('Could not add certification: ' + error.message);
+  if (error) await fail('Could not add certification: ' + error.message);
   revalidatePath(`/hr/${profileId}`);
   revalidatePath('/hr');
 }
@@ -62,7 +63,7 @@ export async function deleteCertification(formData) {
   const { supabase } = await requireHR();
   const profileId = text(formData, 'profile_id');
   const { error } = await supabase.from('certifications').delete().eq('id', text(formData, 'id'));
-  if (error) throw new Error(error.message);
+  if (error) await fail(error.message);
   revalidatePath(`/hr/${profileId}`);
   revalidatePath('/hr');
 }
@@ -79,7 +80,7 @@ export async function addTraining(formData) {
     hours: text(formData, 'hours'), notes: text(formData, 'notes'), provider: text(formData, 'provider'),
     expires_on: expires, verified_by: user.id, created_by: user.id,
   }).select('id').single();
-  if (error) throw new Error('Could not add training: ' + error.message);
+  if (error) await fail('Could not add training: ' + error.message);
   await supabase.from('trainings').update({ certificate_no: `ECC-${completed.slice(0, 4)}-${tr.id.slice(0, 6).toUpperCase()}` }).eq('id', tr.id);
   revalidatePath(`/hr/${profileId}`);
 }
@@ -88,7 +89,7 @@ export async function deleteTraining(formData) {
   const { supabase } = await requireHR();
   const profileId = text(formData, 'profile_id');
   const { error } = await supabase.from('trainings').delete().eq('id', text(formData, 'id'));
-  if (error) throw new Error(error.message);
+  if (error) await fail(error.message);
   revalidatePath(`/hr/${profileId}`);
 }
 
@@ -107,12 +108,12 @@ export async function saveEmployment(formData) {
     exit_interview_on: text(formData, 'exit_interview_on'),
     updated_at: new Date().toISOString(),
   });
-  if (error) throw new Error('Could not save: ' + error.message);
+  if (error) await fail('Could not save: ' + error.message);
   // Turn off their sign-in (admin only). They can be switched back on in Admin.
   if (formData.get('turn_off_access') === 'on') {
-    if (profile.role !== 'admin') throw new Error('Only the admin can turn off access.');
+    if (profile.role !== 'admin') await fail('Only the admin can turn off access.');
     const { error: e2 } = await supabase.from('profiles').update({ active: false }).eq('id', profileId);
-    if (e2) throw new Error('Saved, but could not turn off access: ' + e2.message);
+    if (e2) await fail('Saved, but could not turn off access: ' + e2.message);
   }
   if (formData.get('turn_on_access') === 'on' && profile.role === 'admin') {
     await supabase.from('profiles').update({ active: true }).eq('id', profileId);

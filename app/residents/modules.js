@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Medications (MAR), goals, documents and family messages: saving.
 import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/auth';
@@ -20,7 +21,7 @@ export async function addMedication(formData) {
     .map((t) => { const [h, m = '00'] = t.split(':'); return `${String(Number(h)).padStart(2, '0')}:${m.padStart(2, '0').slice(0, 2)}`; })
     .filter((t) => /^([01]\d|2[0-3]):[0-5]\d$/.test(t))
     .sort();
-  if (!isPrn && times.length === 0) throw new Error('Add at least one time (for example 08:00, 20:00), or tick "As needed (PRN)".');
+  if (!isPrn && times.length === 0) await fail('Add at least one time (for example 08:00, 20:00), or tick "As needed (PRN)".');
   const { error } = await supabase.from('medications').insert({
     resident_id: residentId,
     name: text(formData, 'name'),
@@ -33,7 +34,7 @@ export async function addMedication(formData) {
     start_date: text(formData, 'start_date'),
     created_by: user.id,
   });
-  if (error) throw new Error('Could not add medication: ' + error.message);
+  if (error) await fail('Could not add medication: ' + error.message);
   refresh(residentId);
 }
 
@@ -43,7 +44,7 @@ export async function stopMedication(formData) {
   const active = formData.get('active') === 'true';
   const { error } = await supabase.from('medications')
     .update({ active, end_date: active ? null : todayISO() }).eq('id', text(formData, 'id'));
-  if (error) throw new Error('Could not update medication: ' + error.message);
+  if (error) await fail('Could not update medication: ' + error.message);
   refresh(residentId);
 }
 
@@ -53,7 +54,7 @@ export async function recordDose(formData) {
   const status = text(formData, 'status');
   const reason = text(formData, 'reason');
   const prn = !text(formData, 'scheduled_time');
-  if ((prn || status !== 'Given') && !reason) throw new Error(prn ? 'Please write why the PRN was given.' : `Please write a reason for "${status}".`);
+  if ((prn || status !== 'Given') && !reason) await fail(prn ? 'Please write why the PRN was given.' : `Please write a reason for "${status}".`);
   const { error } = await supabase.from('med_administrations').insert({
     medication_id: text(formData, 'medication_id'),
     resident_id: residentId,
@@ -64,8 +65,8 @@ export async function recordDose(formData) {
     given_by: user.id,
   });
   if (error) {
-    if (error.code === '23505') throw new Error('This dose has already been signed for.');
-    throw new Error('Could not save: ' + error.message);
+    if (error.code === '23505') await fail('This dose has already been signed for.');
+    await fail('Could not save: ' + error.message);
   }
   refresh(residentId);
 }
@@ -83,7 +84,7 @@ export async function addGoal(formData) {
     review_date: text(formData, 'review_date'),
     created_by: user.id,
   });
-  if (error) throw new Error('Could not add goal: ' + error.message);
+  if (error) await fail('Could not add goal: ' + error.message);
   refresh(residentId);
 }
 
@@ -97,7 +98,7 @@ export async function recordGoalReview(formData) {
     review_note: text(formData, 'review_note'),
     reviewed_by: user.id,
   }).eq('id', text(formData, 'id'));
-  if (error) throw new Error('Could not record the review: ' + error.message);
+  if (error) await fail('Could not record the review: ' + error.message);
   refresh(residentId);
 }
 
@@ -107,7 +108,7 @@ export async function setGoalStatus(formData) {
   const patch = { status: text(formData, 'status') };
   if (formData.has('domain')) patch.domain = text(formData, 'domain');
   const { error } = await supabase.from('goals').update(patch).eq('id', text(formData, 'id'));
-  if (error) throw new Error('Could not update goal: ' + error.message);
+  if (error) await fail('Could not update goal: ' + error.message);
   refresh(residentId);
 }
 
@@ -138,7 +139,7 @@ export async function deleteDocument(formData) {
   const { data: doc } = await supabase.from('documents').select('file_path').eq('id', id).maybeSingle();
   if (doc) await supabase.storage.from('documents').remove([doc.file_path]);
   const { error } = await supabase.from('documents').delete().eq('id', id);
-  if (error) throw new Error('Could not remove: ' + error.message);
+  if (error) await fail('Could not remove: ' + error.message);
   if (residentId) refresh(residentId);
 }
 
@@ -149,6 +150,6 @@ export async function sendMessage(formData) {
   const body = text(formData, 'body');
   if (!body) return;
   const { error } = await supabase.from('messages').insert({ resident_id: residentId, sender_id: user.id, body });
-  if (error) throw new Error('Could not send: ' + error.message);
+  if (error) await fail('Could not send: ' + error.message);
   refresh(residentId);
 }

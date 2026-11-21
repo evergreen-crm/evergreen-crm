@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Timesheets: clock in / out, fix, approve.
 import { canPayroll } from '@/lib/levels';
 import { revalidatePath } from 'next/cache';
@@ -12,11 +13,11 @@ const text = (formData, key) => {
 export async function clockIn(formData) {
   const { supabase, user, profile } = await requireUser(['admin', 'manager', 'staff']);
   const { data: open } = await supabase.from('time_entries').select('id').eq('profile_id', user.id).is('clock_out', null).maybeSingle();
-  if (open) throw new Error('You are already clocked in.');
+  if (open) await fail('You are already clocked in.');
   const { error } = await supabase.from('time_entries').insert({
     profile_id: user.id, home_id: text(formData, 'home_id') ?? profile.home_id, notes: text(formData, 'notes'),
   });
-  if (error) throw new Error('Could not clock in: ' + error.message);
+  if (error) await fail('Could not clock in: ' + error.message);
   revalidatePath('/timesheet');
 }
 
@@ -26,7 +27,7 @@ export async function clockOut(formData) {
   const notes = text(formData, 'notes');
   if (notes) patch.notes = notes;
   const { error } = await supabase.from('time_entries').update(patch).eq('id', text(formData, 'id')).eq('profile_id', user.id);
-  if (error) throw new Error('Could not clock out: ' + error.message);
+  if (error) await fail('Could not clock out: ' + error.message);
   revalidatePath('/timesheet');
 }
 
@@ -51,7 +52,7 @@ export async function addTime(formData) {
     break_minutes: Number(text(formData, 'break_minutes') ?? 0),
     notes: text(formData, 'notes') ?? 'Added by hand',
   });
-  if (error) throw new Error('Could not add: ' + error.message);
+  if (error) await fail('Could not add: ' + error.message);
   revalidatePath('/timesheet');
 }
 
@@ -61,13 +62,13 @@ export async function approveTime(formData) {
   const { error } = await supabase.from('time_entries')
     .update({ approved_by: user.id, approved_at: new Date().toISOString() })
     .in('id', ids).not('clock_out', 'is', null);
-  if (error) throw new Error('Could not approve: ' + error.message);
+  if (error) await fail('Could not approve: ' + error.message);
   revalidatePath('/timesheet');
 }
 
 export async function deleteTime(formData) {
   const { supabase } = await requirePayroll();
   const { error } = await supabase.from('time_entries').delete().eq('id', text(formData, 'delete_id'));
-  if (error) throw new Error('Could not remove: ' + error.message);
+  if (error) await fail('Could not remove: ' + error.message);
   revalidatePath('/timesheet');
 }

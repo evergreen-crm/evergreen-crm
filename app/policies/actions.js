@@ -1,4 +1,5 @@
 'use server';
+import { fail } from '@/lib/fail';
 // Policy library: add policies, publish new versions (version control), sign digitally.
 import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/auth';
@@ -59,7 +60,7 @@ export async function updatePolicy(formData) {
     description: text(formData, 'description'), applies_to: text(formData, 'applies_to') ?? 'Both', require_signature: formData.get('require_signature') === 'on',
     active: formData.get('active') === 'on',
   }).eq('id', id);
-  if (error) throw new Error('Could not save: ' + error.message);
+  if (error) await fail('Could not save: ' + error.message);
   revalidatePath('/policies'); revalidatePath(`/policies/${id}`);
 }
 
@@ -68,6 +69,6 @@ export async function restoreVersion(formData) {
   const { supabase } = await requireUser(['admin']);
   const id = text(formData, 'policy_id');
   const { error } = await supabase.from('policies').update({ current_version_id: text(formData, 'version_id') }).eq('id', id);
-  if (error) throw new Error('Could not restore: ' + error.message);
+  if (error) await fail('Could not restore: ' + error.message);
   revalidatePath('/policies'); revalidatePath(`/policies/${id}`);
 }
