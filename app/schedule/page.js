@@ -13,7 +13,8 @@ import MonthTab from './MonthTab';
 export default async function SchedulePage({ searchParams }) {
   const sp = await searchParams;
   const { supabase, profile } = await requireUser(['admin', 'manager', 'staff']);
-  const canEdit = ['admin', 'manager'].includes(profile.role);
+  // Program Coordinators (level 2) also add shifts for the house they schedule (Nov 21); the database checks the house.
+  const canEdit = ['admin', 'manager'].includes(profile.role) || (levelOf(profile) >= 2 && !profile.staff_group);
   const tab = sp.tab ?? 'month';
   const lead = levelOf(profile) >= 2 || profile.role === 'admin';
   const flash = (
