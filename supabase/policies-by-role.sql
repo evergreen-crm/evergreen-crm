@@ -9,3 +9,10 @@ update public.policies set applies_roles = '{pc}' where code in ('ECC-SHSS-DUTY-
 update public.policies set applies_roles = '{pm}' where code in ('ECC-SHSS-DUTY-2026-001-PM', 'ECC-PM-MAN-2026-001', 'ECC-MED-2026-001-IMP-PM') and applies_roles is null;
 update public.policies set applies_roles = '{pc,pm}' where code = 'ECC-SHSS-DUTY-2026-001' and applies_roles is null;
 update public.policies set applies_roles = '{ed}' where code = 'ECC-SHSS-DUTY-2026-001-ED' and applies_roles is null;
+
+-- Melvin, Nov 22 2026: each role signs its own manual and binders (they were "for reference" before).
+update public.policies set require_signature = true
+ where code in ('ECC-SHSS-DUTY-2026-001-PC', 'ECC-PC-MAN-2026-001', 'ECC-MED-2026-001-IMP-PC',
+                'ECC-SHSS-DUTY-2026-001-PM', 'ECC-PM-MAN-2026-001', 'ECC-MED-2026-001-IMP-PM',
+                'ECC-SHSS-DUTY-2026-001', 'ECC-SHSS-DUTY-2026-001-ED')
+   and applies_roles is not null;
