@@ -5,6 +5,7 @@ import { requireUser } from '@/lib/auth';
 import { levelOf } from '@/lib/levels';
 import { courseByKey } from '@/lib/courses/catalog';
 import { savePaperworkPdf } from '@/lib/paperworkPdf';
+import { fmtDate } from '@/lib/options';
 
 const SETUP = 'Lesson tracking isn’t switched on yet. Please tell the office (setup file: academy-integrity.sql).';
 
@@ -46,7 +47,7 @@ export async function gradeInDatabase(key, answers) {
       lines: [
         `Evergreen Academy course: ${course?.trainingTitle ?? key}`,
         `Result: ${data.score} of ${data.total} correct (${data.percent}%). Passed.`,
-        data.expires_on ? `Refresher due by ${data.expires_on}.` : 'No refresher date set for this course.',
+        data.expires_on ? `Refresher due by ${fmtDate(String(data.expires_on).slice(0, 10))}.` : 'No refresher date set for this course.',
       ],
     });
   }

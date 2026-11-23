@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { gradeOrientation } from './actions';
+import { fmtDate } from '@/lib/options';
 
 export default function Quiz({ questions, passPercent, grade }) {
   const [answers, setAnswers] = useState({});
@@ -35,7 +36,7 @@ export default function Quiz({ questions, passPercent, grade }) {
           <strong>{res.passed ? '🎉 Passed!' : 'Not passed yet'}</strong> — you scored {res.score}/{res.total} ({res.percent}%). Pass mark is {passPercent}%.
           {res.passed && (res.recorded ? ' The course has been added to your training record for your manager to verify.' : ' (Your training record could not be updated — please tell your manager.)')}
           {res.passed && res.recorded && (res.expires_on
-            ? <> <strong>Renew by {res.expires_on}</strong> (every {res.renew_months === 12 ? 'year' : `${res.renew_months / 12} years`}, per the training standard) — you’ll be reminded before it’s due.</>
+            ? <> <strong>Renew by {fmtDate(String(res.expires_on).slice(0, 10))}</strong> (every {res.renew_months === 12 ? 'year' : `${res.renew_months / 12} years`}, per the training standard) — you’ll be reminded before it’s due.</>
             : ' No renewal needed for this course.')}
           {!res.passed && ' The questions you got wrong are marked ✗. Watch the whole lesson again, then try once more.'}
         </div>
