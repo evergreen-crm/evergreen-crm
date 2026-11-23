@@ -76,11 +76,13 @@ export default async function Records({ searchParams }) {
   const hName = Object.fromEntries((homes.data ?? []).map((h) => [h.id, h.name]));
   const stageF = Number(sp?.stage) || null;
   const homeF = sp?.home ?? null;
-  let gaps = open.data ?? [];
+  // HR works on staff details only (the database also hides youth from HR: supabase/record-gaps-hr-staff-only.sql).
+  const staffOnly = !!groupOf(profile) && profile.role !== 'admin';
+  let gaps = (open.data ?? []).filter((g) => !staffOnly || g.kind === 'staff');
   const allOpen = gaps;
   if (stageF) gaps = gaps.filter((g) => g.stage === stageF);
   if (homeF) gaps = gaps.filter((g) => (homeF === 'none' ? !g.home_id : g.home_id === homeF));
-  const fixedRows = fixed.data ?? [];
+  const fixedRows = (fixed.data ?? []).filter((g) => !staffOnly || g.kind === 'staff');
   const avgFix = fixedRows.length ? Math.round(fixedRows.reduce((t, g) => t + days(g.found_at, g.fixed_at), 0) / fixedRows.length) : null;
 
   // One card per person / house

@@ -7,6 +7,7 @@ import { fmtDate } from '@/lib/options';
 import KpiCard from './KpiCard';
 import { AREAS, STATUS, SCORECARD, loadKpiData, computeKpis, visibleKpis, scorecard, overallCompliance } from '@/lib/kpis';
 import Abbr from '@/app/components/Abbr';
+import { getGrants, kpiLinks } from '@/lib/portal';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,7 @@ export default async function KpiPage() {
   const months = (snaps ?? []).slice().reverse();
   const mLabel = (m) => new Date(m + 'T12:00:00').toLocaleDateString('en-CA', { month: 'short', year: 'numeric' });
   const cell = (v, target) => v === null || v === undefined ? <span className="muted">—</span> : <>{v >= target ? '🟢' : v >= target - 5 ? '🟡' : '🔴'} {v}%</>;
-  const kpis = visibleKpis(computeKpis(data), profile, data.kpiOwners);
+  const kpis = kpiLinks(visibleKpis(computeKpis(data), profile, data.kpiOwners), profile, await getGrants(supabase, profile));
   const group = groupOf(profile);
   const card = scorecard(kpis);
   const overall = overallCompliance(kpis);
