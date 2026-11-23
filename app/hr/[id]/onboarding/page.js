@@ -10,7 +10,7 @@ export default async function StaffOnboarding({ params }) {
   const { id } = await params;
   const { supabase, profile } = await requireHR();
   const [{ data: person }, { data: onb }, { data: details }] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, email, role').eq('id', id).maybeSingle(),
+    supabase.from('profiles').select('id, full_name, email, role, level, staff_group').eq('id', id).maybeSingle(),
     supabase.from('onboardings').select('*').eq('profile_id', id).maybeSingle(),
     supabase.from('staff_details').select('hire_date, program').eq('profile_id', id).maybeSingle(),
   ]);

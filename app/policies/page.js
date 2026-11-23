@@ -8,6 +8,7 @@ import ProgramBadge from '@/app/components/ProgramBadge';
 import { fmtDate, fmtDateTime } from '@/lib/options';
 import PolicyUpload from './PolicyUpload';
 import PrintButton from '@/app/PrintButton';
+import { policyFor, appliesToProgram, roleNames } from '@/lib/policyDue';
 
 export default async function PoliciesPage({ searchParams }) {
   const sp = await searchParams;
@@ -21,7 +22,7 @@ export default async function PoliciesPage({ searchParams }) {
   ]);
   const myProgram = me?.program ?? 'Both';
   const prog = sp.program ?? '';
-  const forMe = (p) => appliesTo(p.applies_to, myProgram);
+  const forMe = (p) => policyFor(p, myProgram, profile);
   const signedFor = (p) => myAcks?.find((a) => a.policy_version_id === p.current?.id);
   // Once a policy is signed it is locked and leaves the person's list (everyone except HR, directors and the Administrator).
   const hideSigned = !canPullPolicyFiles(profile);
@@ -45,7 +46,7 @@ export default async function PoliciesPage({ searchParams }) {
         <div className="stat"><strong>{shown.length}</strong><span>policies</span></div>
       </div>
 
-      <p className="small">You work in: <ProgramBadge program={myProgram} /> — you only need to sign policies marked for your program.</p>
+      <p className="small">You work in: <ProgramBadge program={myProgram} /> — you only need to sign policies marked for your program and your job.</p>
       <nav className="tabs-bar no-print">
         <Link href="/policies" className={!prog ? 'on' : ''}>All</Link>
         <Link href="/policies?program=MCFD" className={prog === 'MCFD' ? 'on' : ''}>MCFD (children & youth)</Link>
@@ -63,11 +64,11 @@ export default async function PoliciesPage({ searchParams }) {
                   <Link href={`/policies/${p.id}`}>
                     <span>
                       <ProgramBadge program={p.applies_to} /> <strong>{p.title}</strong>
-                      <span className="muted small"> · {p.code ? `${p.code} · ` : ''}v{p.current?.version_label ?? '—'}{p.current?.effective_date && ` · effective ${fmtDate(p.current.effective_date)}`}</span>
+                      <span className="muted small"> · {p.code ? `${p.code} · ` : ''}v{p.current?.version_label ?? '—'}{p.current?.effective_date && ` · effective ${fmtDate(p.current.effective_date)}`}{p.applies_roles?.length ? ` · for ${roleNames(p.applies_roles)}` : ''}</span>
                     </span>
                     <span className="small">
                       {!p.require_signature ? <span className="badge">For reference</span>
-                        : !forMe(p) ? <span className="muted">Not for your program</span>
+                        : !forMe(p) ? <span className="muted">{appliesToProgram(p.applies_to, myProgram) ? 'Not for your job' : 'Not for your program'}</span>
                         : ack ? <span className="badge">✓ Signed {fmtDateTime(ack.signed_at)}</span>
                         : <span className="badge bad">Read and sign</span>}
                     </span>

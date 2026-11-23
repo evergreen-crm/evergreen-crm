@@ -1,4 +1,5 @@
 'use server';
+import { POLICY_ROLES } from '@/lib/policyDue';
 import { fail } from '@/lib/fail';
 // Policy library: add policies, publish new versions (version control), sign digitally.
 import { revalidatePath } from 'next/cache';
@@ -59,6 +60,7 @@ export async function updatePolicy(formData) {
     title: text(formData, 'title'), code: text(formData, 'code'), category: text(formData, 'category'),
     description: text(formData, 'description'), applies_to: text(formData, 'applies_to') ?? 'Both', require_signature: formData.get('require_signature') === 'on',
     active: formData.get('active') === 'on',
+    applies_roles: (() => { const r = formData.getAll('applies_roles').map(String).filter((k) => POLICY_ROLES.some((x) => x.key === k)); return r.length ? r : null; })(),
   }).eq('id', id);
   if (error) await fail('Could not save: ' + error.message);
   revalidatePath('/policies'); revalidatePath(`/policies/${id}`);

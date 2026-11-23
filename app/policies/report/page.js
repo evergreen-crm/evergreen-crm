@@ -1,5 +1,6 @@
 // Printable sign-off report: every policy, current version, and each person's signature (name, date, time).
 // ?person=<id> prints one staff member's sign-off record (personnel file item 14).
+import { policyFor } from '@/lib/policyDue';
 import Link from 'next/link';
 import { requireUser, requireHR } from '@/lib/auth';
 import { appliesTo } from '@/lib/onboarding';
@@ -14,7 +15,7 @@ export default async function SignOffReport({ searchParams }) {
     supabase.from('policies').select('*').eq('active', true).eq('require_signature', true).order('category').order('title'),
     supabase.from('policy_versions').select('id, policy_id, version_label, effective_date'),
     supabase.from('policy_acks').select('policy_version_id, profile_id, signed_name, signed_at'),
-    supabase.from('profiles').select('id, full_name, role, staff_details(employee_no, program)').in('role', ['admin', 'manager', 'staff']).eq('active', true).order('full_name'),
+    supabase.from('profiles').select('id, full_name, role, level, staff_group, staff_details(employee_no, program)').in('role', ['admin', 'manager', 'staff']).eq('active', true).order('full_name'),
   ]);
   const sd = (x) => (Array.isArray(x.staff_details) ? x.staff_details[0] : x.staff_details) ?? {};
   const person = sp.person ? people?.find((x) => x.id === sp.person) : null;
@@ -25,7 +26,7 @@ export default async function SignOffReport({ searchParams }) {
   let total = 0, signed = 0;
   for (const p of policies ?? []) for (const x of people ?? []) {
     if (person && x.id !== person.id) continue;
-    if (!appliesTo(p.applies_to, sd(x).program)) continue;
+    if (!policyFor(p, sd(x).program, x)) continue;
     total++; if (ack(p.current_version_id, x.id)) signed++;
   }
 
@@ -63,7 +64,7 @@ export default async function SignOffReport({ searchParams }) {
         <table className="wide">
           <thead><tr><th>Policy</th><th>Program</th><th>Version</th><th>Signed as</th><th>Date and time</th></tr></thead>
           <tbody>
-            {(policies ?? []).filter((p) => appliesTo(p.applies_to, sd(person).program)).map((p) => {
+            {(policies ?? []).filter((p) => policyFor(p, sd(person).program, person)).map((p) => {
               const v = vById[p.current_version_id]; const a = ack(p.current_version_id, person.id);
               return (
                 <tr key={p.id}>
@@ -80,7 +81,7 @@ export default async function SignOffReport({ searchParams }) {
       ) : (
         (policies ?? []).map((p, i) => {
           const v = vById[p.current_version_id];
-          const team = (people ?? []).filter((x) => appliesTo(p.applies_to, sd(x).program));
+          const team = (people ?? []).filter((x) => policyFor(p, sd(x).program, x));
           const n = team.filter((x) => ack(p.current_version_id, x.id)).length;
           return (
             <section key={p.id} className={i > 0 ? 'page-break' : ''}>

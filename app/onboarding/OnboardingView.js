@@ -1,4 +1,5 @@
 // The onboarding checklist — used by the staff member (/onboarding) and by managers (/hr/[id]/onboarding).
+import { policyFor } from '@/lib/policyDue';
 import Link from 'next/link';
 import { SECTIONS, LEGACY_SECTIONS, templateFor, appliesTo } from '@/lib/onboarding';
 import ProgramBadge from '@/app/components/ProgramBadge';
@@ -183,14 +184,14 @@ export default async function OnboardingView({ supabase, onb, person, viewer, no
     urls = Object.fromEntries((data ?? []).map((s) => [s.path, s.signedUrl]));
   }
   const [{ data: policiesAll }, { data: acks }] = await Promise.all([
-    supabase.from('policies').select('id, title, code, applies_to, current_version_id, current:current_version_id(version_label)')
+    supabase.from('policies').select('id, title, code, applies_to, applies_roles, current_version_id, current:current_version_id(version_label)')
       .eq('active', true).eq('require_signature', true).order('title'),
     supabase.from('policy_acks').select('policy_version_id, signed_at, signed_name').eq('profile_id', onb.profile_id),
   ]);
   const { data: idCard } = await supabase.from('id_cards').select('photo_status, photo_note, issued_on, expires_on, location_ack_at').eq('profile_id', onb.profile_id).maybeSingle();
   const idDone = (idCard?.photo_status === 'Approved' ? 1 : 0) + (idCard?.location_ack_at ? 1 : 0);
   const program = onb.program ?? 'Both';
-  const policies = (policiesAll ?? []).filter((p) => appliesTo(p.applies_to, program));
+  const policies = (policiesAll ?? []).filter((p) => policyFor(p, program, person));
   const ackFor = (pol) => acks?.find((a) => a.policy_version_id === pol.current_version_id);
   const polSigned = (policies ?? []).filter(ackFor).length;
   const today = todayISO();
