@@ -1,0 +1,63 @@
+# Nightly backup of the LIVE portal to OneDrive (backup@evergreencommunitycare.com): the whole database as text
+# files, and every new or changed uploaded file. Connect the OneDrive once on the portal: Admin -> 💾 Backup.
+# Repository secrets (Settings -> Secrets and variables -> Actions):
+#   LIVE_DB_PASSWORD   already there (used by "Copy live database to test")
+#   LIVE_SERVICE_KEY   the live project's secret key (Supabase -> Project Settings -> API Keys -> secret key).
+#                      Without it only the database is backed up, not the uploaded files.
+# Runs every night at 2:17 am BC time, or by hand: Actions -> "Nightly backup to OneDrive" -> Run workflow.
+name: Nightly backup to OneDrive
+
+on:
+  schedule:
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      LIVE_PW: ${{ secrets.LIVE_DB_PASSWORD }}
+      LIVE_URL: ${{ secrets.LIVE_DB_URL }}
+      SERVICE_KEY: ${{ secrets.LIVE_SERVICE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the connection string
+        run: |
+          enc() { python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"; }
+          HOST=aws-0-ca-central-1.pooler.supabase.com:5432/postgres
+          if [ -n "$LIVE_URL" ]; then LIVE="$LIVE_URL"; elif [ -n "$LIVE_PW" ]; then LIVE="postgresql://postgres.pstvuqzbehljlixqhwhw:$(enc "$LIVE_PW")@$HOST"; fi
+          test -n "$LIVE" || { echo "Add the LIVE_DB_PASSWORD secret first."; exit 1; }
+          echo "::add-mask::$LIVE"
+          echo "LIVE=$LIVE" >> "$GITHUB_ENV"
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+          echo "PSQL=/usr/lib/postgresql/17/bin/psql" >> "$GITHUB_ENV"
+
+      - name: Dump the live database
+        run: |
+          supabase db dump --db-url "$LIVE" -f roles.sql --role-only
+          supabase db dump --db-url "$LIVE" -f schema.sql
+          supabase db dump --db-url "$LIVE" -f data.sql --use-copy --data-only -x storage.buckets_vectors -x storage.vector_indexes -x storage.buckets_analytics
+          ls -la *.sql
+
+      - name: Copy to OneDrive
+        run: python3 .github/scripts/onedrive_backup.py
+
+      - name: Remove the local copies
+        if: always()
+        run: rm -f roles.sql schema.sql data.sql
