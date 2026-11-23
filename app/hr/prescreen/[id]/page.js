@@ -103,6 +103,7 @@ async function LinkTab({ p, canHr, sender }) {
         <span className="muted small"> · works until {fmtDate(p.expires_at?.slice(0, 10))}</span>
         {p.require_code && p.email && ' · 🔒 email code'}</p>
       {p.link_emailed_at && <p className="message ok small">📧 The portal emailed the link to {p.link_emailed_to} on {fmtDateTime(p.link_emailed_at)}.</p>}
+      {p.reminders_sent > 0 && <p className="small muted">📨 Reminder{p.reminders_sent > 1 ? 's' : ''} sent: {p.reminders_sent} of 2 · last {fmtDateTime(p.last_reminded_at)}</p>}
       {p.draft_saved_at && <p className="small">💾 The applicant saved a draft {fmtDateTime(p.draft_saved_at)}.</p>}
       {p.link_status !== 'Cancelled' && !expired && (
         <div className="row" style={{ alignItems: 'center' }}>
