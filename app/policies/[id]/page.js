@@ -1,5 +1,6 @@
 // One policy: read the current version, sign it, version history, and (managers) who has signed.
 import { policyFor, appliesToProgram, roleNames, POLICY_ROLES } from '@/lib/policyDue';
+import { domainOf, domainLabel } from '@/lib/policyDomains';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
@@ -79,7 +80,7 @@ export default async function PolicyPage({ params, searchParams }) {
         <span className="div-icon">📘</span>
         <div>
           <h1>{p.title}</h1>
-          <p><ProgramBadge program={p.applies_to} /> {[p.code, p.category, current && `Version ${current.version_label}`, current?.effective_date && `effective ${fmtDate(current.effective_date)}`].filter(Boolean).join(' · ')}</p>
+          <p><ProgramBadge program={p.applies_to} /> {[p.code, domainOf(p.code) && `Domain ${domainLabel(domainOf(p.code))}`, p.category, current && `Version ${current.version_label}`, current?.effective_date && `effective ${fmtDate(current.effective_date)}`].filter(Boolean).join(' · ')}</p>
         </div>
         <span className="no-print">{myAck && copyUrls[myAck.id]
           ? <a className="button" href={copyUrls[myAck.id]} target="_blank" rel="noreferrer">🖨 Print my signed copy</a>

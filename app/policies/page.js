@@ -9,6 +9,7 @@ import { fmtDate, fmtDateTime } from '@/lib/options';
 import PolicyUpload from './PolicyUpload';
 import PrintButton from '@/app/PrintButton';
 import { policyFor, appliesToProgram, roleNames } from '@/lib/policyDue';
+import { DOMAINS, domainOf, domainLabel } from '@/lib/policyDomains';
 
 export default async function PoliciesPage({ searchParams }) {
   const sp = await searchParams;
@@ -22,16 +23,23 @@ export default async function PoliciesPage({ searchParams }) {
   ]);
   const myProgram = me?.program ?? 'Both';
   const prog = sp.program ?? '';
+  const dom = DOMAINS.find((d) => d.key === sp.domain) ? sp.domain : '';
   const forMe = (p) => policyFor(p, myProgram, profile);
   const signedFor = (p) => myAcks?.find((a) => a.policy_version_id === p.current?.id);
   // Once a policy is signed it is locked and leaves the person's list (everyone except HR, directors and the Administrator).
   const hideSigned = !canPullPolicyFiles(profile);
-  const shown = (policies ?? []).filter((p) => (sp.archived ? !p.active : p.active))
+  const base = (policies ?? []).filter((p) => (sp.archived ? !p.active : p.active))
     .filter((p) => !prog || (p.applies_to ?? 'Both') === prog || (prog !== 'Both' && p.applies_to === 'Both'))
     .filter((p) => !hideSigned || !(p.require_signature && signedFor(p)));
+  const shown = base.filter((p) => !dom || domainOf(p.code)?.key === dom);
   const needed = shown.filter((p) => p.require_signature && p.current && forMe(p) && !signedFor(p));
+  // Grouped by policy domain (D01–D11), in domain order; the code decides the domain.
   const groups = {};
-  for (const p of shown) (groups[p.category ?? 'Other'] ??= []).push(p);
+  for (const p of shown) (groups[domainLabel(domainOf(p.code))] ??= []).push(p);
+  const order = [...DOMAINS.map(domainLabel), domainLabel(null)];
+  const groupList = Object.entries(groups).sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
+  const countIn = (key) => base.filter((p) => domainOf(p.code)?.key === key).length;
+  const link = (q) => { const u = new URLSearchParams(); if (prog) u.set('program', prog); if (sp.archived) u.set('archived', '1'); for (const [k, v] of Object.entries(q)) if (v) u.set(k, v); const s = u.toString(); return s ? `/policies?${s}` : '/policies'; };
 
   return (
     <main>
@@ -47,13 +55,39 @@ export default async function PoliciesPage({ searchParams }) {
       </div>
 
       <p className="small">You work in: <ProgramBadge program={myProgram} /> — you only need to sign policies marked for your program and your job.</p>
+
+      <details className="card no-print" open={!!dom || undefined}>
+        <summary><strong>📚 How the policy library is organized</strong> <span className="muted small">— 11 domains; every policy has a domain number</span></summary>
+        <p className="small">Every policy belongs to one domain. You find its domain in the <strong>Policy Domain</strong> row of the document control table on its first page, and its file name starts with the same number. Click a domain to see only its policies.</p>
+        <table>
+          <thead><tr><th>Domain</th><th>Name</th><th>What it covers</th><th>Policies</th></tr></thead>
+          <tbody>
+            {DOMAINS.map((d) => (
+              <tr key={d.key} className={dom === d.key ? 'on' : ''}>
+                <td><Link href={link({ domain: dom === d.key ? '' : d.key })}><strong>{d.prefix}</strong></Link></td>
+                <td><Link href={link({ domain: dom === d.key ? '' : d.key })}>{d.name}</Link></td>
+                <td className="small">{d.covers}</td>
+                <td>{countIn(d.key)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="small"><strong>How to read a file name</strong> — <code>D03_ECC-SOS-2026-001_Schedule_of_Services_v1.2_BOTH</code>:</p>
+        <ul className="small">
+          <li><strong>D03</strong> – domain (Program Operations) · <strong>ECC</strong> – Evergreen Community Care · <strong>SOS</strong> – short code of the document</li>
+          <li><strong>2026</strong> – year first created · <strong>001</strong> – number when two documents share a short code (EP-001, EP-002)</li>
+          <li><strong>v1.2</strong> – version; only this changes when the policy is updated · <strong>BOTH / MCFD / CLBC</strong> – program it applies to</li>
+        </ul>
+      </details>
+
       <nav className="tabs-bar no-print">
-        <Link href="/policies" className={!prog ? 'on' : ''}>All</Link>
-        <Link href="/policies?program=MCFD" className={prog === 'MCFD' ? 'on' : ''}>MCFD (children & youth)</Link>
-        <Link href="/policies?program=CLBC" className={prog === 'CLBC' ? 'on' : ''}>CLBC (adults)</Link>
-        <Link href="/policies?program=Both" className={prog === 'Both' ? 'on' : ''}>Both only</Link>
+        <Link href={dom ? `/policies?domain=${dom}` : '/policies'} className={!prog ? 'on' : ''}>All</Link>
+        <Link href={`/policies?program=MCFD${dom ? `&domain=${dom}` : ''}`} className={prog === 'MCFD' ? 'on' : ''}>MCFD (children & youth)</Link>
+        <Link href={`/policies?program=CLBC${dom ? `&domain=${dom}` : ''}`} className={prog === 'CLBC' ? 'on' : ''}>CLBC (adults)</Link>
+        <Link href={`/policies?program=Both${dom ? `&domain=${dom}` : ''}`} className={prog === 'Both' ? 'on' : ''}>Both only</Link>
       </nav>
-      {Object.entries(groups).map(([cat, list]) => (
+      {dom && <p className="small no-print">Showing domain <strong>{domainLabel(DOMAINS.find((d) => d.key === dom))}</strong> · <Link href={link({})}>Show all domains</Link></p>}
+      {groupList.map(([cat, list]) => (
         <section key={cat}>
           <h2>{cat}</h2>
           <ul className="list">
