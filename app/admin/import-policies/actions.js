@@ -79,3 +79,16 @@ export async function compressOne(index) {
   revalidatePath('/policies');
   return { ok: true, message: `compressed to ${Math.round(bytes.length / 1024)} KB` };
 }
+
+// Folder upload: after a new version is published, set the program (MCFD / CLBC / Both) and title to match the file.
+export async function updatePolicyMeta({ policy_id, title, applies_to }) {
+  const { supabase } = await requireUser(['admin']);
+  if (!['MCFD', 'CLBC', 'Both'].includes(applies_to)) return { error: 'Unknown program' };
+  const t = typeof title === 'string' && title.trim() ? title.trim() : null;
+  const patch = { applies_to };
+  if (t) patch.title = t;
+  const { error } = await supabase.from('policies').update(patch).eq('id', policy_id);
+  if (error) return { error: error.message };
+  revalidatePath('/policies');
+  return { ok: true };
+}

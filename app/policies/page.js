@@ -120,6 +120,7 @@ export default async function PoliciesPage({ searchParams }) {
         <p className="no-print"><Link className="button secondary" href="/policies/report">🖨 Print all policies — read & signature report</Link></p>
       )}
       <p className="small no-print">{sp.archived ? <Link href="/policies">← Current policies</Link> : <Link href="/policies?archived=1">Archived policies</Link>}</p>
+      {isAdmin && <p className="no-print"><Link className="button secondary" href="/admin/import-policies">📂 Upload many policies from a folder</Link></p>}
       {isAdmin && <PolicyUpload mode="new" categories={POLICY_CATEGORIES} />}
     </main>
   );

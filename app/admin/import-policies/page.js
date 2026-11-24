@@ -5,15 +5,22 @@ import { requireUser } from '@/lib/auth';
 import { loadManifest } from './actions';
 import ImportRunner from './ImportRunner';
 import ProgramBadge from '@/app/components/ProgramBadge';
+import FolderUpload from './FolderUpload';
 
 export default async function ImportPolicies() {
-  await requireUser(['admin']);
+  const { supabase } = await requireUser(['admin']);
   const items = await loadManifest();
+  const { data: pols } = await supabase.from('policies').select('id, code, title, applies_to, active, current:current_version_id(version_label)');
+  const policies = (pols ?? []).map((p) => ({ id: p.id, code: p.code, title: p.title, applies_to: p.applies_to ?? 'Both', active: p.active, version: p.current?.version_label ?? null }));
   return (
     <main>
       <p className="small"><Link href="/policies">← Policies</Link></p>
-      <h1>Import policy manuals</h1>
-      <p className="muted">{items.length} manuals from D:\MCFD MANUALS, converted to PDF with a version-control footer on every page. Safe to run more than once — anything already imported is skipped.</p>
+      <h1>Upload policies</h1>
+      <h2>Upload from a folder you choose</h2>
+      <FolderUpload policies={policies} />
+      <details>
+        <summary><strong>Earlier: the November 16 import</strong> <span className="muted small">— {items.length} manuals that were built into the CRM; not needed again</span></summary>
+      <p className="muted">{items.length} manuals from D:\MCFD MANUALS (November 16 copies), converted to PDF with a version-control footer on every page. Safe to run more than once — anything already imported is skipped.</p>
       <h2>1. Import (first time)</h2>
       <ImportRunner items={items} />
       <h2>2. Compress</h2>
@@ -35,6 +42,7 @@ export default async function ImportPolicies() {
           ))}
         </tbody>
       </table>
+      </details>
     </main>
   );
 }
