@@ -9,8 +9,8 @@ import StorageUsage from './StorageUsage';
 
 // Pre-screen positions -> the pay-rate position used on the offer letter (only if that position exists).
 const PS_TO_PAY = {
-  'Youth Care Worker': 'Youth Worker', 'Residential Support Worker (Adults)': 'Support Worker I', 'Community Support Worker': 'Support Worker I',
-  'Relief / Casual Support Worker': 'Support Worker I', 'Overnight Awake Support': 'Support Worker I', 'House Lead / Coordinator': 'Senior / Lead Support Worker',
+  'Youth Care Worker': 'Child & Youth Care Worker', 'Residential Support Worker (Adults)': 'Community Support Worker I', 'Community Support Worker': 'Community Support Worker I',
+  'Relief / Casual Support Worker': 'Community Support Worker I', 'Overnight Awake Support': 'Community Support Worker I', 'House Lead / Coordinator': 'Team Leader',
 };
 function payPosition(pos, list) {
   const l = list ?? [];

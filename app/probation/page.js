@@ -111,7 +111,7 @@ export default async function Probation({ searchParams }) {
                 {canAdd.map((p) => <option key={p.id} value={p.id}>{p.full_name}{p.home_id ? ` — ${hName[p.home_id] ?? ''}` : ''}{det[p.id]?.hire_date ? ` (hired ${det[p.id].hire_date})` : ''}</option>)}
               </select></label>
               <label>Hire date<input type="date" name="hire_date" required defaultValue={today} /></label>
-              <label>Position<input name="position" placeholder="e.g. Support Worker I" /></label>
+              <label>Position<input name="position" placeholder="e.g. Child & Youth Care Worker" /></label>
             </div>
             <button>Add and book reviews</button>
           </form>

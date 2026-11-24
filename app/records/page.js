@@ -16,7 +16,7 @@ const STAGE = {
 };
 const FILLABLE = ['hire_date', 'program', 'position', 'employment', 'emergency', 'phone'];
 const KIND_ICON = { house: '🏠 ', resident: '🧒 ', staff: '👤 ' };
-const POSITIONS = ['Youth Worker', 'Support Worker', 'Senior Support Worker', 'Program Coordinator', 'Program Manager', 'Director of Operations', 'Office / Admin'];
+const POSITIONS = ['Child & Youth Care Worker', 'Community Support Worker I', 'Community Support Worker II', 'Team Leader', 'Program Coordinator', 'Program Manager', 'Clinical Lead', 'HR', 'Payroll', 'Director of Operations', 'Executive Director', 'Chief Strategic Officer', 'Chief Executive Officer'];
 const days = (a, b) => Math.max(0, Math.round((new Date(b) - new Date(a)) / 864e5));
 
 function FillForm({ id, fields }) {
@@ -37,7 +37,7 @@ function FillForm({ id, fields }) {
           </label>
         )}
         {f.has('position') && (
-          <label>Position<input name="position" list="positions" placeholder="e.g. Youth Worker" /></label>
+          <label>Position<input name="position" list="positions" placeholder="e.g. Child & Youth Care Worker" /></label>
         )}
         {f.has('employment') && (
           <label>Full-time, part-time or casual

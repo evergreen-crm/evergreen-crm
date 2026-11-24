@@ -35,6 +35,13 @@ export default async function StaffHrPage({ params, searchParams }) {
   const onbDone = (onbItems ?? []).filter((i) => ['Verified', 'N/A'].includes(i.status)).length;
   const onbWaiting = (onbItems ?? []).filter((i) => i.status === 'Submitted').length;
   const { data: idCard } = await supabase.from('id_cards').select('*').eq('profile_id', id).maybeSingle();
+  // Positions (Phase A1): the pay positions for the drop-down, and the roles that can be held as a second role.
+  const [{ data: payPositions }, { data: roleList }] = await Promise.all([
+    supabase.from('pay_rates').select('position, position_key, active, sort').eq('active', true).order('sort'),
+    supabase.from('positions').select('key, title, also_role, employee').eq('active', true).order('sort'),
+  ]);
+  const alsoRoles = (roleList ?? []).filter((r) => r.also_role);
+  const roleTitle = (k) => (roleList ?? []).find((r) => r.key === k)?.title ?? k;
   // Hiring record: the screening file they were hired from (only people who can open screening files see it).
   const { data: hiredFrom } = await supabase.from('prescreens').select('id, application_no, hired_at').eq('profile_id', id).maybeSingle();
   let idPhoto = null;
@@ -181,7 +188,13 @@ export default async function StaffHrPage({ params, searchParams }) {
         <form action={saveStaffDetails} className="card" id="details">
           <input type="hidden" name="profile_id" value={person.id} />
           <div className="row">
-            <label>Position<input name="position" defaultValue={details?.position ?? ''} placeholder="e.g., Support Worker" /></label>
+            <label>Position
+              <select name="position" defaultValue={details?.position ?? ''}>
+                <option value="">— choose —</option>
+                {(payPositions ?? []).map((p) => <option key={p.position} value={p.position}>{p.position}</option>)}
+                {details?.position && !(payPositions ?? []).some((p) => p.position === details.position) && <option value={details.position}>{details.position} (old name)</option>}
+              </select>
+            </label>
             <label>
               Employment type
               <select name="employment_type" defaultValue={details?.employment_type ?? ''}>
@@ -201,6 +214,14 @@ export default async function StaffHrPage({ params, searchParams }) {
               </select>
             </label>
           </div>
+          {alsoRoles.length > 0 && (
+            <fieldset className="row">
+              <legend className="small">Also holds (second role) — <Link href="/hr/positions">see all positions</Link></legend>
+              {alsoRoles.map((r) => (
+                <label key={r.key} className="check"><input type="checkbox" name="also_roles" value={r.key} defaultChecked={(details?.also_roles ?? []).includes(r.key)} /> {r.title}</label>
+              ))}
+            </fieldset>
+          )}
           <div className="row">
             <label>Emergency contact<input name="emergency_contact" defaultValue={details?.emergency_contact ?? ''} /></label>
             <label>Emergency phone<input name="emergency_phone" type="tel" inputMode="tel" defaultValue={details?.emergency_phone ?? ''} /></label>
@@ -211,7 +232,7 @@ export default async function StaffHrPage({ params, searchParams }) {
         </form>
       ) : (
         <div className="card">
-          <p>Position: {details?.position ?? '—'} {details?.employment_type && `(${details.employment_type})`}</p>
+          <p>Position: {details?.position ?? '—'} {details?.employment_type && `(${details.employment_type})`}{(details?.also_roles ?? []).length > 0 && ` · also ${details.also_roles.map(roleTitle).join(', ')}`}</p>
           <p>Hire date: {details?.hire_date ?? '—'}</p>
           <p>Emergency contact: {details?.emergency_contact ?? '—'} {details?.emergency_phone}</p>
         </div>

@@ -27,6 +27,7 @@ export async function saveStaffDetails(formData) {
     emergency_phone: text(formData, 'emergency_phone'),
     notes: text(formData, 'notes'),
     program: ['MCFD', 'CLBC', 'Both'].includes(text(formData, 'program')) ? text(formData, 'program') : 'Both',
+    also_roles: formData.getAll('also_roles').filter((v) => typeof v === 'string' && /^[a-z_]{2,20}$/.test(v)),
     updated_at: new Date().toISOString(),
   });
   if (error) await fail('Could not save details: ' + error.message);

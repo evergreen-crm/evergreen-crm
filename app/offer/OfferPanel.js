@@ -35,7 +35,7 @@ export default async function OfferPanel({ supabase, person, details, canEdit, i
           <form action={createOffer}>
             <input type="hidden" name="profile_id" value={person.id} />
             <div className="row">
-              <label>Position<input name="position" required defaultValue={details?.position ?? 'Youth Worker'} /></label>
+              <label>Position<input name="position" required defaultValue={details?.position ?? 'Child & Youth Care Worker'} /></label>
               <label>Program<select name="program" defaultValue={details?.program ?? 'Both'}><option>MCFD</option><option>CLBC</option><option>Both</option></select></label>
               <label>Employment type<select name="employment_type" defaultValue={details?.employment_type ?? 'Part-time'}><option>Full-time</option><option>Part-time</option><option>Casual</option></select></label>
             </div>
