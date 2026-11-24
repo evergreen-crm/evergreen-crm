@@ -56,8 +56,15 @@ export default async function PoliciesPage({ searchParams }) {
 
       <p className="small">You work in: <ProgramBadge program={myProgram} /> — you only need to sign policies marked for your program and your job.</p>
 
+      <nav className="tabs-bar no-print" aria-label="Policy domains">
+        <Link href={link({})} className={!dom ? 'on' : ''}>All domains</Link>
+        {DOMAINS.map((d) => (
+          <Link key={d.key} href={link({ domain: d.key })} className={dom === d.key ? 'on' : ''} title={d.name}>{d.prefix} {d.name} ({countIn(d.key)})</Link>
+        ))}
+      </nav>
+
       <details className="card no-print" open={!!dom || undefined}>
-        <summary><strong>📚 How the policy library is organized</strong> <span className="muted small">— 11 domains; every policy has a domain number</span></summary>
+        <summary><strong>📚 What each domain covers, and how to read a file name</strong> <span className="muted small">— press to open</span></summary>
         <p className="small">Every policy belongs to one domain. You find its domain in the <strong>Policy Domain</strong> row of the document control table on its first page, and its file name starts with the same number. Click a domain to see only its policies.</p>
         <table>
           <thead><tr><th>Domain</th><th>Name</th><th>What it covers</th><th>Policies</th></tr></thead>
