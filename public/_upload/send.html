@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><script>
+(async () => {
+  const parent_ = 'https://evergreen-crm-azure.vercel.app';
+  const list = (await (await fetch('list.txt')).text()).split('\n');
+  let dir = '';
+  for (const line of list) {
+    if (!line.trim()) continue;
+    if (line.endsWith(':')) { dir = line.slice(0, -1); continue; }
+    const blob = await (await fetch(dir + '/' + line)).blob();
+    parent.postMessage({ name: dir + '/' + line, blob }, parent_);
+  }
+  parent.postMessage({ done: true }, parent_);
+})().catch((e) => parent.postMessage({ error: String(e) }, 'https://evergreen-crm-azure.vercel.app'));
+</script>
