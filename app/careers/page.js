@@ -6,6 +6,7 @@ import { fmtDate } from '@/lib/options';
 import { requestPromotion, decidePromotion } from './actions';
 import NotReady from '@/app/components/NotReady';
 import { plainError } from '@/lib/plain';
+import { careerStatus } from '@/lib/career';
 
 const PHASES = ['At launch', 'After 6 months', 'Year 1+'];
 const CAT_ICON = { Recognition: '🌟', Growth: '🌱', Schedule: '🗓', Wellbeing: '💚', Pay: '💵', Practical: '🧰' };
@@ -27,8 +28,11 @@ export default async function Careers({ searchParams }) {
   const mine = (promos ?? []).filter((p) => p.staff_id === user.id);
   // Starting step from the access level (1-2 frontline/PC, 3 PM, 4+ leadership), raised by approved promotions.
   const levelStep = profile.role === 'admin' ? 6 : lvl >= 4 ? 6 : lvl === 3 ? 5 : lvl === 2 && !profile.staff_group ? 4 : 1;
-  const myStep = Math.max(levelStep, ...mine.filter((p) => p.status === 'Approved').map((p) => p.to_step));
+  // Automatic check (Nov 24 2026): the step comes from the person's position; the next step is checked against their records.
+  const auto = ladder?.length ? await careerStatus(supabase, user.id, { ladder }) : null;
+  const myStep = Math.max(levelStep, auto?.step ?? 1, ...mine.filter((p) => p.status === 'Approved').map((p) => p.to_step));
   const next = step(myStep + 1);
+  const checks = auto && auto.next?.step === next?.step ? auto : null;
   const myOpen = mine.find((p) => OPEN.includes(p.status));
   const months = me?.hire_date ? Math.floor((Date.now() - new Date(me.hire_date + 'T12:00:00')) / (30.44 * 86400000)) : null;
   const queue = lvl >= 3 ? (promos ?? []).filter((p) => OPEN.includes(p.status) && p.staff_id !== user.id) : [];
@@ -51,6 +55,15 @@ export default async function Careers({ searchParams }) {
               <p><strong>Next: Step {next.step} — {next.title}</strong> (at least {next.min_months} months{next.requires_board ? ', Board of Directors decision' : ''})</p>
               <p className="small">{next.requirements}</p>
               {next.unlocks && <p className="small">🎁 <strong>Unlocks:</strong> {next.unlocks}</p>}
+              {checks && (
+                <>
+                  <p className="small"><strong>Checked automatically every night:</strong> {checks.ready ? '✅ you meet every requirement the system can check — a review is opened for you.' : 'when every line is ✅ a promotion review opens on its own.'}</p>
+                  <ul className="checklist small">
+                    {checks.checks.map((c) => <li key={c.label}><span className="req-text"><span>{c.ok ? '✅' : '⬜'}</span><span>{c.label} <span className="muted">({c.have})</span></span></span></li>)}
+                    {checks.manual.map((m) => <li key={m}><span className="req-text"><span>👤</span><span>{m} <span className="muted">(confirmed by a person)</span></span></span></li>)}
+                  </ul>
+                </>
+              )}
               {myOpen ? (
                 <p className="badge warn">Your request for Step {myOpen.to_step} is in progress: {myOpen.status}</p>
               ) : (
@@ -80,7 +93,7 @@ export default async function Careers({ searchParams }) {
           </tr>))}
         </tbody>
       </table>
-      <p className="muted small">Management positions (Program Coordinator and above) need at least 24 months at Evergreen, two satisfactory performance reviews in the last 12 months, and a decision by the Board of Directors.</p>
+      <p className="muted small">Management positions (Program Coordinator and above) need at least 24 months at Evergreen, two satisfactory performance reviews in the last 12 months, and a decision by the Board of Directors. Team Leader is a training position toward Program Coordinator, Program Manager or program lead. Every night the CRM checks each person against their next step and opens a review when they qualify.</p>
 
       <h2>Staff perks</h2>
       <div className="grid2">
@@ -117,7 +130,7 @@ export default async function Careers({ searchParams }) {
               <div key={p.id} className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                   <strong><Link href={`/hr/${p.staff_id}`}>{pName[p.staff_id] ?? 'Staff'}</Link> → Step {p.to_step}: {s?.title}</strong>
-                  <span className={`badge${p.status === 'Board review' ? ' warn' : ''}`}>{p.status}</span>
+                  <span>{p.auto && <span className="badge" title="Opened by the nightly check: every automatic requirement is met">🤖 Qualified automatically</span>} <span className={`badge${p.status === 'Board review' ? ' warn' : ''}`}>{p.status}</span></span>
                 </div>
                 <p className="small muted">{p.months_at_evergreen != null ? `${p.months_at_evergreen} months at Evergreen` : 'Hire date not in HR file'} · {p.satisfactory_reviews ?? 0} satisfactory reviews recorded{board ? ' · needs Board of Directors decision' : ''}</p>
                 {p.evidence && <p className="small">“{p.evidence}”</p>}
