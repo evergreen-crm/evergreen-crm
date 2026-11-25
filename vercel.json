@@ -1,5 +1,19 @@
 {
   "crons": [
-    { "path": "/api/cron/daily", "schedule": "0 14 * * *" }
+    {
+      "path": "/api/cron/daily",
+      "schedule": "0 14 * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/_upload/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://evergreen-crm-azure.vercel.app"
+        }
+      ]
+    }
   ]
 }
