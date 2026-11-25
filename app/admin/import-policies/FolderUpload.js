@@ -80,7 +80,7 @@ export default function FolderUpload({ policies }) {
             res = await updatePolicyMeta({ policy_id: r.policy.id, title: r.title, applies_to: r.setProgram ? r.stream : r.policy.applies_to });
           }
         } else {
-          res = await createPolicy({ ...info, title: r.title, code: r.code, category: 'Other', description: '', applies_to: r.stream, require_signature: false });
+          res = await createPolicy({ ...info, title: r.title, code: r.code, category: r.code.startsWith('ECC-ROLE-') ? 'Job descriptions' : 'Other', description: '', applies_to: r.stream, require_signature: false });
         }
         if (res?.error) throw new Error(res.error);
         result = { ok: true, text: `Uploaded v${r.version}` };
