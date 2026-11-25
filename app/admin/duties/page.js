@@ -9,7 +9,7 @@ import { toggleDuty } from './actions';
 export const dynamic = 'force-dynamic';
 
 const DOMAINS = { 1: 'Governance & Leadership', 2: 'Client Care & Clinical Practice', 3: 'Program Operations', 4: 'Human Resources', 5: 'Finance & Administration', 6: 'Quality Assurance', 7: 'Health, Safety & Emergency', 8: 'IT & Privacy', 9: 'Corporate Compliance', 10: 'Management & Leadership', 11: 'Policy Maps & Templates' };
-const ROLE_NAMES = { support_worker: 'Support / youth care worker', home_lead: 'Home lead', program_coordinator: 'Program Coordinator', program_manager: 'Program Manager', clinical_lead: 'Clinical Lead', executive_director: 'Executive Director' };
+const ROLE_NAMES = { support_worker: 'Care worker (CYW / CSW)', home_lead: 'Team Leader', program_coordinator: 'Program Coordinator', program_manager: 'Program Manager', clinical_lead: 'Clinical Lead', executive_director: 'Executive Director', hr: 'HR', payroll: 'Payroll', director_of_operations: 'Director of Operations', cso: 'Chief Strategic Officer', ceo: 'CEO', board: 'Board of Directors' };
 
 function whenText(d) {
   if (d.trigger_kind === 'schedule') {
